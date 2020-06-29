@@ -9,12 +9,16 @@
 # they need to take a sip. The player in turn changes after every guess.
 
 import random
+import time
 
 UPPER_BOUND = 100  # A constant for the number range
 
 
 # Checks if the player's guess was correct.
 # Takes an erroneous input into consideration.
+# crrnt = the current number
+# nxt = the next number
+# guess = the player's guess
 def check(crrnt, nxt, guess):
     # Trivial part
     if guess == "+":
@@ -30,6 +34,56 @@ def check(crrnt, nxt, guess):
         return check(crrnt, nxt, guess)
 
 
+def play_game(players):
+    rounds = 1
+    in_turn = 0  # Indicates who is in turn
+    crrnt = random.randint(0, UPPER_BOUND)  # The current number
+    nxt = random.randint(0, UPPER_BOUND)  # The next number
+    # The next number must not be the same as the previous one.
+    while nxt == crrnt:
+        nxt = random.randint(0, UPPER_BOUND)
+
+    # The game goes on until stopped.
+    while True:
+        print("Round {:d}:".format(rounds))
+        print()
+
+        player_in_turn = players[in_turn % len(players)]
+
+        for i in range(len(players)):
+            prompt = input(
+                "The current number is {:d}. Will the next one be bigger or "
+                "smaller? [+/-] ".format(crrnt))
+            print()
+
+            check_value = check(crrnt, nxt, prompt)
+            if check_value == "q":
+                return
+            elif check_value:
+                print("The next number is {:d}.".format(nxt))
+                print("Nice guess, {:s}!"
+                      .format(player_in_turn))
+                print()
+            else:
+                print("The next number is {:d}.".format(nxt))
+                print("Too bad. Now take a sip, {:s}!"
+                      .format(player_in_turn))
+                print()
+
+            # Updating the game for the next guess
+            crrnt = nxt
+            nxt = random.randint(0, UPPER_BOUND)
+            while nxt == crrnt:
+                nxt = random.randint(0, UPPER_BOUND)
+            in_turn += 1
+            player_in_turn = players[in_turn % len(players)]
+            input("It is now your turn, {:s}. Continue with ENTER."
+                  .format(player_in_turn))
+            print()
+
+        rounds += 1
+
+
 def main():
     print("Welcome to play 'Bigger or smaller'!")
     print("Guess whether the next number will be bigger (+) or not (-).")
@@ -41,51 +95,42 @@ def main():
     if prompt == "q" or prompt == "Q":
         print("Good bye!")
         return
-            
-    print("Let's go!")
+
+    # Asking for player info
+    players = []
+    prompt = input("How many players are playing? ")
     print()
 
-    rounds = 1
-    crrnt = random.randint(0, UPPER_BOUND)  # The current number
-    nxt = random.randint(0, UPPER_BOUND)  # The next number
-    # The next number must not be the same as the previous one.
-    while nxt == crrnt:
-        nxt = random.randint(0, UPPER_BOUND)
+    while True:
+        try:
+            prompt = int(prompt)
+            if prompt > 0:
+                for i in range(prompt):
+                    name = input("Give player {:d}'s name: ".format(i+1))
+                    players.append(name)
+                print()
+                break
 
-    print("Round {:d}:".format(rounds))
-    print()
-    prompt = input(
-        "The first number is {:d}. Will the next one be bigger or smaller? "
-        "[+/-] ".format(crrnt))
-    print()
-
-    # The game goes on until stopped.
-    while prompt != "q" and prompt != "Q":
-        check_value = check(crrnt, nxt, prompt)
-        if check_value == "q":
-            print("Good bye!")
-            return
-        elif check_value:
-            print("The next number is {:d}.".format(nxt))
-            input("Nice! ")
-            print()
-        else:
-            print("The next number is {:d}.".format(nxt))
-            input("Too bad. Now take a sip! ")
+            prompt = input(
+                "Give the number of players as a positive whole number. ")
             print()
 
-        # Updating the game for the next round
-        rounds += 1
-        crrnt = nxt
-        nxt = random.randint(0, UPPER_BOUND)
-        while nxt == crrnt:
-            nxt = random.randint(0, UPPER_BOUND)
+        except ValueError:
+            prompt = input(
+                "Give the number of players as a positive whole number. ")
+            print()
 
-        print("Round {:d}:".format(rounds))
-        print()
-        prompt = input(
-            "The current number is {:d}. Will the next be bigger or smaller? "
-            "[+/-] ".format(crrnt))
+    print("Welcome", end="")
+    for i in range(len(players)-1):
+        print(", " + players[i], end="")
+    print(" and {:s}!".format(players[-1]))
+    print()
+
+    print("Let's go! {:s} starts.".format(players[0]))
+    print()
+
+    # The actual game starts here.
+    play_game(players)
 
     print("Good bye!")
 
