@@ -13,6 +13,7 @@
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import itertools
 
 UPPER_BOUND = 100  # A constant for the number range
 INDENT = "  "  # An indent to make the UI more visual
@@ -29,9 +30,8 @@ def print_instructions():
     print(2 * INDENT + "The game generates random numbers between 0 and {:d}."
           .format(UPPER_BOUND))
     print(2 * INDENT + "On each round, every player gets to guess whether the")
-    print(2 * INDENT + "next generated number will be bigger (+) than the "
-                       "previous")
-    print(2 * INDENT + "one or not (-).")
+    print(2 * INDENT + "next generated number will be bigger (+) than the")
+    print(2 * INDENT + "previous one or not (-).")
     print()
     print(2 * INDENT + "If the player guesses incorrectly, they have to take ")
     print(2 * INDENT + "a sip of their drink. Otherwise, their sip gets added")
@@ -49,6 +49,7 @@ def draw_sips(players):
     :return: none
     """
     biggest_sip_total = 0  # Sets the maximum for the y axis.
+    marker = itertools.cycle(('s', '^', 'd', 'v', 'p', '*', 'x', '+'))
 
     plt.figure()
 
@@ -69,11 +70,13 @@ def draw_sips(players):
         # Drawing the marker and line with the same color
         ax = plt.gca()
         color = next(ax._get_lines.prop_cycler)['color']
-        plt.plot(cumulative_sips, label=players[i][0], color=color)
-        plt.plot(cumulative_sips, 'o', color=color)
+        plt.plot(cumulative_sips, 'o', color=color, marker=next(marker),
+                 label=players[i][0])
+        plt.plot(cumulative_sips, color=color)
 
     plt.xlabel('Round number')
     plt.ylabel('Total sips')
+    plt.grid(True)
     plt.title('Results')
     plt.xticks(np.arange(len(players[0][-1])),
                np.arange(1, len(players[0][-1]) + 1, 1))
@@ -192,7 +195,7 @@ def main():
     print("Welcome to play 'Bigger or smaller'!")
     print()
     prompt = input("Press ENTER to start. Press q to quit. Press i for "
-                   "instructions.")
+                   "instructions. ")
     print()
 
     if prompt == "q" or prompt == "Q":
