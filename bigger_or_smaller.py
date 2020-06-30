@@ -18,13 +18,37 @@ UPPER_BOUND = 100  # A constant for the number range
 INDENT = "  "  # An indent to make the UI more visual
 
 
+def print_instructions():
+    """
+    Explains the rules of the game.
+    :return: none
+    """
+    print(INDENT + "INSTRUCTIONS")
+    print()
+    print(2 * INDENT + "This is a drinking game for 1-n players.")
+    print(2 * INDENT + "The game generates random numbers between 0 and {:d}."
+          .format(UPPER_BOUND))
+    print(2 * INDENT + "On each round, every player gets to guess whether the")
+    print(2 * INDENT + "next generated number will be bigger (+) than the "
+                       "previous")
+    print(2 * INDENT + "one or not (-).")
+    print()
+    print(2 * INDENT + "If the player guesses incorrectly, they have to take ")
+    print(2 * INDENT + "a sip of their drink. Otherwise, their sip gets added")
+    print(2 * INDENT + "to a queue of sips. The next person who fails has to")
+    print(2 * INDENT + "drink all the sips from the queue including theirs.")
+    print()
+    print(INDENT + "Have fun!")
+    print()
+
+
 def draw_sips(players):
     """
     Draws each player's sips in a cumulative graph.
     :param players: the list of players with their names and sips
     :return: none
     """
-    biggest_sip_total = 0
+    biggest_sip_total = 0  # Sets the maximum for the y axis.
 
     plt.figure()
 
@@ -166,17 +190,16 @@ def play_game(players):
 def main():
     print()
     print("Welcome to play 'Bigger or smaller'!")
-    print(INDENT + "Guess whether the next number will be bigger (+) or not "
-                   "(-).")
-    print(INDENT + "The numbers are between 0 and {:d}."
-          .format(UPPER_BOUND))
     print()
-    prompt = input("Press ENTER to start. Press q to quit. ")
+    prompt = input("Press ENTER to start. Press q to quit. Press i for "
+                   "instructions.")
     print()
 
     if prompt == "q" or prompt == "Q":
         print("Good bye!")
         return
+    elif prompt == "i" or prompt == "I":
+        print_instructions()
 
     # Asking for player info
     players = []
@@ -228,6 +251,7 @@ def main():
     # The actual game starts here.
     players = play_game(players)
 
+    # Possibility to view results before ending the game
     prompt = input("Thank you for playing! Press 'R' for results or quit with "
                    "ENTER. ")
     print()
@@ -244,7 +268,6 @@ def main():
         else:
             print("No results to be shown...")
             print()
-
 
     print("Remember to drink water!")
     print("Good bye!")
