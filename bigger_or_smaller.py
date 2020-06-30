@@ -6,37 +6,97 @@
 # A drinking game where on each round a random number will be generated.
 # On their turn, each player has to guess whether the next number will
 # be greater or smaller than the previous one. If the player guesses wrong,
-# they need to take a sip. The player in turn changes after every guess.
+# they need to take a sip. If the player guesses correctly, their sip gets
+# added to a "queue" that the next player who guesses wrong has to drink.
+# The player in turn changes after every guess.
 
 import random
-import time
+import numpy as np
+import matplotlib.pyplot as plt
 
 UPPER_BOUND = 100  # A constant for the number range
+INDENT = "  "  # An indent to make the UI more visual
 
 
-# Checks if the player's guess was correct.
-# Takes an erroneous input into consideration.
-# crrnt = the current number
-# nxt = the next number
-# guess = the player's guess
+def draw_sips(players):
+    """
+    Draws each player's sips in a cumulative graph.
+    :param players: the list of players with their names and sips
+    :return: none
+    """
+    biggest_sip_total = 0
+
+    plt.figure()
+
+    # Calculating the cumulative sips on each round for each player
+    for i in range(len(players) - 1):
+        cumulative_sips = []
+        for j in range(len(players[i][-1])):
+            sum = 0
+            k = 0
+            while k <= j:
+                sum += players[i][-1][k]
+                k += 1
+            cumulative_sips.append(sum)
+
+        if cumulative_sips and cumulative_sips[-1] > biggest_sip_total:
+            biggest_sip_total = cumulative_sips[-1]
+
+        # Drawing the marker and line with the same color
+        ax = plt.gca()
+        color = next(ax._get_lines.prop_cycler)['color']
+        plt.plot(cumulative_sips, label=players[i][0], color=color)
+        plt.plot(cumulative_sips, 'o', color=color)
+
+    plt.xlabel('Round number')
+    plt.ylabel('Total sips')
+    plt.title('Results')
+    plt.xticks(np.arange(len(players[0][-1])),
+               np.arange(1, len(players[0][-1]) + 1, 1))
+    plt.yticks(np.arange(0, biggest_sip_total + 1, 1))
+    plt.legend()
+    plt.show()
+
+
 def check(crrnt, nxt, guess):
+    """
+    Checks if the player's guess was correct.
+    Takes an erroneous input into consideration.
+    :param crrnt: the current number
+    :param nxt: the next number
+    :param guess: the player's guess
+    :returns True if the guess is correct. False if the guess is incorrect.
+    :returns "q" if the player wants to quit the game.
+    """
     # Trivial part
     if guess == "+":
+        print()
         return nxt > crrnt
     elif guess == "-":
+        print()
         return nxt < crrnt
     elif guess == "q" or guess == "Q":
+        print()
         return "q"
 
     # Recursive part
     else:
-        guess = input("Try again. [+/-] ")
+        guess = input(2 * INDENT + "Try again. [+/-] ")
         return check(crrnt, nxt, guess)
 
 
 def play_game(players):
+    """
+    The actual game engine. Takes care of game play and player data.
+    The data is collected on every round in the form of sips.
+    :param players: the list of all the players and their sips
+    :return: the updated version of the player list with the longest streak
+             at the very end
+    """
     rounds = 1
     in_turn = 0  # Indicates who is in turn
+    streak = 0  # The ongoing streak of correct guesses.
+    longest_streak = 0
     crrnt = random.randint(0, UPPER_BOUND)  # The current number
     nxt = random.randint(0, UPPER_BOUND)  # The next number
     # The next number must not be the same as the previous one.
@@ -50,24 +110,42 @@ def play_game(players):
 
         player_in_turn = players[in_turn % len(players)]
 
-        for i in range(len(players)):
-            prompt = input(
-                "The current number is {:d}. Will the next one be bigger or "
-                "smaller? [+/-] ".format(crrnt))
-            print()
+        i = 0
+        while i < len(players):
+            prompt = input(INDENT + "The current number is {:d}. Is the next "
+                                    "one be bigger or smaller? [+/-] "
+                           .format(crrnt))
 
             check_value = check(crrnt, nxt, prompt)
             if check_value == "q":
-                return
+                if streak > longest_streak:
+                    longest_streak = streak
+                players.append(longest_streak)
+                return players
             elif check_value:
-                print("The next number is {:d}.".format(nxt))
-                print("Nice guess, {:s}!"
-                      .format(player_in_turn))
+                streak += 1
+                player_in_turn[1].append(0)
+                print(INDENT + "The next number is {:d}.".format(nxt))
+                print(INDENT + "Nice guess, {:s}!"
+                      .format(player_in_turn[0]))
+                print(2 * INDENT + "Current streak: {:d}".format(streak))
                 print()
             else:
-                print("The next number is {:d}.".format(nxt))
-                print("Too bad. Now take a sip, {:s}!"
-                      .format(player_in_turn))
+                # A wrong guess breaks the streak.
+                # The player has to drink as many sips as the streak was.
+                if streak > longest_streak:
+                    longest_streak = streak
+                print(INDENT + "The next number is {:d}.".format(nxt))
+                if streak < 2:
+                    player_in_turn[1].append(1)
+                    print(INDENT + "Too bad. Now take a sip, {:s}!"
+                          .format(player_in_turn[0]))
+                else:
+                    player_in_turn[1].append(streak)
+                    print(INDENT + "Too bad. Now take {:d} sips, {:s}!"
+                          .format(streak, player_in_turn[0]))
+
+                streak = 0
                 print()
 
             # Updating the game for the next guess
@@ -77,17 +155,21 @@ def play_game(players):
                 nxt = random.randint(0, UPPER_BOUND)
             in_turn += 1
             player_in_turn = players[in_turn % len(players)]
-            input("It is now your turn, {:s}. Continue with ENTER."
-                  .format(player_in_turn))
+            input(INDENT + "It's now your turn, {:s}. Continue with ENTER. "
+                  .format(player_in_turn[0]))
             print()
+            i += 1
 
         rounds += 1
 
 
 def main():
+    print()
     print("Welcome to play 'Bigger or smaller'!")
-    print("Guess whether the next number will be bigger (+) or not (-).")
-    print("The numbers will be between 0 and {:d}.".format(UPPER_BOUND))
+    print(INDENT + "Guess whether the next number will be bigger (+) or not "
+                   "(-).")
+    print(INDENT + "The numbers are between 0 and {:d}."
+          .format(UPPER_BOUND))
     print()
     prompt = input("Press ENTER to start. Press q to quit. ")
     print()
@@ -99,39 +181,72 @@ def main():
     # Asking for player info
     players = []
     prompt = input("How many players are playing? ")
-    print()
+
+    if prompt == "q" or prompt == "Q":
+        print()
+        print("Good bye!")
+        return
 
     while True:
         try:
             prompt = int(prompt)
             if prompt > 0:
+                print()
                 for i in range(prompt):
-                    name = input("Give player {:d}'s name: ".format(i+1))
-                    players.append(name)
+                    name = input(INDENT + "Give player {:d}'s name: "
+                                 .format(i+1))
+                    while not name.strip():
+                        name = input(2 * INDENT + "You must give a name: ")
+
+                    if name == "q" or name == "Q":
+                        print()
+                        print("Good bye!")
+                        return
+
+                    sips = []  # Player's personal sips on each round
+                    tmp_list = [name.strip(), sips]
+                    players.append(tmp_list)
                 print()
                 break
 
-            prompt = input(
-                "Give the number of players as a positive whole number. ")
-            print()
+            prompt = input(INDENT + "Give the number of players as a positive "
+                                    "whole number. ")
 
         except ValueError:
-            prompt = input(
-                "Give the number of players as a positive whole number. ")
-            print()
+            prompt = input(INDENT + "Give the number of players as a positive "
+                                    "whole number. ")
 
     print("Welcome", end="")
-    for i in range(len(players)-1):
-        print(", " + players[i], end="")
-    print(" and {:s}!".format(players[-1]))
+    for i in range(len(players) - 1):
+        print(", " + players[i][0], end="")
+    print(" and {:s}!".format(players[-1][0]))
     print()
 
-    print("Let's go! {:s} starts.".format(players[0]))
+    print("Let's go! {:s} starts.".format(players[0][0]))
     print()
 
     # The actual game starts here.
-    play_game(players)
+    players = play_game(players)
 
+    prompt = input("Thank you for playing! Press 'R' for results or quit with "
+                   "ENTER. ")
+    print()
+
+    if prompt == "R" or prompt == "r":
+        if players[0][-1]:
+            print("The results open up in a new window.")
+            print("Longest streak: {:d}".format(players[-1]))
+            print()
+
+            # Drawing the player data in a visual form
+            draw_sips(players)
+
+        else:
+            print("No results to be shown...")
+            print()
+
+
+    print("Remember to drink water!")
     print("Good bye!")
 
 
