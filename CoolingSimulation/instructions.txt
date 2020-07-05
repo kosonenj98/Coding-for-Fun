@@ -1,0 +1,286 @@
+Jasper Kosonen
+Tampere 2.7.2020
+
+
+INSTRUCTIONS FOR COOLING SIMULATION
+
+
+
+CONTENTS
+	- GENERAL
+	- GUI
+		* Help
+		* Axes
+		* CheckBoxes
+		* EditFields
+		* Spinner
+		* Switch
+		* Buttons
+		* Table
+		* Label
+	- CODE
+		* Importing data
+		* Calculating the solution
+		* Drawing the solution
+		* Checking
+			+ Erroneous input
+			+ Reaching the target
+	- POSSIBLE SCENARIOS
+
+
+
+GENERAL
+	This MATLAB app allows the user to simulate the cooling of any object.
+	It uses a very basic model with Newton's Cooling Law of the form
+
+		dT/dt = -k(T-Ta)
+
+	where dT/dt is the rate of change of the temperature T with respect to
+	time t, k is a cooling constant determined by the system, T is the
+	temperature of the object and Ta is the ambient temperature.
+
+	Solutions to this differential equation are of the form
+
+		T(t) = Ta - C*exp(-k*t)
+
+	where C is a constant from integrating. To solve the constants C and k,
+	there must be at least two equations. If there are more equations, it
+	can be possible that no actual solution exists. In this case, the
+	solution is found using the Least Squares (LS) method.
+
+	The idea for this app came to me at work as I was waiting for various
+	solutions to cool down. It took surprisingly long times to cool down
+	even a single degree in Celcius as the temperature of the solution
+	approached the ambient temperature of the cleanroom. To understand it
+	better, I decided to try and code an app to simulate the cooling.
+
+
+
+GUI
+	The GUI offers the user to interact with the app in various ways.
+	The most imporant component is the Axes because all the visual data
+	is represented there. User actions affect the plotting which can be
+	initiated by pushing the "Calculate" Button.
+
+	As the app starts, the GUI sets an example of what the user can do.
+	There are two data points in the Table and the solution is drawn with
+	the "Show target" CheckBox checked.
+
+	Help
+		"Help" Button opens a pop up window with a greeting and quick
+		overview of the app and its functionalities. It works as the
+		greetings from the creator.
+	
+	Axes
+		The Axes plot the solutions to the differential equation shown
+		in GENERAL. The ambient temperature is drawn with black and
+		depending on the amount of plots, its plot style varies.
+
+		Each time the Axes are drawn, the data points from the Table,
+		a fit made with LS method and the ambient temperature are drawn.
+		Depending on the CheckBoxes, the previous plots can stay and
+		the target can be drawn. The legend tells which plot is which.
+
+		The Axes are updated only when "Calculate" Button is pushed and
+		the newest plot is always the reference point for Axes limits.
+
+
+	CheckBoxes
+		There are two CheckBoxes at the top right corner of the Axes.
+		"Hold on" CheckBox gives the user the possibility to draw many
+		solutions to the same Axes.
+
+		"Show target" allows for visual aid to find the set target. The
+		target point is marked with an "X" and from that point two lines
+		are dropped perpendicularly to the t and T axes. The target does
+		not get included in the legend.
+
+	EditFields
+		The ambient temperature and target can be edited via EditFields.
+		They have certain limits from which the app will notify the
+		user if their input is not allowed. Same goes with erroneous
+		input such as non-numeric inputs.
+
+		The target EditField can work both for temperature and time
+		depending on the position of the Switch below it. If the Switch
+		is in "Temperature", the value in EditField is the temperature
+		that the user wants to reach. Otherwise, the value in EditField
+		is the time the user would wait since t = 0 (min).
+
+	Spinner
+		The maximum waiting time can be set using the Spinner. The user
+		can set a maximum time (min) that they can (or have the energy)
+		to wait for the object to cool down. Therefore, the target time
+		cannot exceed the maximum waiting time.
+
+		Of course, the maximum waiting time must be non-negative and
+		numeric. The Spinner will notify the user if their input is not
+		valid.
+
+	Switch
+		The switch has two positions: Temperature or time. The position
+		of the Switch determines what the value in the EditField above
+		represents. See EditFields.
+
+	Buttons
+		The GUI provides the player with four Buttons. "Add" Button adds
+		a data row in the Table whereas "Remove" Button removes the last
+		row. Note that due to the constants in the solutions, at least
+		two data points are needed. Therefore, the app will notify the
+		user in the Info Label if they try to remove too many data 
+		points.
+
+		"Calculate" Button initiates the calculating process. At the
+		end, the Axes have plotted the solution best fitting to the
+		data points in the Table.
+
+		"Import data" Button opens a dialog where the user can select
+		the .txt file containing the data. This will automatically save
+		the data into the Table if possible.
+
+	Table
+		The Table contains all the data points fed by the user. Only
+		numeric data values are accepted and the "Info" Label will tell
+		the user to check the data if necessary.
+
+		The data points do not have to be in asceding nor descending
+		order. They can be in whatever order as long as the t-T relation
+		is preserved.
+
+	Label
+		The "Info" Label displays important information. It can either
+		display the results of calculations or give error messages. The
+		Label is updated when the user interacts with the app. This way,
+		the Label is mostly empty.
+
+
+
+CODE
+	A lot of the code is automatically generated by MATLAB. The parts on the
+	white region are editable and self-made. First, the "Properties" are
+	introduced. Then, the "Functions" can be seen and lastly, the 
+	"Callbacks" are listed. At the very end, the positions of the components
+	in GUI are coded with their properties.
+
+	Importing data
+		The data can be imported from a separate .txt file by pressing
+		the "Import data" Button. Note that the data must be in form
+
+		t1 T1
+		t2 T2
+		t3 T3
+		etc.
+
+		Any ill formed data points will be discarded and the app tells
+		the user whether or not the reading of the data succeeds. The
+		data is read using MATLAB's fscanf method.
+
+		If the data is read successfully, it will be stored in the Table
+		for plotting. The app does not calculate the solution immediatly
+		in order to give the user the chance to check the data.
+
+	Calculating the solution
+		The calculations begin by calling the function 
+		"calculateSolution(app)". Using the LS method, the values for
+		the constants C and k (see GENERAL) are found. Next the duration
+		for reaching the ambient temperature is calculated with the
+		function "getDuration(app, t, target)".
+
+		In "getDuration(app, t, target)" the time needed to get to the
+		target temperature is found through iterative process. The
+		iterative step is 0.1 in length. The time needed for approaching
+		could have been solved using the equation itself, but if the
+		function was any more difficult, this might not be an option.
+		The duration is set to get temperatures "app.percentage" away
+		from the target.
+
+		If the duration lasts longer than the set maximum waiting time,
+		the iterative process is halted. This prevents potentially
+		infinite iteration process.
+
+		At the end, the solution is drawn by calling the function
+		"drawSolution(app, t, duration)".
+
+	Drawing the solution
+		The drawing is affected by choices in the GUI. Therefore, the
+		function is quite complicated. To keep track of correct legends,
+		for example, some helping "Properties" are needed.
+
+		First, the "tdata" vector is made for plotting the LS fit. Then,
+		the Axes limits are determined using the data points in Table.
+		Sometimes, MATLAB rounds small durations to zero, which makes
+		the use of "epsilon" necessary.
+
+		Before the target is drawn (given that "Show target" CheckBox is
+		checked) the possibility of reaching the target is checked using
+		the "checkTarget(app, t)" function. The "Info" Label will get
+		updated.
+
+		The legends are stored in a cell array to assign correct legends
+		to correct plots when "Hold on" CheckBox is checked. Different
+		counters in "Properties" help keep everything organized.
+		
+	Checking
+		Some checking is built automatically into some GUI components.
+		For example, the EditFields only accept numeric inputs by
+		default. Other components need their own checking to make sure
+		everything works properly.
+
+		Erroneous input
+			Only way the user could give erroneus data is via Table.
+			The function "checkInput(app)" scans through the Table
+			for any erroneous data that is not numeric. As long as
+			there is invald data, the "Calculate" and "Add" Buttons
+			are be disabled and the TextArea shows "Please check 
+			data."
+
+		Reaching the target
+			The function "checkTarget(app, t)" checks if the target
+			is reachable or not. It is only called when the Switch
+			is in "Temperature" positions. The other position is
+			trivial.
+
+			There are ways the target is not reachable. Constant
+			C (See GENERAL) plays a key role in this. If C > 0, the
+			object is cooling down. Otherwise it is warming up.
+			Therefore, the reachability can be checked by comparing
+			the target to the ambient temperature. All solutions
+			converge to the ambient temperature (k>0).
+
+			If the target is warmer or cooler than the initial T
+			of the object, the target is obviously not reachable if
+			the spontaneous process is in the other direction.
+
+			Else the duration is checked to determine if the target
+			can be reached within the given maximum waiting time.
+			This is checked with "getDuration(app, t, target)".
+
+			The TextArea is updated if the target is not reachable
+			and "app.targetReachable" Property is changed to false.
+
+
+
+POSSIBLE SCENARIOS
+	In this section, possible scenarios are considered and how the app is
+	coded to react to them.
+
+	User presses the "Remove" Button when theres two (2) data points
+		The TextArea shows "Must have at least two data points." The
+		"Remove" Button is disabled as long as a data point is added.
+
+	User gives an erroneous input to Table
+		The TextArea shows "Please check data." Buttons "Calculate" and
+		"Add" are disabled as long as the erroneous data is fixed or
+		removed (given that there is more than two data points).
+
+	User imports invalid data
+		If the fscanf succeeds to read the file, all invalid data points
+		get discarded. TextArea shows "Data read. Ignored any invalid 
+		data points."
+
+		If the file does not exist, the dialog asks for an existing one.
+
+	User sets too little maximum waiting time
+		Most solutions will not reach the target. This can be fixed by
+		adding more waiting time.
+
