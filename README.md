@@ -5,3 +5,4 @@ This repository is for free time coding projects such as simple user interfaces 
 Codes:
 
 1 - A drinking game "Bigger or smaller" (BiggerOrSmaller/)
+2 - A MATLAB app for cooling simulation (CoolingSimulation/)
