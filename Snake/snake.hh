@@ -22,15 +22,18 @@ public:
 
     void move();
 
-    void change_direction(int dx, int dy);
+    bool change_direction(int dx, int dy);
 
     Piece* get_head();
+
+    int get_length();
 
 private:
     Piece* head_;
     Piece* tail_;
     int dx_;
     int dy_;
+    int length_;
 };
 
 #endif // SNAKE_HH

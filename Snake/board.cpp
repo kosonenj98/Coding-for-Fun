@@ -33,7 +33,8 @@ Board::Board(int columns, int rows)
 
 Board::~Board()
 {
-    delete snake_;
+    snake_->~Snake();
+    snake_ = nullptr;
 }
 
 
@@ -74,13 +75,16 @@ void Board::update_board()
 }
 
 
-void Board::move_snake()
+bool Board::move_snake()
 {
     snake_->move();
     if (check())
     {
         update_board();
+        return true;
     }
+
+    return false;
 }
 
 
@@ -89,10 +93,10 @@ bool Board::check()
     Piece* tmp;
     tmp = snake_->get_head();
 
-    if (closed_borders)
+    if (closed_borders_)
     {
-        if ((tmp->x < 0) or (tmp->x > columns_) or
-                (tmp->y < 0) or (tmp->y > rows_))
+        if (tmp->x < 0 or tmp->x > columns_ - 1 or
+                tmp->y < 0 or tmp->y > rows_ - 1)
         {
             return false;
         }
@@ -157,3 +161,14 @@ std::vector<std::vector<Tile> > Board::get_board()
 {
     return board_;
 }
+
+Snake *Board::get_snake()
+{
+    return snake_;
+}
+
+void Board::set_closed_borders(bool closed)
+{
+    closed_borders_ = closed;
+}
+

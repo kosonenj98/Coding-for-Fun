@@ -10,6 +10,7 @@ Snake::Snake(int x, int y)
     head_->previous = nullptr;
     dx_ = -1; // Initially snake moving left
     dy_ = 0;
+    length_ = 1;
 }
 
 Snake::~Snake()
@@ -33,6 +34,7 @@ void Snake::append()
     tail_->next->next = nullptr;
     tail_->next->previous = tail_;
     tail_ = tail_->next;
+    length_++;
 }
 
 void Snake::move()
@@ -62,16 +64,23 @@ void Snake::move()
     tmp->y += dy_;
 }
 
-void Snake::change_direction(int dx, int dy)
+bool Snake::change_direction(int dx, int dy)
 {
     if (!(dx + dx_ == 0 or dy + dy_ == 0))
     {
         dx_ = dx;
         dy_ = dy;
+        return true;
     }
+    return false;
 }
 
 Piece *Snake::get_head()
 {
     return head_;
+}
+
+int Snake::get_length()
+{
+    return length_;
 }

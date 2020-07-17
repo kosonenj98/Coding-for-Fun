@@ -24,7 +24,7 @@ public:
 
     void update_board();
 
-    void move_snake();
+    bool move_snake();
 
     bool check();
 
@@ -34,12 +34,16 @@ public:
 
     std::vector< std::vector< Tile > > get_board();
 
+    Snake* get_snake();
+
+    void set_closed_borders(bool closed);
+
 private:
     int columns_;
     int rows_;
     std::vector< std::vector< Tile > > board_;
     Snake* snake_;
-    bool closed_borders = false;
+    bool closed_borders_ = false;
     std::default_random_engine generator_{(static_cast<unsigned int>(time(NULL)))};
 };
 
