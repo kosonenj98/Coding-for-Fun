@@ -1,15 +1,26 @@
 #ifndef BOARD_HH
 #define BOARD_HH
 
-#include <iostream>
+#include "snake.hh"
 #include <vector>
 #include <random>
-#include "snake.hh"
+
 
 struct Tile
 {
     bool is_occupied;
+    bool is_head;
     bool has_food;
+    bool has_gold;
+};
+
+
+struct Gold
+{
+    int duration;
+    int time;
+    int x;
+    int y;
 };
 
 
@@ -28,23 +39,41 @@ public:
 
     bool check();
 
-    int modulo(int a, int b);
+    bool board_full();
 
     void add_food();
+
+    void set_closed_borders(bool closed);
+
+    void set_gold_frequency(int value);
+
+    void set_gold_duration(int value);
 
     std::vector< std::vector< Tile > > get_board();
 
     Snake* get_snake();
 
-    void set_closed_borders(bool closed);
+    void get_consumption(int& food, int& gold);
 
 private:
+    int modulo_(int a, int b);
+
     int columns_;
     int rows_;
+
     std::vector< std::vector< Tile > > board_;
     Snake* snake_;
+
     bool closed_borders_ = false;
+
+    int food_eaten_;
+    int gold_eaten_;
+
     std::default_random_engine generator_{(static_cast<unsigned int>(time(NULL)))};
+
+    int gold_frequency_;
+    int gold_duration_;
+    std::vector<Gold> gold_;
 };
 
 #endif // BOARD_HH

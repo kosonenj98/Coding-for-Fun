@@ -38,6 +38,7 @@ HEADERS += \
 FORMS += \
         mainwindow.ui
 
-DISTFILES +=
+RESOURCES += \
+    res.qrc
 
-RESOURCES +=
+CONFIG += c++14

@@ -1,2 +1,7 @@
-<!DOCTYPE RCC>
-<RCC version="1.0"/>
+<RCC>
+    <qresource prefix="/Sounds">
+        <file>apple_bite.mp3</file>
+        <file>Badinerie.mp3</file>
+        <file>smash.mp3</file>
+    </qresource>
+</RCC>

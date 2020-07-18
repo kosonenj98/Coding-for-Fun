@@ -18,22 +18,21 @@ public:
 
     ~Snake();
 
-    void append();
-
     void move();
 
     bool change_direction(int dx, int dy);
 
+    void append();
+
     Piece* get_head();
 
-    int get_length();
+    Piece* get_tail();
 
 private:
     Piece* head_;
     Piece* tail_;
     int dx_;
     int dy_;
-    int length_;
 };
 
 #endif // SNAKE_HH

@@ -1,7 +1,5 @@
 #include "mainwindow.hh"
 #include "ui_mainwindow.h"
-#include <QRectF>
-#include <QKeyEvent>
 #include <QMessageBox>
 
 
@@ -37,9 +35,12 @@ MainWindow::MainWindow(QWidget *parent) :
     scene_->setSceneRect(0, 0, BORDER_RIGHT - 1, BORDER_DOWN - 1);
 
     gameboard_ = new Board(COLUMNS, ROWS);
+    gameboard_->set_gold_frequency(GOLD_FREQUENCY);
 
     snake_color_ = Qt::green;
+    head_color = Qt::gray;
     food_color_ = Qt::red;
+    gold_color_ = Qt::yellow;
 
     QColor color;
     color.setRgb(228, 3, 3);
@@ -67,12 +68,19 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->rainbowCheckBox->setVisible(false);
 
+    /*
+    music_ = new QMediaPlayer(this);
+    music_->setMedia(QUrl("qrc:/Sounds/Badinerie.mp3"));
+    music_->play();
+    */
+
     initialize_game();
 }
 
 
 MainWindow::~MainWindow()
 {
+    // delete music_;
     gameboard_->~Board();
     gameboard_ = nullptr;
     delete ui;
@@ -81,6 +89,12 @@ MainWindow::~MainWindow()
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
+    // The game has not started.
+    if (!clock_.isActive())
+    {
+        return;
+    }
+
     // Move left
     if (event->key() == Qt::Key_A)
     {
@@ -147,7 +161,7 @@ void MainWindow::play_game()
         update_score();
         draw_board();
 
-        if (ui->lcdNumberScore->value() > 5 and
+        if (ui->lcdNumberScore->value() > 68 and
                 ui->difficultyComboBox->currentText() == "PRO" and
                 ui->bordersCheckBox->isChecked())
         {
@@ -187,10 +201,10 @@ void MainWindow::end_game()
 void MainWindow::draw_board()
 {
     scene_->clear();
+    QPen border(Qt::black);
 
     if (ui->bordersCheckBox->isChecked())
     {
-        QPen border(Qt::black);
         scene_->addRect(BORDER_LEFT, BORDER_UP, BORDER_RIGHT, BORDER_DOWN,
                         border, Qt::white);
     }
@@ -200,11 +214,17 @@ void MainWindow::draw_board()
         int stripe_height = BORDER_DOWN / 6;
         for (int i = 0; i < 6; i++)
         {
-            QPen border(colors_.at(i));
+            border.setBrush(colors_.at(i));
             scene_->addRect(BORDER_LEFT, BORDER_UP + i * stripe_height,
                             BORDER_RIGHT, BORDER_UP + (i + 1) * stripe_height,
                             border, colors_.at(i));
         }
+        border.setBrush(Qt::black);
+    }
+
+    if (!clock_.isActive())
+    {
+        return;
     }
 
     std::vector< std::vector< Tile > > board = gameboard_->get_board();
@@ -215,19 +235,33 @@ void MainWindow::draw_board()
         {
             if (board.at(y).at(x).is_occupied)
             {
-                QPen pen(Qt::black);
+                if (board.at(y).at(x).is_head)
+                {
+                    scene_->addRect(x * SQUARE_SIDE, y * SQUARE_SIDE,
+                                    SQUARE_SIDE, SQUARE_SIDE,
+                                    border, head_color);
+                    continue;
+                }
+
                 scene_->addRect(x * SQUARE_SIDE, y * SQUARE_SIDE,
                                 SQUARE_SIDE, SQUARE_SIDE,
-                                pen, snake_color_);
+                                border, snake_color_);
                 continue;
             }
 
             if (board.at(y).at(x).has_food)
             {
-                QPen pen(Qt::black);
+                if (board.at(y).at(x).has_gold)
+                {
+                    scene_->addRect(x * SQUARE_SIDE, y * SQUARE_SIDE,
+                                    SQUARE_SIDE, SQUARE_SIDE,
+                                    border, gold_color_);
+                    continue;
+                }
+
                 scene_->addRect(x * SQUARE_SIDE, y * SQUARE_SIDE,
                                 SQUARE_SIDE, SQUARE_SIDE,
-                                pen, food_color_);
+                                border, food_color_);
                 continue;
             }
         }
@@ -247,8 +281,14 @@ void MainWindow::display_time()
 
 void MainWindow::update_score()
 {
-    int scores = gameboard_->get_snake()->get_length();
-    ui->lcdNumberScore->display(scores - 1);
+    int food = 0;
+    int gold = 0;
+    gameboard_->get_consumption(food, gold);
+
+    int scores = food * FOOD_SCORE +
+                 gold * (GOLD_SCORE_SCALE - 1) * FOOD_SCORE;
+
+    ui->lcdNumberScore->display(scores);
 }
 
 
@@ -293,17 +333,22 @@ void MainWindow::on_startGameButton_clicked()
 
     clock_.start(1000);
 
+    draw_board();
+
     if (ui->difficultyComboBox->currentText() == "BEGINNER")
     {
         interval_ = BEGINNER_INTERVAL;
+        gameboard_->set_gold_duration(GOLD_DURATION_BEGINNER);
     }
     else if (ui->difficultyComboBox->currentText() == "ADVANCED")
     {
         interval_ = ADVANCED_INTERVAL;
+        gameboard_->set_gold_duration(GOLD_DURATION_ADVANCED);
     }
     else
     {
         interval_ = PRO_INTERVAL;
+        gameboard_->set_gold_duration(GOLD_DURATION_PRO);
     }
 
     timer_.start(interval_);
@@ -375,8 +420,9 @@ void MainWindow::on_infoButton_clicked()
         clock_.stop();
         timer_.stop();
     }
-    QMessageBox::information(0, "INFO", "Info about the gamlorem lipsum lapsum",
-                                             QMessageBox::Ok);
+
+    QMessageBox::information(0, "INFO", INFO_TEXT, QMessageBox::Ok);
+
     if (!ui->startGameButton->isEnabled())
     {
         clock_.start(1000);
