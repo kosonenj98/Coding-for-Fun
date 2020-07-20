@@ -41,6 +41,8 @@ const QString INFO_TEXT = "Welcome to Snake! \n"
                           "Jasper Kosonen \n"
                           "Tampere 18.7.2020";
 
+class Split;
+
 namespace Ui
 {
 class MainWindow;
@@ -54,6 +56,9 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     void keyPressEvent(QKeyEvent* event) override;
+    std::vector<std::string> (Split::*memberFunctionPointer)(const std::string&,
+                                                             const char,
+                                                             bool);
 
 private slots:
 
@@ -98,7 +103,26 @@ private slots:
 
     void on_rainbowCheckBox_clicked();
 
+    void save_score();
+
+    static bool compare_players(std::vector<std::string> first,
+                                std::vector<std::string> second);
+
 private:
+
+    std::string getTimeStr_();
+
+    bool read_file_(std::string scoreboard_address,
+                    std::vector<std::string> &file_copy_vec,
+                    int &file_row, int &players,
+                    QString &qaddress, QString &qstr);
+
+    void format_dataline_(std::string &line);
+
+    std::vector<std::string> split_(const std::string& s,
+                                    const char delimiter = '\t',
+                                    bool ignore_empty = true);
+
     Ui::MainWindow *ui;
 
     QGraphicsScene* scene_;
@@ -147,6 +171,32 @@ private:
     std::vector< QColor > colors_;
 
     // QMediaPlayer* music_;
+};
+
+// To use the split function while sorting a vector
+class Split
+{
+public:
+    MainWindow myMainWindow;
+    std::vector<std::string> split(const std::string& s,
+                                        const char delimiter = ' ',
+                                        bool ignore_empty = true)
+    {
+        std::vector<std::string> result;
+        std::string tmp = s;
+
+        while(tmp.find(delimiter) != std::string::npos) {
+            std::string new_part = tmp.substr(0, tmp.find(delimiter));
+            tmp = tmp.substr(tmp.find(delimiter)+1, tmp.size());
+            if(not (ignore_empty and new_part.empty())) {
+                result.push_back(new_part);
+            }
+        }
+        if(not (ignore_empty and tmp.empty())) {
+            result.push_back(tmp);
+        }
+        return result;
+    }
 };
 
 #endif // MAINWINDOW_HH

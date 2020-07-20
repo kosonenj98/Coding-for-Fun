@@ -99,7 +99,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>COMMANDS</string>
+     <string>CONTROLS</string>
     </property>
    </widget>
    <widget class="Line" name="line">
