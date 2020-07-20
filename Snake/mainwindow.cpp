@@ -7,6 +7,28 @@
 #include <chrono>
 #include <ctime>
 
+const std::vector<std::vector<std::vector<int>>>
+DIGITS =
+
+{
+  {{0, 1, 0},   // 1
+   {0, 1, 0},
+   {0, 1, 0},
+   {0, 1, 0},
+   {0, 1, 0}},
+
+  {{1, 1, 1},   // 2
+   {0, 0, 1},
+   {1, 1, 1},
+   {1, 0, 0},
+   {1, 1, 1}},
+
+  {{1, 1, 1},   // 3
+   {0, 0, 1},
+   {1, 1, 1},
+   {0, 0, 1},
+   {1, 1, 1}},
+};
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -61,9 +83,11 @@ MainWindow::MainWindow(QWidget *parent) :
     color.setRgb(117, 7, 135);
     colors_.push_back(color);
 
+    countdown_.setSingleShot(false);
     clock_.setSingleShot(false);
     timer_.setSingleShot(false);
 
+    connect(&countdown_, &QTimer::timeout, this, &MainWindow::countdown);
     connect(&clock_, &QTimer::timeout, this, &MainWindow::display_time);
     connect(&timer_, &QTimer::timeout, this, &MainWindow::play_game);
 
@@ -151,6 +175,7 @@ void MainWindow::initialize_game()
     ui->lcdNumberMinutes->display(0);
     ui->lcdNumberScore->display(0);
 
+    countdown_time = COUNTDOWN;
     elapsed_time_ = 0;
 
     toggle_command_buttons(false);
@@ -286,6 +311,32 @@ void MainWindow::draw_board()
     }
 }
 
+void MainWindow::countdown()
+{
+    if (!countdown_.isActive())
+    {
+        countdown_.start(1000);
+    }
+
+    if (countdown_time == 0)
+    {
+        countdown_.stop();
+        countdown_time = COUNTDOWN;
+
+        clock_.start(1000);
+        draw_board();
+
+        timer_.start(interval_);
+
+        toggle_command_buttons(true);
+        return;
+    }
+
+    draw_digit(countdown_time);
+
+    countdown_time--;
+}
+
 
 void MainWindow::display_time()
 {
@@ -327,6 +378,33 @@ void MainWindow::toggle_command_buttons(bool enabled)
     ui->downButton->setDisabled(true);
 }
 
+void MainWindow::draw_digit(int dig)
+{
+    scene_->clear();
+    QPen border (Qt::darkGray);
+
+    std::vector<std::vector<int>> blueprint;
+    int pixel_size = 4 * SQUARE_SIDE;
+    int border_left = (BORDER_RIGHT - 3 * pixel_size) / 2;
+    int border_up = (BORDER_DOWN - 5 * pixel_size) / 2;
+
+    blueprint = DIGITS.at(dig-1);
+
+    for (int j = 0; j < 5; j++)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            if (blueprint.at(j).at(i) == 1)
+            {
+                scene_->addRect((border_left + i * pixel_size),
+                                (border_up + j * pixel_size),
+                                pixel_size, pixel_size,
+                                border, Qt::darkGray);
+            }
+        }
+    }
+}
+
 
 void MainWindow::on_bordersCheckBox_clicked()
 {
@@ -349,10 +427,6 @@ void MainWindow::on_startGameButton_clicked()
     ui->difficultyComboBox->setDisabled(true);
     ui->bordersCheckBox->setDisabled(true);
 
-    clock_.start(1000);
-
-    draw_board();
-
     if (ui->difficultyComboBox->currentText() == "BEGINNER")
     {
         interval_ = BEGINNER_INTERVAL;
@@ -369,9 +443,7 @@ void MainWindow::on_startGameButton_clicked()
         gameboard_->set_gold_duration(GOLD_DURATION_PRO);
     }
 
-    timer_.start(interval_);
-
-    toggle_command_buttons(true);
+    countdown();
 }
 
 
@@ -395,8 +467,7 @@ void MainWindow::on_quitGameButton_clicked()
 
     if (!ui->startGameButton->isEnabled())
     {
-        clock_.start(1000);
-        timer_.start(interval_);
+        countdown();
     }
 }
 
@@ -445,8 +516,7 @@ void MainWindow::on_infoButton_clicked()
 
     if (!ui->startGameButton->isEnabled())
     {
-        clock_.start(1000);
-        timer_.start(interval_);
+        countdown();
     }
 }
 

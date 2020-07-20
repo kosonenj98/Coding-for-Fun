@@ -73,6 +73,8 @@ private slots:
 
     void draw_board();
 
+    void countdown();
+
 
     // Useful slots
 
@@ -81,6 +83,8 @@ private slots:
     void update_score();
 
     void toggle_command_buttons(bool enabled);
+
+    void draw_digit(int dig);
 
 
     // Slots for buttons
@@ -129,9 +133,9 @@ private:
 
     // Constants describing scene coordinates
     const int BORDER_UP = 0;
-    const int BORDER_DOWN = 240;
+    const int BORDER_DOWN = 280;
     const int BORDER_LEFT = 0;
-    const int BORDER_RIGHT = 300;
+    const int BORDER_RIGHT = 360;
 
     // Size of a snake piece
     const int SQUARE_SIDE = 10;
@@ -141,6 +145,8 @@ private:
 
     // Number of vertical cells
     const int ROWS = BORDER_DOWN / SQUARE_SIDE;
+
+    const int COUNTDOWN = 3;
 
     const int BEGINNER_INTERVAL = 300;
     const int ADVANCED_INTERVAL = 200;
@@ -162,10 +168,12 @@ private:
     QBrush food_color_;
     QBrush gold_color_;
 
+    QTimer countdown_;
     QTimer clock_;
     QTimer timer_;
     int interval_;
 
+    int countdown_time;
     int elapsed_time_;
 
     std::vector< QColor > colors_;
