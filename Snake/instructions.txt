@@ -1,0 +1,190 @@
+INSTRUCTIONS FOR SNAKE
+
+
+
+CONTENTS
+
+	- GENERAL
+	- RULES
+	- CODE
+		* MainWindow (GUI)
+		* Board
+		* Snake
+		* Game Engine
+	- FEATURES
+		* Gameplay
+		* Saving Score
+	- POSSIBLE SCENARIOS
+
+
+
+GENERAL
+	Snake is based on the classical game where the player guides a snake to
+	eat food on the board and tries not to crash into theirselves. Every
+	time the snake eats food, it grows by one bit. The code provides a GUI
+	for a better gameplay experience.
+
+	Snake consists of three classes: Snake, Board and MainWindow. More info
+	about them under "CODE".
+
+
+RULES
+	1. Snake tries to eat as many pieces of food as possible.
+	2. Everytime the snake eats, it grows by one piece.
+	3. The snake can cross the border and emerge on the other side.
+		3.1 If "Borders" CheckBox is checked, this is not the case.
+	4. If the snake runs into itself, the player loses.
+	5. Sometimes, golden food appears.
+		5.1 Gold food is only temporary and is worth more points.
+
+
+CODE
+	The code is modular with the classes Snake, Board and MainWindow. Class
+	Snake creates and manages the snake itself. Class Board manages the
+	actual game board where the snake moves. Finally, class MainWindow is
+	responsible for the GUI and player interaction. It initiates both the
+	board and snake and sets their settings according to player options.
+
+	MainWindow (GUI)
+		MainWindow opens up as the player opens the program. There are
+		different Buttons and a CheckBox with which the player can
+		interact. The control Buttons are disabled until the actual
+		game is started.
+		
+		On the upper left corner, there are the "Start Game" and "Quit
+		Game" Buttons that do exactly what one might expect. In between,
+		there is the difficulty ComboBox. With that, the player can set
+		the game difficulty to BEGINNER, ADVANCED or PRO. The speed of
+		the snake is slow, moderate and fast, respectively.
+
+		Beneath these Buttons, there is "Borders" CheckBox. With that,
+		the player can trap the snake into the white box. Therefore,
+		the snake cannot pass the boarder and emerge on the other side
+		as would happend without borders. The borders are drawn with
+		black when checked.
+
+		"Quit Game" Button pops up a window to ensure the player really
+		wants to quit. If so, it closes the program. On the right, GUI
+		displays the elapsed game time and player score. In the upper
+		right corner, there is a "?" Button. By pressing it, the player
+		gets a pop up window containing info about the game.
+
+		Once the player presses "Start Game" Button, the difficulty and
+		border setting cannot be changed until a new game. The GUI sets
+		these components disabled to prevent any changes. Now, control
+		Buttons become enabled and the "Quit Game" Buttons stays active.
+		
+		The board gets drawn with little squares of different color. The
+		snake is colored using gray for the head and green for the body.
+		Food is red and sometimes yellow pieces of food appears.
+
+		After the game, the player can either save their score and try
+		again or just quit and close the window.
+
+		MainWindow does not know explicitly where the snake is. Instead,
+		it contains a pointer to Board class and that way it can get
+		necessary information for drawing the board correctly.
+		
+	Board
+		The Board class manages the game board creation and moving the
+		snake. It checks after every move whether or not the move is
+		valid. See "RULES".
+		
+		The board is essentially a grid where each node is a struct. The
+		struct is called "Tile" and it has boolean attributes that tell
+		the board what is happening on the board. The attributes are
+		
+		bool is_occupied	(contains snake)
+		bool is_head		(contains head)
+		bool has_food		(contains food)
+		bool has_gold		(contains golden food)
+
+		There is also a struct Gold for the gold food. They spawn in a
+		random fashion and only last a limited time on the board.
+
+		The board updates it self node by node after every move. With
+		the struct "Tile" it can keep track of where everything is.
+		The Boad class contains a pointer to the Snake class. This way,
+		the board can access, for example, the head and tail of the
+		snake.
+
+		The food is generated with the help of randow number generators.
+		The random numbers are generated in the Board class. The Board
+		class does not know the existence of MainWindow. Instead, it
+		works independently and the MainWindow can set the board's
+		parameters.
+
+	Snake
+		The Snake class determines the properties of the snake. It is a
+		two-way linked list where each piece knows where the adjacent
+		pieces are. The head and tail are grounded. The struct Piece
+		helps managing that.
+
+		The snake has attributes dx_ and dy_ that give the snake its
+		direction. The snake can also change direction and grow when it
+		eats food.
+
+	Game Engine
+		The slot "play_game()" in MainWindow works as the game engine.
+		It first tries to move the snake. If the move succeeds, the
+		board and score get updated. Otherwise, the game ends.
+
+		The "timer_" is connected to this slot. Easter Eggs are also in
+		this slot.
+
+
+FEATURES
+	This section is for describing the coder's intentions and choices for
+	gameplay. It also helps to illuminate the possibilities with the game.
+
+	Gameplay
+		- Difficulty and borders can be modified only before game.
+		- The "Quit Game" and "?" Buttons can always be used.
+		- The controls activate only after starting the game.
+		- Countdown happens after every pause made in the game.
+		- The snake moves after a valid change in direction is made.
+			* Speed hacking possible.
+		- Food cannot be generated to an occupied tile.
+		- Scoring high with the most difficult setting yields surprises.
+		
+	Saving Score
+		Saving the player score happens in the slot "save_score()".
+		The saving locations is determined by the difficulty and border
+		setting. The previous save file is copied to a vector. After
+		that, is is read again to check where to save the current score.
+		
+		The pre-existing scores are compared with the current and ranked
+		accordingly. Lastly, the new scoreboard is written over the
+		previous file.
+
+		The scoreboard is in the format
+				
+				~SCOREBOARD~
+				[DIFFICULTY]
+
+WITHOUT BORDERS
+Rank	Player name		Score		Gameplay time	Date
+
+
+WITH BORDERS
+Rank	Player name		Score		Gameplay time	Date
+		
+
+		If the format is not correct, the user is notified to check it.
+		In this case, no save is made.
+	
+		If the player refuses to give a valid username, a default name
+		"Anonymous" is used
+
+
+POSSIBLE SCENARIOS
+	- Player tries to crash into their tail
+		* The tail moves out of the way, nothing happens.
+	- Player crashes into the borders
+		* The game ends.
+	- Player does not want to save score
+		* It is optional.
+	- Player does not want to keep playing
+		* The game ends.
+	- Save file not found
+		* User is notified of the issue. No saves made.

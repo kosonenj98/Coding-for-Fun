@@ -39,6 +39,7 @@ HEADERS += \
 FORMS += \
         mainwindow.ui
 
+# For music and sounds
 RESOURCES += \
     res.qrc
 

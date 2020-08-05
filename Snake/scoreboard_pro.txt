@@ -3,7 +3,13 @@
 
 WITHOUT BORDERS
 1.	kossij		101 pts		 6 min  5 sec	Sun 2020-07-19 22:11:33
+2.	stresstest	 80 pts		 5 min 26 sec	Fri 2020-07-24 22:10:13
+3.	Moi1		 37 pts		 1 min 34 sec	Fri 2020-07-24 22:21:12
+4.	kossij		 28 pts		 1 min 23 sec	Tue 2020-07-21 19:31:04
+ 	Anonymous	 28 pts		 1 min 45 sec	Wed 2020-08-05 16:25:51
 
 
 WITH BORDERS
 1.	kossij		107 pts		 5 min  4 sec	Mon 2020-07-20 00:31:01
+2.	kossij		 72 pts		 3 min 31 sec	Tue 2020-07-21 19:29:03
+3.	Moi!		 35 pts		 2 min  1 sec	Fri 2020-07-24 22:18:25

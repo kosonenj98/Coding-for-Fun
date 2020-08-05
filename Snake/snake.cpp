@@ -26,6 +26,7 @@ Snake::~Snake()
 
 void Snake::move()
 {
+    // The snake is only a head.
     if (head_->next == nullptr)
         {
             head_->x += dx_;
@@ -35,6 +36,8 @@ void Snake::move()
 
     Piece* tmp = tail_;
 
+    // Every piece except head gets shifted
+    // to the place of the previous piece.
     while (tmp->previous != nullptr)
     {
         if (!(tmp->x == tmp->previous->x &&
@@ -47,12 +50,14 @@ void Snake::move()
         tmp = tmp->previous;
     }
 
+    // Head moves according to dx_ and dy_.
     tmp->x += dx_;
     tmp->y += dy_;
 }
 
 bool Snake::change_direction(int dx, int dy)
 {
+    // The snake is limited to 90 degree turns.
     if (!(dx + dx_ == 0 or dy + dy_ == 0))
     {
         dx_ = dx;

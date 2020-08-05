@@ -7,28 +7,6 @@
 #include <chrono>
 #include <ctime>
 
-const std::vector<std::vector<std::vector<int>>>
-DIGITS =
-
-{
-  {{0, 1, 0},   // 1
-   {0, 1, 0},
-   {0, 1, 0},
-   {0, 1, 0},
-   {0, 1, 0}},
-
-  {{1, 1, 1},   // 2
-   {0, 0, 1},
-   {1, 1, 1},
-   {1, 0, 0},
-   {1, 1, 1}},
-
-  {{1, 1, 1},   // 3
-   {0, 0, 1},
-   {1, 1, 1},
-   {0, 0, 1},
-   {1, 1, 1}},
-};
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -45,30 +23,35 @@ MainWindow::MainWindow(QWidget *parent) :
     int left_margin = 35; // x coordinate
     int top_margin = 150; // y coordinate
 
-    // The width of the graphicsView is BORDER_RIGHT added by 3,
-    // since the borders take one pixel on each side
-    // (1 on the left, and 1 on the right).
-    // Similarly, the height of the graphicsView is BORDER_DOWN added by 3.
+    /* The width of the graphicsView is BORDER_RIGHT added by 3,
+     * since the borders take one pixel on each side
+     * (1 on the left, and 1 on the right).
+     * This way the borders can be drawn.
+     * Similarly, the height of the graphicsView is BORDER_DOWN added by 3.
+     * */
     ui->graphicsView->setGeometry(left_margin, top_margin,
                                   BORDER_RIGHT + 3,
                                   BORDER_DOWN + 3);
 
     ui->graphicsView->setScene(scene_);
 
-    // The width of the scene_ is BORDER_RIGHT decreased by 1 and
-    // the height of it is BORDER_DOWN decreased by 1, because
-    // each snake piece is considered to be inside the sceneRect,
-    // if its upper left corner is inside the sceneRect.
+    /* The width of the scene_ is BORDER_RIGHT decreased by 1 and
+     * the height of it is BORDER_DOWN decreased by 1, because
+     * each snake piece is considered to be inside the sceneRect,
+     * if its upper left corner is inside the sceneRect.
+     * */
     scene_->setSceneRect(0, 0, BORDER_RIGHT - 1, BORDER_DOWN - 1);
 
     gameboard_ = new Board(COLUMNS, ROWS);
     gameboard_->set_gold_frequency(GOLD_FREQUENCY);
 
+    // Assigning the piece colors
     snake_color_ = Qt::green;
     head_color = Qt::gray;
     food_color_ = Qt::red;
     gold_color_ = Qt::yellow;
 
+    // Easter Egg
     QColor color;
     color.setRgb(228, 3, 3);
     colors_.push_back(color);
@@ -83,6 +66,7 @@ MainWindow::MainWindow(QWidget *parent) :
     color.setRgb(117, 7, 135);
     colors_.push_back(color);
 
+    // Settings for timers
     countdown_.setSingleShot(false);
     clock_.setSingleShot(false);
     timer_.setSingleShot(false);
@@ -95,9 +79,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->difficultyComboBox->addItem("ADVANCED");
     ui->difficultyComboBox->addItem("PRO");
 
+    // Easter Egg
     ui->rainbowCheckBox->setVisible(false);
 
     /*
+     * Not implementable on TTY's linux desktop :(
     music_ = new QMediaPlayer(this);
     music_->setMedia(QUrl("qrc:/Sounds/Badinerie.mp3"));
     music_->play();
@@ -110,8 +96,7 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     // delete music_;
-    gameboard_->~Board();
-    gameboard_ = nullptr;
+    delete gameboard_;
     delete ui;
 }
 
@@ -158,8 +143,10 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     }
 }
 
+
 void MainWindow::initialize_game()
 {
+    // gameboard_ gets destroyed after each game
     if (gameboard_ == nullptr)
     {
         gameboard_ = new Board(COLUMNS, ROWS);
@@ -178,9 +165,40 @@ void MainWindow::initialize_game()
     countdown_time = COUNTDOWN;
     elapsed_time_ = 0;
 
-    toggle_command_buttons(false);
+    toggle_control_buttons(false);
 
     draw_board();
+}
+
+
+void MainWindow::countdown()
+{
+    // When countdown() is called,
+    // it starts itself.
+    if (!countdown_.isActive())
+    {
+        countdown_.start(1000);
+    }
+
+    if (countdown_time == 0)
+    {
+        countdown_.stop();
+        countdown_time = COUNTDOWN;
+
+        // Begins the game
+        clock_.start(1000);
+        draw_board();
+
+        timer_.start(interval_);
+
+        toggle_control_buttons(true);
+        return;
+    }
+
+    // Drawing the countdown digits in GUI
+    draw_digit(countdown_time);
+
+    countdown_time--;
 }
 
 
@@ -191,6 +209,7 @@ void MainWindow::play_game()
         update_score();
         draw_board();
 
+        // Easter Egg
         if (ui->lcdNumberScore->value() > 68 and
                 ui->difficultyComboBox->currentText() == "PRO" and
                 ui->bordersCheckBox->isChecked())
@@ -201,7 +220,86 @@ void MainWindow::play_game()
         return;
     }
 
+    // Invalid move ends the game.
     end_game();
+}
+
+
+void MainWindow::draw_board()
+{
+    scene_->clear();
+    QPen border(Qt::black);
+
+    // Drawing the borders
+    if (ui->bordersCheckBox->isChecked())
+    {
+        scene_->addRect(BORDER_LEFT, BORDER_UP, BORDER_RIGHT, BORDER_DOWN,
+                        border, Qt::white);
+    }
+
+    // Easter Egg
+    if (ui->rainbowCheckBox->isChecked())
+    {
+        int stripe_height = BORDER_DOWN / 6;
+        for (int i = 0; i < 6; i++)
+        {
+            border.setBrush(colors_.at(i));
+            scene_->addRect(BORDER_LEFT, BORDER_UP +
+                            i * stripe_height,
+                            BORDER_RIGHT, BORDER_UP +
+                            (i + 1) * stripe_height,
+                            border, colors_.at(i));
+        }
+        border.setBrush(Qt::black);
+    }
+
+    // The game situation is drawn only when game is on.
+    if (!clock_.isActive())
+    {
+        return;
+    }
+
+    std::vector< std::vector< Tile > >* board = gameboard_->get_board();
+
+    // Filling the GUI with squares according to Board class
+    for (int y = 0; y < ROWS; y++)
+    {
+        for (int x = 0; x < COLUMNS; x++)
+        {
+            if (board->at(y).at(x).is_occupied)
+            {
+                // Snake head is in different color
+                if (board->at(y).at(x).is_head)
+                {
+                    scene_->addRect(x * SQUARE_SIDE, y * SQUARE_SIDE,
+                                    SQUARE_SIDE, SQUARE_SIDE,
+                                    border, head_color);
+                    continue;
+                }
+
+                scene_->addRect(x * SQUARE_SIDE, y * SQUARE_SIDE,
+                                SQUARE_SIDE, SQUARE_SIDE,
+                                border, snake_color_);
+                continue;
+            }
+
+            if (board->at(y).at(x).has_food)
+            {
+                if (board->at(y).at(x).has_gold)
+                {
+                    scene_->addRect(x * SQUARE_SIDE, y * SQUARE_SIDE,
+                                    SQUARE_SIDE, SQUARE_SIDE,
+                                    border, gold_color_);
+                    continue;
+                }
+
+                scene_->addRect(x * SQUARE_SIDE, y * SQUARE_SIDE,
+                                SQUARE_SIDE, SQUARE_SIDE,
+                                border, food_color_);
+                continue;
+            }
+        }
+    }
 }
 
 
@@ -239,295 +337,11 @@ void MainWindow::end_game()
 }
 
 
-void MainWindow::draw_board()
-{
-    scene_->clear();
-    QPen border(Qt::black);
-
-    if (ui->bordersCheckBox->isChecked())
-    {
-        scene_->addRect(BORDER_LEFT, BORDER_UP, BORDER_RIGHT, BORDER_DOWN,
-                        border, Qt::white);
-    }
-
-    if (ui->rainbowCheckBox->isChecked())
-    {
-        int stripe_height = BORDER_DOWN / 6;
-        for (int i = 0; i < 6; i++)
-        {
-            border.setBrush(colors_.at(i));
-            scene_->addRect(BORDER_LEFT, BORDER_UP +
-                            i * stripe_height,
-                            BORDER_RIGHT, BORDER_UP +
-                            (i + 1) * stripe_height,
-                            border, colors_.at(i));
-        }
-        border.setBrush(Qt::black);
-    }
-
-    if (!clock_.isActive())
-    {
-        return;
-    }
-
-    std::vector< std::vector< Tile > > board = gameboard_->get_board();
-
-    for (int y = 0; y < ROWS; y++)
-    {
-        for (int x = 0; x < COLUMNS; x++)
-        {
-            if (board.at(y).at(x).is_occupied)
-            {
-                if (board.at(y).at(x).is_head)
-                {
-                    scene_->addRect(x * SQUARE_SIDE, y * SQUARE_SIDE,
-                                    SQUARE_SIDE, SQUARE_SIDE,
-                                    border, head_color);
-                    continue;
-                }
-
-                scene_->addRect(x * SQUARE_SIDE, y * SQUARE_SIDE,
-                                SQUARE_SIDE, SQUARE_SIDE,
-                                border, snake_color_);
-                continue;
-            }
-
-            if (board.at(y).at(x).has_food)
-            {
-                if (board.at(y).at(x).has_gold)
-                {
-                    scene_->addRect(x * SQUARE_SIDE, y * SQUARE_SIDE,
-                                    SQUARE_SIDE, SQUARE_SIDE,
-                                    border, gold_color_);
-                    continue;
-                }
-
-                scene_->addRect(x * SQUARE_SIDE, y * SQUARE_SIDE,
-                                SQUARE_SIDE, SQUARE_SIDE,
-                                border, food_color_);
-                continue;
-            }
-        }
-    }
-}
-
-void MainWindow::countdown()
-{
-    if (!countdown_.isActive())
-    {
-        countdown_.start(1000);
-    }
-
-    if (countdown_time == 0)
-    {
-        countdown_.stop();
-        countdown_time = COUNTDOWN;
-
-        clock_.start(1000);
-        draw_board();
-
-        timer_.start(interval_);
-
-        toggle_command_buttons(true);
-        return;
-    }
-
-    draw_digit(countdown_time);
-
-    countdown_time--;
-}
-
-
-void MainWindow::display_time()
-{
-    elapsed_time_++;
-    int minutes = elapsed_time_ / 60;
-    int seconds = elapsed_time_ - minutes * 60;
-    ui->lcdNumberMinutes->display(minutes);
-    ui->lcdNumberSeconds->display(seconds);
-}
-
-
-void MainWindow::update_score()
-{
-    int food = 0;
-    int gold = 0;
-    gameboard_->get_consumption(food, gold);
-
-    int scores = food * FOOD_SCORE +
-                 gold * (GOLD_SCORE_SCALE - 1) * FOOD_SCORE;
-
-    ui->lcdNumberScore->display(scores);
-}
-
-
-void MainWindow::toggle_command_buttons(bool enabled)
-{
-    if (enabled)
-    {
-        ui->leftButton->setEnabled(true);
-        ui->upButton->setEnabled(true);
-        ui->rightButton->setEnabled(true);
-        ui->downButton->setEnabled(true);
-        return;
-    }
-
-    ui->leftButton->setDisabled(true);
-    ui->upButton->setDisabled(true);
-    ui->rightButton->setDisabled(true);
-    ui->downButton->setDisabled(true);
-}
-
-void MainWindow::draw_digit(int dig)
-{
-    scene_->clear();
-    QPen border (Qt::darkGray);
-
-    std::vector<std::vector<int>> blueprint;
-    int pixel_size = 4 * SQUARE_SIDE;
-    int border_left = (BORDER_RIGHT - 3 * pixel_size) / 2;
-    int border_up = (BORDER_DOWN - 5 * pixel_size) / 2;
-
-    blueprint = DIGITS.at(dig-1);
-
-    for (int j = 0; j < 5; j++)
-    {
-        for (int i = 0; i < 3; i++)
-        {
-            if (blueprint.at(j).at(i) == 1)
-            {
-                scene_->addRect((border_left + i * pixel_size),
-                                (border_up + j * pixel_size),
-                                pixel_size, pixel_size,
-                                border, Qt::darkGray);
-            }
-        }
-    }
-}
-
-
-void MainWindow::on_bordersCheckBox_clicked()
-{
-    if (ui->bordersCheckBox->isChecked())
-    {
-        gameboard_->set_closed_borders(true);
-    }
-    else
-    {
-        gameboard_->set_closed_borders(false);
-    }
-
-    draw_board();
-}
-
-
-void MainWindow::on_startGameButton_clicked()
-{
-    ui->startGameButton->setDisabled(true);
-    ui->difficultyComboBox->setDisabled(true);
-    ui->bordersCheckBox->setDisabled(true);
-
-    if (ui->difficultyComboBox->currentText() == "BEGINNER")
-    {
-        interval_ = BEGINNER_INTERVAL;
-        gameboard_->set_gold_duration(GOLD_DURATION_BEGINNER);
-    }
-    else if (ui->difficultyComboBox->currentText() == "ADVANCED")
-    {
-        interval_ = ADVANCED_INTERVAL;
-        gameboard_->set_gold_duration(GOLD_DURATION_ADVANCED);
-    }
-    else
-    {
-        interval_ = PRO_INTERVAL;
-        gameboard_->set_gold_duration(GOLD_DURATION_PRO);
-    }
-
-    countdown();
-}
-
-
-void MainWindow::on_quitGameButton_clicked()
-{
-    if (clock_.isActive())
-    {
-        clock_.stop();
-        timer_.stop();
-    }
-
-    int messageBoxResult = 0;
-    messageBoxResult = QMessageBox::question(0, "QUIT", "Are you sure?",
-                                             QMessageBox::Yes,
-                                             QMessageBox::No);
-
-    if (messageBoxResult == QMessageBox::Yes)
-    {
-        this->close();
-    }
-
-    if (!ui->startGameButton->isEnabled())
-    {
-        countdown();
-    }
-}
-
-
-void MainWindow::on_leftButton_clicked()
-{
-    if (gameboard_->get_snake()->change_direction(-1, 0))
-    {
-        play_game();
-    }
-}
-
-void MainWindow::on_upButton_clicked()
-{
-    if (gameboard_->get_snake()->change_direction(0, -1))
-    {
-        play_game();
-    }
-}
-
-void MainWindow::on_rightButton_clicked()
-{
-    if (gameboard_->get_snake()->change_direction(1, 0))
-    {
-        play_game();
-    }
-}
-
-void MainWindow::on_downButton_clicked()
-{
-    if (gameboard_->get_snake()->change_direction(0, 1))
-    {
-        play_game();
-    }
-}
-
-void MainWindow::on_infoButton_clicked()
-{
-    if (clock_.isActive())
-    {
-        clock_.stop();
-        timer_.stop();
-    }
-
-    QMessageBox::information(0, "INFO", INFO_TEXT, QMessageBox::Ok);
-
-    if (!ui->startGameButton->isEnabled())
-    {
-        countdown();
-    }
-}
-
-void MainWindow::on_rainbowCheckBox_clicked()
-{
-    draw_board();
-}
-
 void MainWindow::save_score()
 {
     std::string scoreboard_address;
+
+    // Figuring out the save location
     if (ui->difficultyComboBox->currentText() == "BEGINNER")
     {
         scoreboard_address = "scoreboard_beginner.txt";
@@ -541,7 +355,7 @@ void MainWindow::save_score()
         scoreboard_address = "scoreboard_pro.txt";
     }
 
-    // Reading the file
+    // For reading the file
     std::vector<std::string> file_copy_vec; // Copy of old scoreboard
     int file_row, players;
     QString qaddress = QString::fromStdString(scoreboard_address);
@@ -558,7 +372,7 @@ void MainWindow::save_score()
     std::string username;
     int score;
     int minutes, seconds;
-    std::string date = getTimeStr_();
+    std::string date = get_time_str_();
 
     // Asking the current player's username
     bool ok;
@@ -611,7 +425,7 @@ void MainWindow::save_score()
     minutes = elapsed_time_ / 60;
     seconds = elapsed_time_ - minutes * 60;
 
-    std::string line;
+    std::string line;   // current player's dataline
 
     line = "1.\t" +
             username + '\t' +
@@ -642,7 +456,7 @@ void MainWindow::save_score()
             player_info_list.push_back(split_(player_line));
         }
 
-        // Adding the current player result
+        // Adding the current player's result
         player_info_list.push_back(split_(line));
         players++;
 
@@ -688,7 +502,7 @@ void MainWindow::save_score()
         }
     }
 
-    // Writing the saves to file
+    // Writing the saves to the original file
     std::ofstream writefile_obj(scoreboard_address);
 
     for (std::string s : file_copy_vec)
@@ -703,86 +517,252 @@ void MainWindow::save_score()
 
 }
 
-std::vector<std::string> MainWindow::split_(const std::string& s,
-                                            const char delimiter,
-                                            bool ignore_empty)
-{
-    std::vector<std::string> result;
-    std::string tmp = s;
 
-    while(tmp.find(delimiter) != std::string::npos) {
-        std::string new_part = tmp.substr(0, tmp.find(delimiter));
-        tmp = tmp.substr(tmp.find(delimiter)+1, tmp.size());
-        if(not (ignore_empty and new_part.empty())) {
-            result.push_back(new_part);
+void MainWindow::display_time()
+{
+    elapsed_time_++;
+    int minutes = elapsed_time_ / 60;
+    int seconds = elapsed_time_ - minutes * 60;
+    ui->lcdNumberMinutes->display(minutes);
+    ui->lcdNumberSeconds->display(seconds);
+}
+
+
+void MainWindow::update_score()
+{
+    int food = 0;
+    int gold = 0;
+    gameboard_->get_consumption(food, gold);
+
+    int scores = food * FOOD_SCORE +
+                 gold * (GOLD_SCORE_SCALE - 1) * FOOD_SCORE;
+
+    ui->lcdNumberScore->display(scores);
+}
+
+
+void MainWindow::toggle_control_buttons(bool enabled)
+{
+    if (enabled)
+    {
+        ui->leftButton->setEnabled(true);
+        ui->upButton->setEnabled(true);
+        ui->rightButton->setEnabled(true);
+        ui->downButton->setEnabled(true);
+        return;
+    }
+
+    ui->leftButton->setDisabled(true);
+    ui->upButton->setDisabled(true);
+    ui->rightButton->setDisabled(true);
+    ui->downButton->setDisabled(true);
+}
+
+
+void MainWindow::draw_digit(int dig)
+{
+    scene_->clear();
+    QPen border (Qt::black);
+
+    // Drawing the borders
+    if (ui->bordersCheckBox->isChecked())
+    {
+        scene_->addRect(BORDER_LEFT, BORDER_UP,
+                        BORDER_RIGHT, BORDER_DOWN,
+                        border, Qt::white);
+    }
+
+    border.setBrush(Qt::darkGray);
+    std::vector<std::vector<int>> blueprint;
+    int pixel_size = (ROWS / 7) * SQUARE_SIDE;   // Size of digit unit
+    int border_left = (BORDER_RIGHT - 3 * pixel_size) / 2;
+    int border_up = (BORDER_DOWN - 5 * pixel_size) / 2;
+
+    blueprint = DIGITS.at(dig-1);
+
+    for (int j = 0; j < 5; j++)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            if (blueprint.at(j).at(i) == 1)
+            {
+                scene_->addRect((border_left + i * pixel_size),
+                                (border_up + j * pixel_size),
+                                pixel_size, pixel_size,
+                                border, Qt::darkGray);
+            }
         }
     }
-    if(not (ignore_empty and tmp.empty())) {
-        result.push_back(tmp);
-    }
-    return result;
 }
 
-void MainWindow::format_dataline_(std::string &line)
+
+void MainWindow::on_bordersCheckBox_clicked()
 {
-    // Default settings
-    std::string name_separator = "\t\t";
-    std::string pts_aligner = " ";
-    std::string min_aligner = " ";
-    std::string sec_aligner = " ";
-
-    std::vector<std::string> pieces = split_(line);
-
-    std::vector<std::string> time_vec = split_(pieces.at(3), ' ');
-
-    int minutes = std::stoi(time_vec.at(0));
-    int seconds = std::stoi(time_vec.at(2));
-
-    // Setting the separators for aligment purposes
-    if (pieces.at(1).size() > 7)
+    if (ui->bordersCheckBox->isChecked())
     {
-        name_separator = '\t';
+        gameboard_->set_closed_borders(true);
+    }
+    else
+    {
+        gameboard_->set_closed_borders(false);
     }
 
-    int score_as_int = std::stoi(pieces.at(2));
-
-    if (score_as_int > 99)
-    {
-        pts_aligner = "";
-    }
-    else if (score_as_int < 10)
-    {
-        pts_aligner = "  ";
-    }
-
-    std::string score_as_string = std::to_string(score_as_int);
-    pieces.at(2) = pts_aligner + score_as_string + " pts";
-
-    if (minutes > 9)
-    {
-        min_aligner = "";
-    }
-    else if (seconds < 10)
-    {
-        sec_aligner = "  ";
-    }
-
-    std::string minutes_as_string, seconds_as_string;
-    minutes_as_string = std::to_string(minutes);
-    seconds_as_string = std::to_string(seconds);
-    pieces.at(3) = min_aligner + minutes_as_string + " min" +
-            sec_aligner + seconds_as_string + " sec";
-
-    // Final dataline
-    line = pieces.at(0) + '\t' +
-            pieces.at(1) + name_separator +
-            pieces.at(2) + "\t\t" +
-            pieces.at(3) + '\t' +
-            pieces.at(4);
-
+    draw_board();
 }
 
-std::string MainWindow::getTimeStr_()
+
+void MainWindow::on_startGameButton_clicked()
+{
+    ui->startGameButton->setDisabled(true);
+    ui->difficultyComboBox->setDisabled(true);
+    ui->bordersCheckBox->setDisabled(true);
+
+    // Setting snake's speed and gold's duration
+    if (ui->difficultyComboBox->currentText() == "BEGINNER")
+    {
+        interval_ = BEGINNER_INTERVAL;
+        gameboard_->set_gold_duration(GOLD_DURATION_BEGINNER);
+    }
+    else if (ui->difficultyComboBox->currentText() == "ADVANCED")
+    {
+        interval_ = ADVANCED_INTERVAL;
+        gameboard_->set_gold_duration(GOLD_DURATION_ADVANCED);
+    }
+    else
+    {
+        interval_ = PRO_INTERVAL;
+        gameboard_->set_gold_duration(GOLD_DURATION_PRO);
+    }
+
+    countdown();
+}
+
+
+void MainWindow::on_quitGameButton_clicked()
+{
+    if (clock_.isActive())
+    {
+        clock_.stop();
+        timer_.stop();
+    }
+
+    int messageBoxResult = 0;
+    messageBoxResult = QMessageBox::question(0, "QUIT", "Are you sure?",
+                                             QMessageBox::Yes,
+                                             QMessageBox::No);
+
+    if (messageBoxResult == QMessageBox::Yes)
+    {
+        this->close();
+    }
+
+    // Return to game
+    if (!ui->startGameButton->isEnabled())
+    {
+        countdown();
+    }
+}
+
+
+void MainWindow::on_leftButton_clicked()
+{
+    if (gameboard_->get_snake()->change_direction(-1, 0))
+    {
+        play_game();
+    }
+}
+
+
+void MainWindow::on_upButton_clicked()
+{
+    if (gameboard_->get_snake()->change_direction(0, -1))
+    {
+        play_game();
+    }
+}
+
+
+void MainWindow::on_rightButton_clicked()
+{
+    if (gameboard_->get_snake()->change_direction(1, 0))
+    {
+        play_game();
+    }
+}
+
+
+void MainWindow::on_downButton_clicked()
+{
+    if (gameboard_->get_snake()->change_direction(0, 1))
+    {
+        play_game();
+    }
+}
+
+
+void MainWindow::on_infoButton_clicked()
+{
+    if (clock_.isActive())
+    {
+        clock_.stop();
+        timer_.stop();
+    }
+
+    QMessageBox::information(0, "INFO", INFO_TEXT, QMessageBox::Ok);
+
+    // Return to game
+    if (!ui->startGameButton->isEnabled())
+    {
+        countdown();
+    }
+}
+
+
+void MainWindow::on_rainbowCheckBox_clicked()
+{
+    draw_board();
+}
+
+
+bool MainWindow::compare_players(std::vector<std::string> first,
+                                 std::vector<std::string> second)
+{
+    // If players have the same score, they will be printed
+    // in increasing gameplay time order.
+    if (std::stoi(first.at(2)) == std::stoi(second.at(2)))
+    {
+        // Cannot call split_ (member function)
+        Split split_f;
+        split_f.myMainWindow.memberFunctionPointer = &Split::split;
+
+        // Gameplay time is in format "MIN min SEC sec"
+        std::vector<std::string> time_vec_first =
+                ((split_f).*(split_f.
+                myMainWindow.
+                memberFunctionPointer))
+                (first.at(3), ' ', true);
+
+        std::vector<std::string> time_vec_second =
+                ((split_f).*(split_f.
+                myMainWindow.
+                memberFunctionPointer))
+                (second.at(3), ' ', true);
+
+        int time_first = std::stoi(time_vec_first.at(0)) * 60 +
+                std::stoi(time_vec_first.at(2));
+
+        int time_second = std::stoi(time_vec_second.at(0)) * 60 +
+                std::stoi(time_vec_second.at(2));
+
+
+        return (time_first < time_second);
+    }
+
+    return (std::stoi(first.at(2)) > std::stoi(second.at(2)));
+}
+
+
+std::string MainWindow::get_time_str_()
 {
     auto t = std::chrono::system_clock::now();
     std::time_t now = std::chrono::system_clock::to_time_t(t);
@@ -795,6 +775,7 @@ std::string MainWindow::getTimeStr_()
 
     return s;
 }
+
 
 bool MainWindow::read_file_(std::string scoreboard_address,
                             std::vector<std::string>& file_copy_vec,
@@ -884,38 +865,89 @@ bool MainWindow::read_file_(std::string scoreboard_address,
     return true;
 }
 
-bool MainWindow::compare_players(std::vector<std::string> first,
-                                 std::vector<std::string> second)
+
+void MainWindow::format_dataline_(std::string &line)
 {
-    // If players have the same score, they will be printed
-    // in increasing gameplay time order.
-    if (std::stoi(first.at(2)) == std::stoi(second.at(2)))
+    // Default settings
+    std::string name_separator = "\t\t";
+    std::string pts_aligner = " ";
+    std::string min_aligner = " ";
+    std::string sec_aligner = " ";
+
+    std::vector<std::string> pieces = split_(line);
+
+    std::vector<std::string> time_vec = split_(pieces.at(3), ' ');
+
+    int minutes = std::stoi(time_vec.at(0));
+    int seconds = std::stoi(time_vec.at(2));
+
+    // Setting the separators for aligment purposes
+    if (pieces.at(1).size() > 7)
     {
-        Split split_f;
-        split_f.myMainWindow.memberFunctionPointer =
-                &Split::split;
-
-        std::vector<std::string> time_vec_first =
-                ((split_f).*(split_f.
-                myMainWindow.
-                memberFunctionPointer))
-                (first.at(3), ' ', true);
-
-        std::vector<std::string> time_vec_second =
-                ((split_f).*(split_f.
-                myMainWindow.
-                memberFunctionPointer))
-                (second.at(3), ' ', true);
-
-        int time_first = std::stoi(time_vec_first.at(0)) * 60 +
-                std::stoi(time_vec_first.at(2));
-
-        int time_second = std::stoi(time_vec_second.at(0)) * 60 +
-                std::stoi(time_vec_second.at(2));
-
-
-        return (time_first < time_second);
+        name_separator = '\t';
     }
 
-    return (std::stoi(first.at(2)) > std::stoi(second.at(2)));
+    int score_as_int = std::stoi(pieces.at(2));
+
+    if (score_as_int > 99)
+    {
+        pts_aligner = "";
+    }
+    else if (score_as_int < 10)
+    {
+        pts_aligner = "  ";
+    }
+
+    std::string score_as_string = std::to_string(score_as_int);
+    pieces.at(2) = pts_aligner + score_as_string + " pts";
+
+    if (minutes > 9)
+    {
+        min_aligner = "";
+    }
+    else if (seconds < 10)
+    {
+        sec_aligner = "  ";
+    }
+
+    std::string minutes_as_string, seconds_as_string;
+    minutes_as_string = std::to_string(minutes);
+    seconds_as_string = std::to_string(seconds);
+    pieces.at(3) = min_aligner + minutes_as_string + " min" +
+            sec_aligner + seconds_as_string + " sec";
+
+    // Final dataline
+    line = pieces.at(0) + '\t' +
+            pieces.at(1) + name_separator +
+            pieces.at(2) + "\t\t" +
+            pieces.at(3) + '\t' +
+            pieces.at(4);
+
+}
+
+
+std::vector<std::string> MainWindow::split_(const std::string& s,
+                                            const char delimiter,
+                                            bool ignore_empty)
+{
+    std::vector<std::string> result;
+    std::string tmp = s;
+
+    while (tmp.find(delimiter) != std::string::npos)
+    {
+        std::string new_part = tmp.substr(0, tmp.find(delimiter));
+        tmp = tmp.substr(tmp.find(delimiter)+1, tmp.size());
+
+        if (!(ignore_empty and new_part.empty()))
+        {
+            result.push_back(new_part);
+        }
+    }
+
+    if (!(ignore_empty and tmp.empty()))
+    {
+        result.push_back(tmp);
+    }
+
+    return result;
 }

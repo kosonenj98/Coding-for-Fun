@@ -23,19 +23,27 @@ Board::Board(int columns, int rows)
         board_.push_back(tmp);
     }
 
-    int start_x, start_y;
-    start_x = columns_ / 2;
-    start_y = rows_ / 2;
-
-    snake_ = new Snake(start_x, start_y);
-    board_.at(start_y).at(start_x).is_occupied = true;
-    board_.at(start_y).at(start_x).is_head = true;
-
     food_eaten_ = 0;
     gold_eaten_ = 0;
 
     gold_frequency_ = 10;
     gold_duration_ = 20;
+
+    // Distributions for generating random numbers
+    distr_x_ = std::uniform_int_distribution<int>(0, columns_ - 1);
+    distr_y_ = std::uniform_int_distribution<int>(0, rows_ - 1);
+    distr_gold_ = std::uniform_int_distribution<int>(0, gold_frequency_ - 1);
+
+    // The snake starts at the center of the board.
+    int start_x, start_y;
+    start_x = columns_ / 2 - 1;
+    start_y = rows_ / 2 - 1;
+
+    // Creating the snake, generating food
+    // and updating the board
+    snake_ = new Snake(start_x, start_y);
+    board_.at(start_y).at(start_x).is_occupied = true;
+    board_.at(start_y).at(start_x).is_head = true;
 
     add_food();
     update_board();
@@ -43,8 +51,7 @@ Board::Board(int columns, int rows)
 
 Board::~Board()
 {
-    snake_->~Snake();
-    snake_ = nullptr;
+    delete snake_;
 }
 
 
@@ -96,13 +103,18 @@ bool Board::move_snake()
 {
     if (!gold_.empty())
     {
+        // Gold exists on the board
+
         std::vector<Gold>::iterator iter;
         iter = gold_.begin();
 
         while (iter != gold_.end())
         {
-            iter->time++;
-            if (iter->time > iter->duration)
+            // The gold exists only for certain
+            // amount of moves.
+            iter->time_remaining--;
+
+            if (iter->time_remaining == 0)
             {
                 board_.at(iter->y).at(iter->x)
                         .has_food = false;
@@ -125,13 +137,13 @@ bool Board::move_snake()
 
     snake_->move();
 
-    if (check())
+    // Checking if the move is valid
+    if (!check())
     {
-        update_board();
-        return true;
+        return false;
     }
 
-    return false;
+    return true;
 }
 
 
@@ -140,6 +152,7 @@ bool Board::check()
     Piece* tmp_head;
     tmp_head = snake_->get_head();
 
+    // With closed borders, the snake cannot cross them.
     if (closed_borders_)
     {
         if (tmp_head->x < 0 or tmp_head->x > columns_ - 1 or
@@ -153,14 +166,19 @@ bool Board::check()
     snake_->get_head()->x = modulo_(tmp_head->x, columns_);
     snake_->get_head()->y = modulo_(tmp_head->y, rows_);
 
+    // The tile where head is currently
     Tile current = board_.at(snake_->get_head()->y)
                          .at(snake_->get_head()->x);
 
+    // Cannot move, game ends
     if (current.is_occupied)
     {
         return false;
     }
 
+    update_board();
+
+    // Snake eats the food on the tile
     if (current.has_food)
     {
         food_eaten_++;
@@ -182,11 +200,13 @@ bool Board::check()
             add_food();
         }
 
+        // The snake grows after eating.
         snake_->append();
     }
 
     return true;
 }
+
 
 bool Board::board_full()
 {
@@ -204,46 +224,46 @@ bool Board::board_full()
     return true;
 }
 
+
 void Board::add_food()
 {
+    // Cannot add food to full board
     if (board_full())
     {
         return;
     }
 
-    std::uniform_int_distribution<int> distr_x(0, columns_ - 1);
-    std::uniform_int_distribution<int> distr_y(0, rows_ - 1);
-    std::uniform_int_distribution<int> distr_golden(0, gold_frequency_ - 1);
-    distr_x(generator_);
-    distr_y(generator_);
-    distr_golden(generator_);
+    // First generated number is not so random.
+    distr_x_(generator_);
+    distr_y_(generator_);
+    distr_gold_(generator_);
     int x, y;
 
-    x = distr_x(generator_);
-    y = distr_y(generator_);
+    // Generating random coordinates for food
+    x = distr_x_(generator_);
+    y = distr_y_(generator_);
     while (board_.at(y).at(x).is_occupied or
            board_.at(y).at(x).has_food)
     {
-        x = distr_x(generator_);
-        y = distr_y(generator_);
+        x = distr_x_(generator_);
+        y = distr_y_(generator_);
     }
 
     board_.at(y).at(x).has_food = true;
 
-    // Possibly generating the golden food
-    if (distr_golden(generator_) % gold_frequency_ == 0 and !board_full())
+    // Possibly generating the gold food
+    if (distr_gold_(generator_) % gold_frequency_ == 0 and !board_full())
     {
         Gold tmp;
-        tmp.duration = gold_duration_;
-        tmp.time = 0;
+        tmp.time_remaining = gold_duration_;
 
-        x = distr_x(generator_);
-        y = distr_y(generator_);
+        x = distr_x_(generator_);
+        y = distr_y_(generator_);
         while (board_.at(y).at(x).is_occupied or
                board_.at(y).at(x).has_food)
         {
-            x = distr_x(generator_);
-            y = distr_y(generator_);
+            x = distr_x_(generator_);
+            y = distr_y_(generator_);
         }
 
         board_.at(y).at(x).has_food = true;
@@ -256,36 +276,43 @@ void Board::add_food()
     }
 }
 
+
 void Board::set_closed_borders(bool closed)
 {
     closed_borders_ = closed;
 }
+
 
 void Board::set_gold_frequency(int value)
 {
     gold_frequency_ = value;
 }
 
+
 void Board::set_gold_duration(int value)
 {
     gold_duration_ = value;
 }
 
-std::vector<std::vector<Tile> > Board::get_board()
+
+std::vector<std::vector<Tile> > *Board::get_board()
 {
-    return board_;
+    return &board_;
 }
+
 
 Snake *Board::get_snake()
 {
     return snake_;
 }
 
+
 void Board::get_consumption(int &food, int &gold)
 {
     food = food_eaten_;
     gold = gold_eaten_;
 }
+
 
 int Board::modulo_(int a, int b)
 {
