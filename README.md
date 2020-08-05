@@ -8,3 +8,5 @@ Codes:
 1 - A drinking game "Bigger or smaller" (BiggerOrSmaller/)
 
 2 - A MATLAB app for cooling simulation (CoolingSimulation/)
+
+3 - A classic snake GUI (Snake/)
