@@ -18,6 +18,7 @@ public slots:
     void writeEntry(const LogEntry &entry);
     void flush();
     void setFilePath(const QString &newFilePath);
+    void shutdown();
 
 private:
     void logInternally(LogLevel level, const QString &message);

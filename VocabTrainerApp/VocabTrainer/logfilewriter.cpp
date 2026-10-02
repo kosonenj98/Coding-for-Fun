@@ -8,7 +8,11 @@
 
 namespace
 {
-    const QString LOG_TAG = QStringLiteral("LogFileWriter");
+    const QString &logTag()
+    {
+        static const QString tag = QStringLiteral("LogFileWriter");
+        return tag;
+    }
 }
 
 LogFileWriter::LogFileWriter(const QString &filePath, QObject *parent)
@@ -108,6 +112,21 @@ void LogFileWriter::setFilePath(const QString &newFilePath)
     logInternally(LogLevel::Info, QStringLiteral("Log file location changed successfully. Previous log: '%1'").arg(oldFilePath));
 }
 
+void LogFileWriter::shutdown()
+{
+    flush();
+
+    if (m_logFile.isOpen())
+    {
+        m_logFile.close();
+    }
+
+    if (m_flushTimer->isActive())
+    {
+        m_flushTimer->stop();
+    }
+}
+
 void LogFileWriter::logInternally(LogLevel level, const QString &message)
 {
     LogEntry entry;
@@ -115,7 +134,7 @@ void LogFileWriter::logInternally(LogLevel level, const QString &message)
     entry.threadId = QThread::currentThreadId();
     entry.threadName = QThread::currentThread()->objectName();
     entry.sequence = 0; // writeEntry updates
-    entry.tag = LOG_TAG;
+    entry.tag = logTag();
     entry.timestamp = QDateTime::currentDateTime();
     entry.level = level;
     entry.message = message;

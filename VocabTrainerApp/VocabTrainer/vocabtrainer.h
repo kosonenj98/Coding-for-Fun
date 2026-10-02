@@ -11,15 +11,14 @@ class VocabTrainer : public QObject
     Q_OBJECT
 
 public:
-    VocabTrainer(QObject *parent = nullptr);
+    VocabTrainer(Logger &logger, QObject *parent = nullptr);
     ~VocabTrainer();
 
     void initialize();
+    void shutdown();
 
 private:
-    Logger m_logger;
+    Logger &m_logger;
 
-    QThread *m_logThread;
-    LogFileWriter *m_logFileWriter;
 };
 #endif // VOCABTRAINER_H
