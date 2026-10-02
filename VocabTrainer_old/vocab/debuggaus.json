@@ -1,0 +1,14 @@
+Debuggaussanasto
+
+Aihealue 1
+italia1 = suomi1
+italia2 = suomi2
+italia3 = suomi3
+
+Aihealue 2
+italia1 [sana1/sana2] = suomi1 [sana1 / sana2]
+italia2 (sana) = suomi2
+italia3 (sana)jatko = suomi3
+
+Aihealue 3
+italia1 ([sana1/sana2/sana3]) = suomi1 ([sana1/sana2/sana3])

@@ -1,0 +1,9 @@
+{
+    "vocab_files": [
+        "vocab/kahvilasanasto.json",
+        "vocab/kommunikointi.json",
+        "vocab/numerot.json",
+        "vocab/verbit.json",
+        "vocab/kansalaisuus.json"
+    ]
+}

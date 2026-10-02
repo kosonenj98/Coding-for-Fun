@@ -1,0 +1,147 @@
+Lokitus
+- lokitus (tiedoston luku, virhetilanteet yms)
+- Info, Warning, Error, Debug
+
+Lokikatselin
+- voi filtteröidä näkymässä eri tason lokit näkyviin/piiloon
+
+VocabTrainer / Sanastovalmentaja
+
+- Oma handler kielitiedostoille (VocabHandler)
+- kieliversiointi?
+- Oikeaoppinen GUI ja sen handler (signal slot)
+- Qt/C++
+- selkeä modulaarisuus
+- yksikkötestit? ainakin varianttien luomiseen
+- eri näkymät yläpalkista (päänäkymä, asetukset, sanastonmuokkaus, tietoa)
+
+DataHandler
+- Pitää sisällään kaiken datan (vai vain valittuna olevan?)
+- moniarvoiset mapit (avain: [käännökset])
+- Hyödyntää toista moduulia kielitiedostojen lukemiseen
+- Sisältää myös heurestiikan dataa
+
+FileHandler
+- huolehtii tiedostojen lukemisesta ja muokkaamisesta
+- ensimmäinen rivi on sanaston nimi
+- sitten tulee sanaston ryhmän nimi
+- lopuksi sana = käännös
+- epäsäännöllinen painotettu vokaali voidaan lihavoida ympäröimällä **-merkeillä
+- huolehtii myös tilastojen tallentamisesta levylle
+
+VariantHandler
+- Generoi kaikki mahdolliset variantit syntaksin mukaan
+- () --> generoidaan ilman ja kanssa (1:1)
+- [ / / ] generoidaan vaihtoehdot
+- toimivat rekursiivisesti
+- tälle ainakin yksikkötestit
+- tiettyjen välilyöntien escapettaus? Ehkä "_"?
+- {} --> vähän kuin () mutta ilman 1:1 eli karteesinen tulo
+
+Settings
+- Voi säätää satunnaisuuden päälle/pois
+- Näytetäänkö muut vaihtoehdot
+- kieli
+- cooldown-jonon pituus
+- heurestiikan parametrit
+- harjoittele vain epäonnistuneita (voisi olla myös päänäkymässä valinta "harjoittele sanaston kaikki sanat"?)
+- Lokitus päällä/pois + taso (mitkä lokitetaan)
+
+AnswerChecker
+- tarkistaa, löytyykö datasetistä vastaavaa vastausta
+- siistii vastauksen (erikoismerkit, pilkut välilyönnit, kirjainkoot)
+- etsii myös oikeat vastaukset
+- jos vastaus löytyy kannasta mutta ei ole oikea, voisi näyttää mikä se todellisuudessa oli?
+- 
+
+TrainingSession
+- luo DataHandlerin avulla harjoitusdatan, joka näytetään käyttäjälle
+- Jos harjoitellaan kaikki sanat, jono käydään kertaalleen läpi --> sitten epäonnistuneet kunnes kaikki on kertaalleen menneet läpi --> ilmoitus käyttäjälle, jatkaako harjoitusta
+- Muutoin heurestiikan perusteella näytetään käyttäjälle sanoja
+- pitää kirjaa onnistumisista ja epäonnistumisista
+- päivittää GUI:n progressbaria
+- Jos ei harjoitella kaikkia sanoja, näytetäänkin kyseisen sanan tilastotieto (accuracy, ja arvauskerrat)
+- harjoituksen päätteeksi tallennetaan päivittyneet tiedot tilastoihin
+- top 5 parhaiten osattua sanaa harjoituksessa
+- top 5 huonoiten osattua sanaa (jos on)
+- top 5 huonoiten osattua sanaa yleensä sanastosta
+
+HeuresticHandler
+- jos sana on tiedetty yli 95 % kerroista (säädettävissä), sitä ei tarvitse kovin usein harjoitella
+- väärin menneitä sanoja pitää harjoitella enemmän
+- Samaa sanaa ei pitäisi joutua arvaamaan heti peräkkäin uudestaan (riippuu toki sanaston koosta)
+- täysin oikeinkaan menneitä sanoja ei heti jätetä pois --> viisi kertaa täysin oikein menneet on ok (säädettävissä)
+- vaikuttaa siis todennäköisyyteen, että sana näytetään käyttäjälle
+- myös aikaleima, että pitkään aikaan harjoittelemattomia sanoja kysyttäisiin
+
+Tilastot
+- sanakohtaisesti on tiedossa, paljonko arvattu oikein/väärin, tarkkuusprosentti
+- pylväsdiagrammi tarkkuudesta ja heurestiikan kynnysarvo
+- näytetään vain valitun sanaston mukaiset sanat (jos tilastotiedoissa on vanhoja sanoja/avaimia, ei niitä näytetä)
+- Olisiko erillinen täppä, jolla nekin saisi näkymään?
+
+Sanastojen muokkausnäkymä
+- Voi valita sanaston
+- näyttää avainta vastaavat vaihtoehdot, joita kumpaakin voi muokata
+- muutos tallentuu myös sanastotiedostoon, kun muutokset tallentaa
+- Tähän näkymään ohjataan myös päänäkymän pudotusvalikosta, jos hiiren oikealla on klikannut "muokkaa" --> auki valmiina kyseisen sanaston tiedot
+- voi lisätä/poistaa sanaston (ei poista levyltä vaan ei vain huomioida sovelluksessa)
+- Lisäys suoraan tiedostossa
+- Lisäys manuaalisesti näkymässä (nimi, ryhmät, itse avainparit)
+ 
+Virhekoodisto
+- selkeä virheluokka
+- ei heitellä poikkeuksia turhaan
+- funktiolla selkeä rajapinta ja virhekoodista pystyy päättelemään vian tai syyn
+- Mieti rajapinnat huolella ja fiksusti
+- riittääkö true/false, vai halutaanko virheestä jotain enemmän irti
+
+DialogHandler
+- käyttäjälle näytettävät modaaliset dialogit (virhetilanne/info yms)
+
+
+VocabTrainer
+- Settings
+- Logger
+- DataHandler
+	* FileHandler
+	* VariantHandler
+- ErrorHandler
+- MainView (GUI)
+- SettingsView (GUI)
+- VocabEditView (GUI)
+- LoggerView (GUI)
+- InfoView (GUI)
+- DialogHandler
+- StatisticsHandler
+- TrainingSession
+	* AnswerChecker
+	* HeuresticHandler
+
+UnitTests
+
+Automation tests?
+
+-Asennus? Ehkei tarvitse, kun ajaa paikallisesti ja kaikki samassa kansiossa eikä tarvitse muutoksia
+
+Jos tarvitsevat viereistä luokkaa, kysyvät pääsyn siihen ylemmältä yhteiseltä vanhemmalta
+- hyödynnetään Qt:n parent-child arkkitehtuuria
+- tarvitseeko jotain virtuaalisia luokkia testejä varten?
+
+1. VocabTrainer luokka alustavasti
+2. lokitus + LoggerView
+3. asetukset alustavasti (lokitus)
+4. virheluokka alustavasti
+5. VariantHandler + testit
+6. FileHandler + testit?
+7. DataHandler + testit?
+8. StatisticsHandler + testit
+8. AnswerChecker + testit
+9. HeuresticHandler + testit
+10. TrainingSession
+11. DialogHandler
+12. MainView
+13. SettingsView
+14. VocabEditView
+15. InfoView
+

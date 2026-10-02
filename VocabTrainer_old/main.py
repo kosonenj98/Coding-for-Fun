@@ -1,6 +1,6 @@
 from vocab_loader import load_index, load_vocab_files
 from stats_manager import load_stats, save_stats
-from gui import FlashcardApp
+from gui import VocabTrainerApp
 import tkinter as tk
 
 if __name__ == "__main__":
@@ -8,7 +8,7 @@ if __name__ == "__main__":
     vocab = load_vocab_files(index)
 
     root = tk.Tk()
-    app = FlashcardApp(root, vocab)
+    app = VocabTrainerApp(root, vocab)
 
     root.protocol("WM_DELETE_WINDOW", lambda: (save_stats(app.stats), root.destroy()))
     root.mainloop()

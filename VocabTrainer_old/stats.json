@@ -1,0 +1,1396 @@
+{
+  "Mikä sinun nimesi on?|Come ti chiami?": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Mitä?|Che cosa?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Seuraavaan kertaan!|Alla prossima !": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Hyvää huomenta!|Buongiorno!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Hyvää yötä!|Buona notte!": {
+    "correct": 4,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "Terve!|Salve!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Nähdään pian!|A presto!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Kiitos samoin!|Grazie, altrettanto!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Hauskaa päivänjatkoa!|Buona giornata!": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Nähdään!|Ci vediamo!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Näkemiin!|ArrivederLa!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Näkemiin!|Arrivederci!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Nähdään myöhemmin!|A dopo!": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Seuraavaan kertaan!|Alla prossima volta!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Hyvää päivää!|Buongiorno!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Hyvää iltaa!|Buonasera!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Seuraavaan viikkoon!|Alla prossima settimana!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Hauska tutustua.|Piacere.": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Hauskaa illanjatkoa!|Buona serata!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Huomiseen!|A domani!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Kuinka vanha olet?|Quanti anni hai?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Kuinka vanha olette?|Quanti anni ha?": {
+    "correct": 7,
+    "wrong": 2,
+    "presented": true,
+    "answered": true
+  },
+  "Mistä olet kotoisin?|Di dove sei?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Mikä teidän nimenne on?|Come si chiama?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Kuinka voit?|Come stai?": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Mikä sinun puhelinnumerosi on?|Qual è il tuo numero di telefona?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Missä asut?|Dove abiti?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Miten menee?|Come va?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Minun nimeni on|Mi chiamo": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Olen 28-vuotias.|Ho ventiotto anni": {
+    "correct": 3,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Ei kummempaa|Non c'è male": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Anteeksi kuinka?|Come, scusa?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Hauska tutustua|Piacere": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Mistä olette kotoisin?|Di dov'è?": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Kuinka voitte?|Come sta?": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "olla uninen|sonno": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "nukuttaa|sonno": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "kiire|fretta": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "jano|sete": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "kuuma|caldo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "nälkä|fame": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "kylmä|freddo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "voit, tunnet|stai": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Te voitte, tunnette|Lei sta": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "hän f. on|lei è": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "meillä on|noi abbiamo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "olemme|siamo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "teillä on|voi avete": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "olen|sono": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "me voimme, tunnemme|noi stiamo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "minä voin, tunnen|io sto": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "sinulla on|hai": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "he voivat, tuntevat|loro stanno": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "sinulla on|tu hai": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "meillä on|abbiamo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "heillä on|loro hanno": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "voivat, tuntevat|stanno": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Te olette|Lei è": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "hän m. on|lui è": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "olet|sei": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "voi, tuntee|sta": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "voin, tunnen|sto": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "minulla on|ho": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Teillä on|Lei ha": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "sinä voit, tunnet|tu stai": {
+    "correct": 1,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "minulla on|io ho": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "te olette|voi siete": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "me olemme|noi siamo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "heillä on|hanno": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "voitte, tunnette|state": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "olette|è": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Teillä on|ha": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "hän m. voi, tuntee|lui sta": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "hän f. voi, tuntee|lei sta": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "hänellä f. on|ha": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "teillä on|avete": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "he ovat|loro sono": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "olette|siete": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "minä olen|io sono": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "te voitte, tunnette|voi state": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "ovat|sono": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "sinä olet|tu sei": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "on|è": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "hänellä m. on|ha": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "hänellä f. on|lei ha": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "voimme, tunnemme|stiamo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "hänellä m. on|lui ha": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "voitte, tunnette|sta": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "suodatinkahvi|un caffè americano": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "kahvilassa|al bar": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "ruoansulatusryyppy|un digestivo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "kaakao|una cioccolata": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "espresso, jossa tilkka maitoa|un macchiato": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "juustotoast|un toast al formaggio": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Mitä saisi olla?|Dica.": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "sämpylä kinkulla|un panino al prosciutto": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "lasillinen vettä hiilihapoton|un bicchiere d'acqua non gasata": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "suodatinkahvi|un caffè tedesco": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "hanaolut|una birra alla spina": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "kiitos, kysyttäessä|per favore": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "pieni hanaolut|una birra piccola alla spina": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "focaccia|una focaccia": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "päärynämehu|un succo di pera": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "kofeiiniton espresso|un caffè decaffeinato": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "baari|una birreria": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "voisarvi ilman täytettä|un cornetto semplice": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "lasillinen vettä kivennäis-|un bicchiere d'acqua minerale": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "pullollinen vettä|una bottiglia di acqua": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "cappuccino-kahvi|un cappuccino": {
+    "correct": 4,
+    "wrong": 3,
+    "presented": true,
+    "answered": true
+  },
+  "lasillinen vettä hiilihapoton|un bicchiere d'acqua naturale": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "salamikolmioleipä|un tramezzino al salame": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "voisarvi jossa marmeladitäyte|un cornetto alla marmellata": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "pullollinen viiniä|una bottiglia di vino": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "tölkkiolut|una birra in lattina": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "voisarvi jossa kreemitäyte|un cornetto alla crema": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "tuplaespresso|un caffè doppio": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "keskikokoinen hanaolut|una birra media alla spina": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "tuorepuristettu greippimehu|una spremuta di pompelmo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "lasillinen vettä hiilihapollinen|un bicchiere d'acqua gassata": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "baari|un locale": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "persikkamehu|un succo di pesca": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "tee|un tè": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Mitä te otatte?|Cosa prendete?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "jäätelö|un gelato": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "appelsiinilimsa|un'aranciata": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "aprikoosimehu|un succo d'albicocca": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "omenamehu|un succo di mela": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Kas tässä.|Ecco.": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "baari|un pub": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "espresso, jossa tilkka maitoa|un caffè macchiato": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "juotavaa|da bere": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "lasillinen kuohuviiniä|un bicchiere di vino spumante": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "tuorepuristettu appelsiinimehu|una spremuta d'arancia": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Olkaa hyvä.|Prego.": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "kahvila|un bar": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Anteeksi!|Scusi!": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "ananasmehu|un succo d'ananas": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "lasillinen vettä hiilihapoton|un bicchiere d'acqua non gassata": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Ole hyvä.|Prego.": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "kofeiiniton espresso|un caffè dec": {
+    "correct": 3,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "jääkahvi|un caffè freddo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "pikkupitsa|una pizzetta": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "lasillinen punaviiniä|un bicchiere di vino rosso": {
+    "correct": 6,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "sämpylä kinkulla keitto-|un panino al prosciutto cotto": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "iso hanaolut|una birra grande alla spina": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "lasillinen vettä hiilihapollinen|un bicchiere d'acqua frizzante": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "aperitiivi|un aperitivo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "tonnikalakolmioleipä|un tramezzino al tonno": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "espresso-kahvi|un caffè": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "pullollinen vettä|una bottiglia d'acqua": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "jäätee|un tè freddo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "hedelmämehu|un succo di frutta": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "pullo-olut|una birra in bottiglia": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "lasillinen valkoviiniä|un bicchiere di vino bianco": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "maitokahvi|un caffellatte": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "syötävää|da mangiare": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "sämpylä kinkulla ilmakuivattu|un panino al prosciutto crudo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "appelsiinimehu|un succo d'arancia": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "lasillinen vettä hiilihapollinen|un bicchiere d'acqua gasata": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "terästetty espresso|un caffè corretto": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "lasillinen vettä|un bicchiere d'acqua": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "amerikkalainen|americano": {
+    "correct": 0,
+    "wrong": 0,
+    "presented": true
+  },
+  "Venäjä|Russia": {
+    "correct": 0,
+    "wrong": 0,
+    "presented": true
+  },
+  "ruotsalainen|svedese": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Ruotsi|Svezia": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Tanska|Danimarca": {
+    "correct": 2,
+    "wrong": 2,
+    "presented": true,
+    "answered": true
+  },
+  "tanskalainen|danese": {
+    "correct": 3,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "Suomi|Finlandia": {
+    "correct": 3,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "norjalainen|norvegese": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "suomalainen|finlandese": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Norja|Norvegia": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Saksa|Germania": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "britti|britannico": {
+    "correct": 1,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "virolainen|estone": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "sveitsiläinen|svizzero": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "irlantilainen|irlandese": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Kreikka|Grecia": {
+    "correct": 1,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "Irlanti|Irlanda": {
+    "correct": 1,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "kreikkalainen|greco": {
+    "correct": 1,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "ranskalainen|francese": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Italia|Italia": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Portugali|Portogallo": {
+    "correct": 2,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "saksalainen|tedesco": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Liettua|Lituania": {
+    "correct": 1,
+    "wrong": 2,
+    "presented": true,
+    "answered": true
+  },
+  "Viro|Estonia": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "portugalilainen|portoghese": {
+    "correct": 2,
+    "wrong": 2,
+    "presented": true,
+    "answered": true
+  },
+  "Puola|Polonia": {
+    "correct": 1,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "Espanja|Spagna": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "italialainen|italiano": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Iso-Britannia|Regno Unito": {
+    "correct": 1,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "latvialainen|lettone": {
+    "correct": 1,
+    "wrong": 2,
+    "presented": true,
+    "answered": true
+  },
+  "Sveitsi|Svizzera": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Latvia|Lettonia": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "espanjalainen|spagnolo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "englantilainen|inglese": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "liettualainen|lituano": {
+    "correct": 1,
+    "wrong": 2,
+    "presented": true,
+    "answered": true
+  },
+  "Ranska|Francia": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Englanti|Inghilterra": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "puolalainen|polacco": {
+    "correct": 1,
+    "wrong": 2,
+    "presented": true,
+    "answered": true
+  },
+  "Kanada|Canada": {
+    "correct": 0,
+    "wrong": 0,
+    "presented": true
+  },
+  "venäläinen|russo": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "australialainen|australiano": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "japanilainen|giapponese": {
+    "correct": 0,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "Intia|India": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Etelä-Korea|Corea del Sud": {
+    "correct": 0,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "korealainen|coreano": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "intialainen|indiano": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Turkki|Turchia": {
+    "correct": 0,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "Argentiina|Argentina": {
+    "correct": 0,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "Australia|Australia": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "brasilialainen|brasiliano": {
+    "correct": 0,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "amerikkalainen]|americano]": {
+    "correct": 0,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "argentiinalainen|argentino": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Japani|Giappone": {
+    "correct": 0,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "turkkilainen|turco": {
+    "correct": 0,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "[Amerikka|[America": {
+    "correct": 0,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "kiinalainen|cinese": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Brasilia|Brasile": {
+    "correct": 0,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "Kiina|Cina": {
+    "correct": 0,
+    "wrong": 0,
+    "presented": true
+  },
+  "Milloin?|Quando?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Mikä?|Cosa?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Mikä?|Che?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Kuinka?|Come?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Miksi?|Perché?": {
+    "correct": 5,
+    "wrong": 1,
+    "presented": true,
+    "answered": true
+  },
+  "Millainen?|Come?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Miten?|Come?": {
+    "correct": 2,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Missä?|Dove?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Mitä?|Cosa?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Kuka?|Chi?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Mistä?|Di dove?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Mikä?|Che cosa?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Mitä?|Che?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  },
+  "Ketkä?|Chi?": {
+    "correct": 1,
+    "wrong": 0,
+    "presented": true,
+    "answered": true
+  }
+}
