@@ -1,4 +1,7 @@
+#include "logfilewriter.h"
+#include "logger.h"
 #include "vocabtrainer.h"
+#include "GUI/mainwindow.h"
 
 #include <QApplication>
 #include <QThread>
@@ -30,6 +33,9 @@ int main(int argc, char *argv[])
 
     VocabTrainer vt(logger);
     vt.initialize();
+
+    MainWindow mainWindow(logger);
+    mainWindow.show();
 
     const int result = a.exec();
 

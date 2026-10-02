@@ -9,12 +9,18 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    GUI/logview.cpp \
+    GUI/mainview.cpp \
+    GUI/mainwindow.cpp \
     logfilewriter.cpp \
     logger.cpp \
     main.cpp \
     vocabtrainer.cpp
 
 HEADERS += \
+    GUI/logview.h \
+    GUI/mainview.h \
+    GUI/mainwindow.h \
     logfilewriter.h \
     logger.h \
     vocabtrainer.h

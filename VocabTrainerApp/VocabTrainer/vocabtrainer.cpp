@@ -1,8 +1,5 @@
 #include "vocabtrainer.h"
 
-#include <QThread>
-
-
 namespace
 {
     const QString &logTag()

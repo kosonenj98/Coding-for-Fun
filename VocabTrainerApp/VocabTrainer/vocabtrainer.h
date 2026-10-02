@@ -2,7 +2,6 @@
 #define VOCABTRAINER_H
 
 #include "logger.h"
-#include "logfilewriter.h"
 
 #include <QObject>
 
