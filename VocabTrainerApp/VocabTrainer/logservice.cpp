@@ -56,8 +56,37 @@ QList<LogEntry> LogService::filterLogEntries(const LogQuery &query, const QList<
     m_logger.verbose(logTag(), QStringLiteral("Filtering log entries..."));
 
     // Filter entries with query
-    QList<LogEntry> filteredEntries = entries;
+    QList<LogEntry> filteredEntries;
+    filteredEntries.reserve(entries.size());
+    int skippedEntriesCount = 0;
+    for (const LogEntry &entry : entries)
+    {
+        if (!query.from.isNull() && entry.timestamp < query.from)
+        {
+            skippedEntriesCount++;
+            continue;
+        }
+
+        if (!query.to.isNull() && entry.timestamp > query.to)
+        {
+            skippedEntriesCount++;
+            continue;
+        }
+
+        if (!query.searchText.isNull() && !entry.message.contains(query.searchText, Qt::CaseInsensitive))
+        {
+            skippedEntriesCount++;
+            continue;
+        }
+
+        filteredEntries.append(entry);
+    }
 
     m_logger.verbose(logTag(), QStringLiteral("Filtering log entries done!"));
+    if (skippedEntriesCount > 0)
+    {
+        m_logger.verbose(logTag(), QStringLiteral("Skipped %1 unmatching entries.").arg(QString::number(skippedEntriesCount)));
+    }
+
     return filteredEntries;
 }
