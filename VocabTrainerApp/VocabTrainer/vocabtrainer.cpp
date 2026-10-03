@@ -29,7 +29,9 @@ void VocabTrainer::initialize()
     m_logger.verbose(logTag(), QStringLiteral("Initializing main application..."));
     m_logService = new LogService(m_logger, m_logFileHandler, this);
 
-    connect(m_logService, &LogService::executeLogQueryFinished, this, &VocabTrainer::executeLogQueryFinished);
+    connect(m_logService, &LogService::queryLogSucceeded, this, &VocabTrainer::handleLogQuerySucceeded);
+    connect(m_logService, &LogService::queryLogSucceededPartially, this, &VocabTrainer::handleLogQuerySucceededPartially);
+    connect(m_logService, &LogService::queryLogFailed, this, &VocabTrainer::handleLogQueryFailed);
 
     m_logger.verbose(logTag(), QStringLiteral("Initializing main application done!"));
 
@@ -38,17 +40,31 @@ void VocabTrainer::initialize()
     m_logger.verbose(logTag(), QStringLiteral("Initializing VocabTrainer done! Running on thread '0x%1' (%2).").arg(threadId, threadName));
 }
 
-void VocabTrainer::executeLogQuery(const LogQuery &query)
+void VocabTrainer::handleLogQueryRequest(const LogQuery &query)
 {
-    m_logger.verbose(logTag(), QStringLiteral("Executing log query..."));
-    m_logService->executeLogQuery(query);
+    m_logger.verbose(logTag(), QStringLiteral("Handling log query request..."));
+    m_logService->queryLog(query);
 }
 
-void VocabTrainer::executeLogQueryFinished(const QList<LogEntry> entries)
+void VocabTrainer::handleLogQuerySucceeded(const QList<LogEntry> entries)
 {
-    m_logger.verbose(logTag(), QStringLiteral("Executing log query done!"));
-    m_logger.verbose(logTag(), QStringLiteral("Responding to log query request..."));
-    emit logQueryResponded(entries);
+    m_logger.verbose(logTag(), QStringLiteral("Log query succeeded!"));
+    m_logger.verbose(logTag(), QStringLiteral("Emitting success signal..."));
+    emit logQuerySucceeded(entries);
+}
+
+void VocabTrainer::handleLogQuerySucceededPartially(const QList<LogEntry> entries, int failedEntriesCount)
+{
+    m_logger.verbose(logTag(), QStringLiteral("Log query succeeded partially. Skipped %1 faulty lines in log file.").arg(QString::number(failedEntriesCount)));
+    m_logger.verbose(logTag(), QStringLiteral("Emitting partial success signal..."));
+    emit logQuerySucceededPartially(entries, failedEntriesCount);
+}
+
+void VocabTrainer::handleLogQueryFailed(ErrorCode code)
+{
+    m_logger.verbose(logTag(), QStringLiteral("Log query failed! ErrorCode: %1").arg(errorCodeToString(code)));
+    m_logger.verbose(logTag(), QStringLiteral("Emitting failure signal..."));
+    emit logQueryFailed(code);
 }
 
 void VocabTrainer::shutdown()

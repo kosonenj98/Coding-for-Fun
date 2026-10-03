@@ -2,6 +2,7 @@
 #define SETTINGSHANDLER_H
 
 #include "Logging/logger.h"
+#include "errorcode.h"
 
 #include <QObject>
 #include <QString>
@@ -69,10 +70,11 @@ public:
     void setLogFilePath(const QString &newPath);
 
 public slots:
-    void applySettings(const Settings& newSettings);
+    void handleApplyNewSettingsRequest(const Settings& newSettings);
 
 signals:
-    void applySettingsFinished(const Settings& settings);
+    void applyNewSettingsSucceeded();
+    void applyNewSettingsFailed(ErrorCode code, const Settings &settings);
 
 private:
     Logger &m_logger;

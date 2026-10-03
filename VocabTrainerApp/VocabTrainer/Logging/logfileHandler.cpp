@@ -37,10 +37,8 @@ void LogFileHandler::initialize()
 {
     if (!m_logFile.open(QIODevice::WriteOnly | QIODevice::Append))
     {
-        m_logFileAvailable = false;
+        // TODO: Handle this error!
     }
-    m_logFileAvailable = true;
-
     m_flushTimer = new QTimer(this);
     connect(m_flushTimer, &QTimer::timeout, this, &LogFileHandler::flush);
     m_flushTimer->start(FlushTimerIntervalMs);
@@ -48,7 +46,7 @@ void LogFileHandler::initialize()
 
 void LogFileHandler::writeEntry(const LogEntry &entry)
 {
-    if (!m_logFileAvailable)
+    if (!m_logFile.isOpen())
     {
         return;
     }
@@ -118,7 +116,7 @@ void LogFileHandler::setFilePath(const QString &newFilePath)
     {
         if (!fileInfo.absoluteDir().mkpath(QStringLiteral(".")))
         {
-            m_logFileAvailable = false;
+            // TODO: Emit error here
             return;
         }
     }
@@ -127,31 +125,34 @@ void LogFileHandler::setFilePath(const QString &newFilePath)
 
     if (!m_logFile.open(QIODevice::WriteOnly | QIODevice::Append))
     {
-        m_logFileAvailable = false;
+        // TODO: Emit error here
         return;
     }
-
-    m_logFileAvailable = true;
 
     info(QStringLiteral("Log file location changed successfully. Previous log: '%1'").arg(oldFilePath));
 
     verbose(QStringLiteral("Setting new log file path done!"));
 }
 
-void LogFileHandler::readEntries(const LogQuery &query)
+void LogFileHandler::readAllLogEntries(const LogQuery &query)
 {
-    verbose(QStringLiteral("Reading log entries..."));
+    debug(QStringLiteral("Reading log entries..."));
     QList<LogEntry> entries;
 
-    QFile file(query.filePath);
+    QString filePath = query.filePath;
+    QFile file(filePath);
 
+    verbose(QStringLiteral("Opening file '%1'...").arg(filePath));
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
-        // TODO: Emit file error
-        emit readEntriesFinished(query, entries);
+        error(QStringLiteral("Failed to open '%1': '%2' (FileError '%3')").arg(filePath, file.errorString(), QString::number(file.error())));
+        emit readAllLogEntriesFailed(ErrorCode::FileOpenFailed);
         return;
     }
+    verbose(QStringLiteral("Opening file '%1' succeeded!").arg(filePath));
 
+    debug(QStringLiteral("Reading log entries..."));
+    int failedEntriesCount = 0;
     while (!file.atEnd())
     {
         const QByteArray line = file.readLine().trimmed();
@@ -167,7 +168,9 @@ void LogFileHandler::readEntries(const LogQuery &query)
 
         if (parseError.error != QJsonParseError::NoError || !document.isObject())
         {
-            // TODO: Handle malformed log line
+            error(QStringLiteral("Parsing log file failed! Line: '%1'").arg(QString::fromUtf8(line)));
+            debug(QStringLiteral("Skipping the problematic line..."));
+            failedEntriesCount++;
             continue;
         }
 
@@ -187,8 +190,18 @@ void LogFileHandler::readEntries(const LogQuery &query)
 
     file.close();
 
-    verbose(QStringLiteral("Reading log entries done!"));
-    emit readEntriesFinished(query, entries);
+    debug(QStringLiteral("Reading log entries done!"));
+    if (failedEntriesCount == 0)
+    {
+        verbose(QStringLiteral("Emitting log entry reading success signal..."));
+        emit readAllLogEntriesSucceeded(query, entries);
+    }
+    else
+    {
+        warning(QStringLiteral("Skipped %1 faulty entries in log file '%2'.").arg(QString::number(failedEntriesCount), filePath));
+        verbose(QStringLiteral("Emitting log entry reading partial success signal..."));
+        emit readAllLogEntriesSucceededPartially(query, entries, failedEntriesCount);
+    }
 }
 
 void LogFileHandler::shutdown()
@@ -218,7 +231,8 @@ void LogFileHandler::logInternally(LogLevel level, const QString &message)
     entry.level = level;
     entry.message = message;
 
-    writeEntry(entry);
+    // Respect LogFileHandler's logging queue
+    QMetaObject::invokeMethod(this, &LogFileHandler::writeEntry, Qt::QueuedConnection, entry);
 }
 
 void LogFileHandler::info(const QString &message)
@@ -273,6 +287,6 @@ bool LogFileHandler::isLoggingEnabled(const LogEntry &entry)
         return m_settingsHandler.getLogVerboseEnabled();
     }
 
-    // TODO: Asset here?
+    // TODO: Assert here?
     return true;
 }

@@ -3,6 +3,7 @@
 
 #include "../Logging/logger.h"
 #include "../settingshandler.h"
+#include "../errorcode.h"
 #include "mainview.h"
 #include "settingsview.h"
 #include "logview.h"
@@ -17,25 +18,20 @@ public:
     explicit MainWindow(Logger &logger, SettingsHandler &handler, QWidget *parent = nullptr);
 
 public slots:
-    void logQueryResponded(const QList<LogEntry> &entries);
+    void handleLogQueryRequest(const LogQuery &query);
+    void handleLogQuerySucceeded(const QList<LogEntry> &entries);
+    void handleLogQuerySucceededPartially(const QList<LogEntry> &entries, int failedEntriesCount);
+    void handleLogQueryFailed(ErrorCode code);
 
-    void logRefreshRequested(const LogQuery &query);
+    void handleApplyNewSettingsRequest(const Settings &newSettings);
+    void handleApplyNewSettingsSucceeded();
+    void handleApplyNewSettingsFailed(ErrorCode code, const Settings &settings);
 
-    void settingsChangeRequested(const Settings &newSettings);
-
-    void applySettingsResponded(const Settings &settings);
-
-    void viewTabChanged(int index);
+    void handleViewTabChanged(int index);
 
 signals:
-    void logQueryRequested(const LogQuery &query);
-
-    void applySettingsRequested(const Settings &newSettings);
-
-    void settingsChangeResponded(const Settings &settings);
-    void settingsChangeSucceeded(const QString &title, const QString &message);
-
-    void logRefreshResponded(const QList<LogEntry> &entries);
+    void requestLogQuery(const LogQuery &query);
+    void requestApplyNewSettings(const Settings &newSettings);
 
 private:
     Logger &m_logger;

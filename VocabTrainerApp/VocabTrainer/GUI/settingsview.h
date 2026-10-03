@@ -15,17 +15,15 @@ class SettingsView : public QWidget
 public:
     explicit SettingsView(Logger &logger, const Settings &settings, QWidget *parent = nullptr);
 
-public slots:
-    void formChangeSettingsRequest();
-
-    void settingsChangeResponded(const Settings &settings);
-
-signals:
-    void settingsChangeRequested(const Settings &newSettings);
-
-private:
     void updateView(const Settings &settings);
 
+public slots:
+    void createRequestForNewSettingsAndEmit();
+
+signals:
+    void requestApplyNewSettings(const Settings &newSettings);
+
+private:
     Logger &m_logger;
 
     QCheckBox* m_logCheckBox;

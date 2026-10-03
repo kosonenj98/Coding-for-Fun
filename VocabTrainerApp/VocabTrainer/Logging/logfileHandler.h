@@ -3,6 +3,7 @@
 
 #include "logger.h"
 #include "../settingshandler.h"
+#include "../errorcode.h"
 
 #include <QObject>
 #include <QFile>
@@ -19,11 +20,13 @@ public slots:
     void writeEntry(const LogEntry &entry);
     void flush();
     void setFilePath(const QString &newFilePath);
-    void readEntries(const LogQuery &query);
+    void readAllLogEntries(const LogQuery &query);
     void shutdown();
 
 signals:
-    void readEntriesFinished(const LogQuery &query, QList<LogEntry> entries);
+    void readAllLogEntriesSucceeded(const LogQuery &query, QList<LogEntry> entries);
+    void readAllLogEntriesSucceededPartially(const LogQuery &query, QList<LogEntry> entries, int failedEntriesCount);
+    void readAllLogEntriesFailed(ErrorCode code);
 
 private:
     void logInternally(LogLevel level, const QString &message);
@@ -39,7 +42,6 @@ private:
     quint64 m_sequence = 0;
     QTimer *m_flushTimer;
     int m_entriesSinceFlush = 0;
-    bool m_logFileAvailable = false;
 
     static constexpr int FlushInterval = 100;
     static constexpr int FlushTimerIntervalMs = 1000;

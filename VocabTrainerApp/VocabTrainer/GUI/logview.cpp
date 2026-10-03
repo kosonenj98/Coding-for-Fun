@@ -2,8 +2,6 @@
 
 #include <QVBoxLayout>
 #include <QLabel>
-#include <QStandardPaths>
-#include <QDir>
 
 namespace
 {
@@ -14,8 +12,8 @@ namespace
     }
 }
 
-LogView::LogView(Logger &logger, QWidget *parent)
-    : QWidget{parent}, m_logger(logger)
+LogView::LogView(Logger &logger, const Settings &settings, QWidget *parent)
+    : QWidget{parent}, m_logger(logger), m_logFilePath(settings.logFilePath)
 {
     m_logger.verbose(logTag(), QStringLiteral("Constructing log view..."));
 
@@ -27,32 +25,18 @@ LogView::LogView(Logger &logger, QWidget *parent)
     m_logger.verbose(logTag(), QStringLiteral("Constructing log view done!"));
 }
 
-void LogView::requestInitialLog()
+void LogView::createRequestForLogQueryAndEmit()
 {
     m_logger.verbose(logTag(), QStringLiteral("Requesting initial dialog..."));
     LogQuery query;
-
-    const QString directory =
-        QStandardPaths::writableLocation(
-            QStandardPaths::AppLocalDataLocation);
-
-    query.filePath =
-        QDir(directory).filePath(
-            QStringLiteral("vocabtrainer.log"));
-
+    query.filePath = m_logFilePath;
     m_logger.verbose(logTag(), QStringLiteral("Requesting log refresh..."));
-    emit logRefreshRequested(query);
+    emit requestLogQuery(query);
 }
 
-void LogView::logRefreshResponded(const QList<LogEntry> &entries)
+void LogView::updateView(const QList<LogEntry> &entries)
 {
-    m_logger.verbose(logTag(), QStringLiteral("Requesting log refresh done!"));
-    showLogEntries(entries);
-}
-
-void LogView::showLogEntries(const QList<LogEntry> &entries)
-{
-    m_logger.verbose(logTag(), QStringLiteral("Showing log entries..."));
+    m_logger.verbose(logTag(), QStringLiteral("Displaying log entries..."));
     m_logList->clear();
 
     for (const LogEntry& entry : entries) {
@@ -70,5 +54,5 @@ void LogView::showLogEntries(const QList<LogEntry> &entries)
         m_logList->addItem(text);
     }
 
-    m_logger.verbose(logTag(), QStringLiteral("Showing log entries done!"));
+    m_logger.verbose(logTag(), QStringLiteral("Displaying log entries done!"));
 }

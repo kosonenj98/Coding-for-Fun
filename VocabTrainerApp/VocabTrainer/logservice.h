@@ -2,6 +2,7 @@
 #define LOGSERVICE_H
 
 #include "Logging/logfileHandler.h"
+#include "errorcode.h"
 
 #include <QObject>
 
@@ -11,18 +12,21 @@ class LogService : public QObject
 public:
     explicit LogService(Logger &logger, LogFileHandler &handler, QObject *parent = nullptr);
 
-    void executeLogQuery(const LogQuery &query);
+    void queryLog(const LogQuery &query);
 
 public slots:
-
-    void readEntriesResponded(const LogQuery &query, const QList<LogEntry> &entries);
+    void handleGetAllLogEntriesSucceeded(const LogQuery &query, const QList<LogEntry> &entries);
+    void handleGetAllLogEntriesSucceededPartially(const LogQuery &query, const QList<LogEntry> &entries, int failedEntriesCount);
+    void handleGetAllLogEntriesFailed(ErrorCode code);
 
 signals:
-    void readEntriesRequested(const LogQuery &query);
-    void executeLogQueryFinished(const QList<LogEntry> &entries);
+    void requestGetAllLogEntries(const LogQuery &query);
+    void queryLogSucceeded(const QList<LogEntry> &entries);
+    void queryLogSucceededPartially(const QList<LogEntry> &entries, int failedEntriesCount);
+    void queryLogFailed(ErrorCode code);
 
 private:
-    QList<LogEntry> handleLogEntries(const LogQuery &query, const QList<LogEntry> &entries);
+    QList<LogEntry> filterLogEntries(const LogQuery &query, const QList<LogEntry> &entries);
 
     Logger &m_logger;
     LogFileHandler &m_logFileHandler;

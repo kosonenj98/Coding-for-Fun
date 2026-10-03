@@ -3,6 +3,7 @@
 
 #include "Logging/logger.h"
 #include "logservice.h"
+#include "errorcode.h"
 
 #include <QObject>
 
@@ -17,14 +18,17 @@ public:
 public slots:
     void initialize();
 
-    void executeLogQuery(const LogQuery &query);
-
-    void executeLogQueryFinished(const QList<LogEntry> entries);
+    void handleLogQueryRequest(const LogQuery &query);
+    void handleLogQuerySucceeded(const QList<LogEntry> entries);
+    void handleLogQuerySucceededPartially(const QList<LogEntry> entries, int failedEntriesCount);
+    void handleLogQueryFailed(ErrorCode code);
 
     void shutdown();
 
 signals:
-    void logQueryResponded(const QList<LogEntry> &entries);
+    void logQuerySucceeded(const QList<LogEntry> entries);
+    void logQuerySucceededPartially(const QList<LogEntry> entries, int failedEntriesCount);
+    void logQueryFailed(ErrorCode code);
 
 private:
     Logger &m_logger;

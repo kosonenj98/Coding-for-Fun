@@ -17,6 +17,7 @@ SOURCES += \
     Logging/logfileHandler.cpp \
     Logging/logger.cpp \
     Logging/loglevel.cpp \
+    errorcode.cpp \
     logservice.cpp \
     main.cpp \
     settingshandler.cpp \
@@ -31,6 +32,7 @@ HEADERS += \
     Logging/logfileHandler.h \
     Logging/logger.h \
     Logging/loglevel.h \
+    errorcode.h \
     logservice.h \
     settingshandler.h \
     vocabtrainer.h

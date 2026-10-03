@@ -27,7 +27,9 @@ SettingsView::SettingsView(Logger &logger, const Settings &settings, QWidget *pa
     m_logFilePathEdit = new QLineEdit(settings.logFilePath);
 
     m_applyButton = new QPushButton(QStringLiteral("Apply"));
-    connect(m_applyButton,&QPushButton::clicked, this, &SettingsView::formChangeSettingsRequest);
+    connect(m_applyButton,&QPushButton::clicked, this, &SettingsView::createRequestForNewSettingsAndEmit);
+
+    updateView(settings);
 
     auto* loggingGroup = new QGroupBox(QStringLiteral("Logging"));
 
@@ -51,9 +53,9 @@ SettingsView::SettingsView(Logger &logger, const Settings &settings, QWidget *pa
     m_logger.verbose(logTag(), QStringLiteral("Constructing settings view done!"));
 }
 
-void SettingsView::formChangeSettingsRequest()
+void SettingsView::createRequestForNewSettingsAndEmit()
 {
-    m_logger.verbose(logTag(), QStringLiteral("Forming request for changing settings..."));
+    m_logger.verbose(logTag(), QStringLiteral("Creating request for new settings..."));
     Settings newSettings;
     newSettings.logEnabled = m_logCheckBox->isChecked();
     newSettings.logInfoEnabled = m_logInfoCheckBox->isChecked();
@@ -62,17 +64,10 @@ void SettingsView::formChangeSettingsRequest()
     newSettings.logDebugEnabled = m_logDebugCheckBox->isChecked();
     newSettings.logVerboseEnabled = m_logVerboseCheckBox->isChecked();
     newSettings.logFilePath = m_logFilePathEdit->text();
-    m_logger.verbose(logTag(), QStringLiteral("Forming request for changing settings done!"));
+    m_logger.verbose(logTag(), QStringLiteral("Creating request for new settings done!"));
 
-    m_logger.verbose(logTag(), QStringLiteral("Requesting changing settings..."));
-    emit settingsChangeRequested(newSettings);
-}
-
-void SettingsView::settingsChangeResponded(const Settings &settings)
-{
-    m_logger.verbose(logTag(), QStringLiteral("Requesting changing settings done!"));
-
-    updateView(settings);
+    m_logger.verbose(logTag(), QStringLiteral("Requesting to apply the new settings..."));
+    emit requestApplyNewSettings(newSettings);
 }
 
 void SettingsView::updateView(const Settings &settings)

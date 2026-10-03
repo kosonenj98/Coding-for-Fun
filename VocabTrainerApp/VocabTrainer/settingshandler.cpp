@@ -154,12 +154,14 @@ void SettingsHandler::setLogFilePath(const QString &newPath)
     m_logger.debug(logTag(), QStringLiteral("No change needed for logFilePath. Skipping..."));
 }
 
-void SettingsHandler::applySettings(const Settings &newSettings)
+void SettingsHandler::handleApplyNewSettingsRequest(const Settings &newSettings)
 {
     m_logger.debug(logTag(), QStringLiteral("Applying new settings..."));
     m_settings = newSettings;
-    m_logger.debug(logTag(), QStringLiteral("Applying new settings done!"));
+    m_logger.debug(logTag(), QStringLiteral("Applying new settings succeeded!"));
 
-    m_logger.debug(logTag(), QStringLiteral("Responding to apply settings change request..."));
-    emit applySettingsFinished(m_settings);
+    m_logger.debug(logTag(), QStringLiteral("Emitting success signal..."));
+    emit applyNewSettingsSucceeded();
+
+    // TODO: Check the suggested settings. If not valid, emit failure signal!
 }

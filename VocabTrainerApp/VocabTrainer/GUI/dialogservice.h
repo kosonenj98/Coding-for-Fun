@@ -9,12 +9,13 @@ class DialogService : public QObject
 public:
     explicit DialogService(QWidget *parentWidget, QObject *parent = nullptr);
 
-public slots:
     void showInformation(const QString& title, const QString& message);
 
     void showWarning(const QString& title, const QString& message);
 
     void showError(const QString& title, const QString& message);
+
+public slots:
 
 signals:
 
