@@ -1,5 +1,5 @@
-#include "logfilewriter.h"
-#include "logger.h"
+#include "Logging/logfileHandler.h"
+#include "Logging/logger.h"
 #include "vocabtrainer.h"
 #include "GUI/mainwindow.h"
 
@@ -21,26 +21,41 @@ int main(int argc, char *argv[])
     const QString logDirectory =QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     QDir().mkpath(logDirectory);
     const QString logFilePath = QDir(logDirectory).filePath(QStringLiteral("vocabtrainer.log"));
-    LogFileWriter *logFileWriter = new LogFileWriter(logFilePath);
-    logFileWriter->moveToThread(&logThread);
-    QObject::connect(&logThread, &QThread::started, logFileWriter, &LogFileWriter::initialize);
-    QObject::connect(&logThread, &QThread::finished, logFileWriter, &QObject::deleteLater);
+    LogFileHandler *logFileHandler = new LogFileHandler(logFilePath);
+    logFileHandler->moveToThread(&logThread);
+    QObject::connect(&logThread, &QThread::started, logFileHandler, &LogFileHandler::initialize);
+    QObject::connect(&logThread, &QThread::finished, logFileHandler, &QObject::deleteLater);
 
     Logger logger;
-    QObject::connect(&logger, &Logger::logEntryCreated, logFileWriter, &LogFileWriter::writeEntry, Qt::QueuedConnection);
+    QObject::connect(&logger, &Logger::logEntryCreated, logFileHandler, &LogFileHandler::writeEntry, Qt::QueuedConnection);
 
     logThread.start();
 
-    VocabTrainer vt(logger);
-    vt.initialize();
+    QThread trainerThread;
+    trainerThread.setObjectName(QStringLiteral("VocabTrainerThread"));
+
+    VocabTrainer *vocabTrainer = new VocabTrainer(logger, *logFileHandler);
+    vocabTrainer->moveToThread(&trainerThread);
+
+    QObject::connect(&trainerThread, &QThread::started, vocabTrainer, &VocabTrainer::initialize);
+    QObject::connect(&trainerThread, &QThread::finished, vocabTrainer, &QObject::deleteLater);
+
+    trainerThread.start();
 
     MainWindow mainWindow(logger);
+
+    QObject::connect(&mainWindow, &MainWindow::logQueryRequested, vocabTrainer, &VocabTrainer::executeLogQuery, Qt::QueuedConnection);
+    QObject::connect(vocabTrainer, &VocabTrainer::logQueryResponded, &mainWindow, &MainWindow::logQueryResponded, Qt::QueuedConnection);
+
     mainWindow.show();
 
     const int result = a.exec();
 
-    vt.shutdown();
-    QMetaObject::invokeMethod(logFileWriter, &LogFileWriter::shutdown, Qt::BlockingQueuedConnection);
+    QMetaObject::invokeMethod(vocabTrainer, &VocabTrainer::shutdown, Qt::BlockingQueuedConnection);
+    trainerThread.quit();
+    trainerThread.wait();
+
+    QMetaObject::invokeMethod(logFileHandler, &LogFileHandler::shutdown, Qt::BlockingQueuedConnection);
     logThread.quit();
     logThread.wait();
 

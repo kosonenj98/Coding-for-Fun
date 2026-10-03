@@ -9,8 +9,8 @@ namespace
     }
 }
 
-VocabTrainer::VocabTrainer(Logger &logger, QObject *parent)
-    : QObject(parent), m_logger(logger)
+VocabTrainer::VocabTrainer(Logger &logger, LogFileHandler &handler, QObject *parent)
+    : QObject(parent), m_logger(logger), m_logFileHandler(handler)
 {
     m_logger.verbose(logTag(), QStringLiteral("Constructing main application..."));
     m_logger.verbose(logTag(), QStringLiteral("Constructing main application done!"));
@@ -25,8 +25,24 @@ VocabTrainer::~VocabTrainer()
 void VocabTrainer::initialize()
 {
     m_logger.verbose(logTag(), QStringLiteral("Initializing main application..."));
-    m_logger.debug(logTag(), QStringLiteral("Hello world!"));
+    m_logService = new LogService(m_logger, m_logFileHandler, this);
+
+    connect(m_logService, &LogService::executeLogQueryFinished, this, &VocabTrainer::executeLogQueryFinished);
+
     m_logger.verbose(logTag(), QStringLiteral("Initializing main application done!"));
+}
+
+void VocabTrainer::executeLogQuery(const LogQuery &query)
+{
+    m_logger.verbose(logTag(), QStringLiteral("Executing log query..."));
+    m_logService->executeLogQuery(query);
+}
+
+void VocabTrainer::executeLogQueryFinished(const QList<LogEntry> entries)
+{
+    m_logger.verbose(logTag(), QStringLiteral("Executing log query done!"));
+    m_logger.verbose(logTag(), QStringLiteral("Responding to log query request..."));
+    emit logQueryResponded(entries);
 }
 
 void VocabTrainer::shutdown()

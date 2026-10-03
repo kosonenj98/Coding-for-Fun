@@ -12,8 +12,10 @@ SOURCES += \
     GUI/logview.cpp \
     GUI/mainview.cpp \
     GUI/mainwindow.cpp \
-    logfilewriter.cpp \
-    logger.cpp \
+    Logging/logfileHandler.cpp \
+    Logging/logger.cpp \
+    Logging/loglevel.cpp \
+    logservice.cpp \
     main.cpp \
     vocabtrainer.cpp
 
@@ -21,8 +23,10 @@ HEADERS += \
     GUI/logview.h \
     GUI/mainview.h \
     GUI/mainwindow.h \
-    logfilewriter.h \
-    logger.h \
+    Logging/logfileHandler.h \
+    Logging/logger.h \
+    Logging/loglevel.h \
+    logservice.h \
     vocabtrainer.h
 
 TRANSLATIONS += \

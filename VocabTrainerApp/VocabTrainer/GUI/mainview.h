@@ -1,7 +1,7 @@
 #ifndef MAINVIEW_H
 #define MAINVIEW_H
 
-#include "../logger.h"
+#include "../Logging/logger.h"
 
 #include <QWidget>
 
