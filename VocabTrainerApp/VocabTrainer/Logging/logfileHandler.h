@@ -2,6 +2,7 @@
 #define LOGFILEHANDLER_H
 
 #include "logger.h"
+#include "../settingshandler.h"
 
 #include <QObject>
 #include <QFile>
@@ -11,7 +12,7 @@ class LogFileHandler : public QObject
 {
     Q_OBJECT
 public:
-    explicit LogFileHandler(const QString &filePath, QObject *parent = nullptr);
+    explicit LogFileHandler(SettingsHandler &handler, QObject *parent = nullptr);
 
 public slots:
     void initialize();
@@ -31,7 +32,9 @@ private:
     void error(const QString &message);
     void debug(const QString &message);
     void verbose(const QString &message);
+    bool isLoggingEnabled(const LogEntry &entry);
 
+    SettingsHandler &m_settingsHandler;
     QFile m_logFile;
     quint64 m_sequence = 0;
     QTimer *m_flushTimer;

@@ -27,9 +27,10 @@ namespace LogJsonKeys
     inline const QString Message = QStringLiteral("message");
 }
 
-LogFileHandler::LogFileHandler(const QString &filePath, QObject *parent)
-    : QObject{parent}, m_logFile(filePath)
+LogFileHandler::LogFileHandler(SettingsHandler &handler, QObject *parent)
+    : QObject{parent}, m_settingsHandler(handler), m_logFile(handler.getLogFilePath())
 {
+    // Cannot log before initializing is finished!
 }
 
 void LogFileHandler::initialize()
@@ -52,6 +53,12 @@ void LogFileHandler::writeEntry(const LogEntry &entry)
         return;
     }
 
+    if (!isLoggingEnabled(entry))
+    {
+        return;
+    }
+
+    // Produce log file entry and write it to log
     QJsonObject json;
     json[LogJsonKeys::ThreadId] = QString::number(reinterpret_cast<quintptr>(entry.threadId), 16);
     json[LogJsonKeys::ThreadName] = entry.threadName;
@@ -67,6 +74,7 @@ void LogFileHandler::writeEntry(const LogEntry &entry)
     m_logFile.write(line);
     m_entriesSinceFlush++;
 
+    // Flush error messaged immediately. Else flush if flush interval is exceeded
     if (entry.level == LogLevel::Error || m_entriesSinceFlush >= FlushInterval)
     {
         flush();
@@ -236,4 +244,35 @@ void LogFileHandler::debug(const QString &message)
 void LogFileHandler::verbose(const QString &message)
 {
     logInternally(LogLevel::Verbose, message);
+}
+
+bool LogFileHandler::isLoggingEnabled(const LogEntry &entry)
+{
+    if (!m_settingsHandler.getLogEnabled())
+    {
+        // Logging is disabled from settings
+        return false;
+    }
+
+    // Check if entry's log level is enabled
+    switch (entry.level)
+    {
+    case LogLevel::Info:
+        return m_settingsHandler.getLogInfoEnabled();
+
+    case LogLevel::Warning:
+        return m_settingsHandler.getLogWarningEnabled();
+
+    case LogLevel::Error:
+        return m_settingsHandler.getLogErrorEnabled();
+
+    case LogLevel::Debug:
+        return m_settingsHandler.getLogDebugEnabled();
+
+    case LogLevel::Verbose:
+        return m_settingsHandler.getLogVerboseEnabled();
+    }
+
+    // TODO: Asset here?
+    return true;
 }

@@ -12,7 +12,8 @@ namespace LogStrings
 
 QString logLevelToString(LogLevel level)
 {
-    switch (level) {
+    switch (level)
+    {
     case LogLevel::Info:
         return LogStrings::Info;
 
@@ -35,23 +36,28 @@ QString logLevelToString(LogLevel level)
 
 LogLevel logLevelFromString(const QString &value)
 {
-    if (value == LogStrings::Info) {
+    if (value == LogStrings::Info)
+    {
         return LogLevel::Info;
     }
 
-    if (value == LogStrings::Warning) {
+    if (value == LogStrings::Warning)
+    {
         return LogLevel::Warning;
     }
 
-    if (value == LogStrings::Error) {
+    if (value == LogStrings::Error)
+    {
         return LogLevel::Error;
     }
 
-    if (value == LogStrings::Debug) {
+    if (value == LogStrings::Debug)
+    {
         return LogLevel::Debug;
     }
 
-    if (value ==LogStrings::Verbose) {
+    if (value ==LogStrings::Verbose)
+    {
         return LogLevel::Verbose;
     }
 

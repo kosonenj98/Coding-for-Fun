@@ -1,12 +1,12 @@
 #include "Logging/logfileHandler.h"
 #include "Logging/logger.h"
+#include "settingshandler.h"
 #include "vocabtrainer.h"
 #include "GUI/mainwindow.h"
 
 #include <QApplication>
 #include <QThread>
-#include <QStandardPaths>
-#include <QDir>
+
 
 namespace
 {
@@ -24,18 +24,15 @@ int main(int argc, char *argv[])
 
     QThread::currentThread()->setObjectName(QStringLiteral("MainThread"));
 
+    Logger logger;
+    SettingsHandler settingsHandler(logger);
+
     QThread logThread;
     logThread.setObjectName(QStringLiteral("LogWriterThread"));
-
-    const QString logDirectory =QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    QDir().mkpath(logDirectory);
-    const QString logFilePath = QDir(logDirectory).filePath(QStringLiteral("vocabtrainer.log"));
-    LogFileHandler *logFileHandler = new LogFileHandler(logFilePath);
+    LogFileHandler *logFileHandler = new LogFileHandler(settingsHandler);
     logFileHandler->moveToThread(&logThread);
     QObject::connect(&logThread, &QThread::started, logFileHandler, &LogFileHandler::initialize);
     QObject::connect(&logThread, &QThread::finished, logFileHandler, &QObject::deleteLater);
-
-    Logger logger;
     QObject::connect(&logger, &Logger::logEntryCreated, logFileHandler, &LogFileHandler::writeEntry, Qt::QueuedConnection);
 
     logThread.start();
@@ -56,10 +53,12 @@ int main(int argc, char *argv[])
     logger.verbose(logTag(), QStringLiteral("Initializing VocabTrainer initiated..."));
 
     logger.verbose(logTag(), QStringLiteral("Initializing MainWindow..."));
-    MainWindow mainWindow(logger);
+    MainWindow mainWindow(logger, settingsHandler);
 
     QObject::connect(&mainWindow, &MainWindow::logQueryRequested, vocabTrainer, &VocabTrainer::executeLogQuery, Qt::QueuedConnection);
     QObject::connect(vocabTrainer, &VocabTrainer::logQueryResponded, &mainWindow, &MainWindow::logQueryResponded, Qt::QueuedConnection);
+    QObject::connect(&mainWindow, &MainWindow::applySettingsRequested, &settingsHandler, &SettingsHandler::applySettings, Qt::QueuedConnection);
+    QObject::connect(&settingsHandler, &SettingsHandler::applySettingsFinished, &mainWindow, &MainWindow::applySettingsResponded, Qt::QueuedConnection);
 
     {
         QString threadId = QString::number(reinterpret_cast<quintptr>(QThread::currentThread()->currentThreadId()), 16);
