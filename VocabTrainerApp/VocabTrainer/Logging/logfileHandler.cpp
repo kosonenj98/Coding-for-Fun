@@ -16,6 +16,17 @@ namespace
     }
 }
 
+namespace LogJsonKeys
+{
+    inline const QString ThreadId = QStringLiteral("threadId");
+    inline const QString ThreadName = QStringLiteral("threadName");
+    inline const QString Sequence = QStringLiteral("sequence");
+    inline const QString Tag = QStringLiteral("tag");
+    inline const QString Timestamp = QStringLiteral("timestamp");
+    inline const QString Level = QStringLiteral("level");
+    inline const QString Message = QStringLiteral("message");
+}
+
 LogFileHandler::LogFileHandler(const QString &filePath, QObject *parent)
     : QObject{parent}, m_logFile(filePath)
 {
@@ -42,13 +53,13 @@ void LogFileHandler::writeEntry(const LogEntry &entry)
     }
 
     QJsonObject json;
-    json["threadId"] = QString::number(reinterpret_cast<quintptr>(entry.threadId), 16);
-    json["threadName"] = entry.threadName;
-    json["sequence"] = static_cast<qint64>(m_sequence++);
-    json["tag"] = entry.tag;
-    json["timestamp"] = entry.timestamp.toString(Qt::ISODateWithMs);
-    json["level"] = logLevelToString(entry.level);
-    json["message"] = entry.message;
+    json[LogJsonKeys::ThreadId] = QString::number(reinterpret_cast<quintptr>(entry.threadId), 16);
+    json[LogJsonKeys::ThreadName] = entry.threadName;
+    json[LogJsonKeys::Sequence] = static_cast<qint64>(m_sequence++);
+    json[LogJsonKeys::Tag] = entry.tag;
+    json[LogJsonKeys::Timestamp] = entry.timestamp.toString(Qt::ISODateWithMs);
+    json[LogJsonKeys::Level] = logLevelToString(entry.level);
+    json[LogJsonKeys::Message] = entry.message;
 
     const QJsonDocument document(json);
     const QByteArray line = document.toJson(QJsonDocument::Compact) + '\n';
@@ -155,13 +166,13 @@ void LogFileHandler::readEntries(const LogQuery &query)
         const QJsonObject json = document.object();
 
         LogEntry entry;
-        entry.threadId = reinterpret_cast<Qt::HANDLE>(json.value(QStringLiteral("threadId")).toString().toULongLong(nullptr, 16));
-        entry.threadName = json.value(QStringLiteral("threadName")).toString();
-        entry.sequence = json.value(QStringLiteral("sequence")).toVariant().toULongLong();
-        entry.tag = json.value(QStringLiteral("tag")).toString();
-        entry.timestamp = QDateTime::fromString(json.value(QStringLiteral("timestamp")).toString(), Qt::ISODate);
-        entry.level = logLevelFromString(json.value(QStringLiteral("level")).toString());
-        entry.message = json.value(QStringLiteral("message")).toString();
+        entry.threadId = reinterpret_cast<Qt::HANDLE>(json.value(LogJsonKeys::ThreadId).toString().toULongLong(nullptr, 16));
+        entry.threadName = json.value(LogJsonKeys::ThreadName).toString();
+        entry.sequence = json.value(LogJsonKeys::Sequence).toVariant().toULongLong();
+        entry.tag = json.value(LogJsonKeys::Tag).toString();
+        entry.timestamp = QDateTime::fromString(json.value(LogJsonKeys::Timestamp).toString(), Qt::ISODate);
+        entry.level = logLevelFromString(json.value(LogJsonKeys::Level).toString());
+        entry.message = json.value(LogJsonKeys::Message).toString();
 
         entries.append(entry);
     }
@@ -174,7 +185,7 @@ void LogFileHandler::readEntries(const LogQuery &query)
 
 void LogFileHandler::shutdown()
 {
-    verbose(QStringLiteral("Shutting down..."));
+    verbose(QStringLiteral("Shutting down... Goodbye!"));
     flush();
 
     if (m_logFile.isOpen())

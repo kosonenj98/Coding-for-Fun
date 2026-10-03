@@ -58,14 +58,14 @@ void LogView::showLogEntries(const QList<LogEntry> &entries)
     for (const LogEntry& entry : entries) {
         const QString threadId = QString::number(reinterpret_cast<quintptr>(entry.threadId), 16);
         const QString text =
-            QStringLiteral("[%1] | [%2] | [%3] | [%4] | [%5] | %6: %7")
-                .arg(entry.timestamp.toString(Qt::ISODate))
-                .arg(entry.sequence)
-                .arg(threadId)
-                .arg(entry.threadName)
-                .arg(logLevelToString(entry.level))
-                .arg(entry.tag)
-                .arg(entry.message);
+            QStringLiteral("[%1] | [%2] | [0x%3] | [%4] | [%5] | %6: %7")
+                .arg(entry.timestamp.toString(Qt::ISODate),
+                        QString::number(entry.sequence),
+                        threadId,
+                        entry.threadName,
+                        logLevelToString(entry.level),
+                        entry.tag,
+                        entry.message);
 
         m_logList->addItem(text);
     }

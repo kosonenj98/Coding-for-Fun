@@ -1,5 +1,7 @@
 #include "vocabtrainer.h"
 
+#include <QThread>
+
 namespace
 {
     const QString &logTag()
@@ -30,6 +32,10 @@ void VocabTrainer::initialize()
     connect(m_logService, &LogService::executeLogQueryFinished, this, &VocabTrainer::executeLogQueryFinished);
 
     m_logger.verbose(logTag(), QStringLiteral("Initializing main application done!"));
+
+    QString threadId = QString::number(reinterpret_cast<quintptr>(QThread::currentThread()->currentThreadId()), 16);
+    QString threadName = QThread::currentThread()->objectName();
+    m_logger.verbose(logTag(), QStringLiteral("Initializing VocabTrainer done! Running on thread '0x%1' (%2).").arg(threadId, threadName));
 }
 
 void VocabTrainer::executeLogQuery(const LogQuery &query)
