@@ -43,13 +43,7 @@ LogView::LogView(Logger &logger, const Settings &settings, QWidget *parent)
 void LogView::createInitialView()
 {
     m_logger.verbose(logTag(), QStringLiteral("Creating the initial log view..."));
-
-    // Create query with only current log file
-    LogQuery query;
-    query.filePath = m_logFilePathEdit->text();
-
-    m_logger.verbose(logTag(), QStringLiteral("Emitting log query request..."));
-    emit requestLogQuery(query);
+    refreshLog();
 }
 
 void LogView::createQueriedView(const LogQuery &query)
@@ -107,6 +101,18 @@ void LogView::refreshLog()
     m_logger.verbose(logTag(), "Creating new log query request done!");
 
     createQueriedView(query);
+}
+
+void LogView::toggleFromQueryAvailability(bool checked)
+{
+    m_logger.verbose(logTag(), "Toggled from log query.");
+    m_fromDateTimeEdit->setEnabled(checked);
+}
+
+void LogView::toggleToQueryAvailability(bool checked)
+{
+    m_logger.verbose(logTag(), "Toggled to log query.");
+    m_toDateTimeEdit->setEnabled(checked);
 }
 
 void LogView::toggleInfoLogVisible(bool checked)
@@ -254,7 +260,7 @@ QFrame *LogView::createSearchFrame(QWidget *parent)
     m_searchPatternLabel = new QLabel(QStringLiteral("Search pattern:"), frame);
     m_searchPatternTextEdit = new QLineEdit(frame);
     m_useRegularExpressionCheckBox = new QCheckBox(QStringLiteral("Use regular expression"),frame);
-    m_searchEntireEntryCheckBox = new QCheckBox(QStringLiteral("Search entire entry"), frame);
+    m_searchEntireEntryCheckBox = new QCheckBox(QStringLiteral("Search from entire entry"), frame);
 
     // Modify GUI component states
     m_useRegularExpressionCheckBox->setChecked(false);
@@ -346,11 +352,14 @@ QFrame *LogView::createSearchIntervalFrame(QWidget *parent)
     m_toDateTimeEdit = new QDateTimeEdit(frame);
 
     // Modify GUI component states
+    QDateTime now = QDateTime::currentDateTime();
+    m_fromCheckBox->setChecked(true);
+    m_toCheckBox->setChecked(false);
     m_fromDateTimeEdit->setCalendarPopup(true);
     m_toDateTimeEdit->setCalendarPopup(true);
-    m_fromDateTimeEdit->setDateTime(QDateTime());
-    m_toDateTimeEdit->setDateTime(QDateTime::currentDateTime());
-    m_fromDateTimeEdit->setEnabled(false);
+    m_fromDateTimeEdit->setDateTime(now.addSecs(-5 * 60)); // 5 minutes from current time
+    m_toDateTimeEdit->setDateTime(now);
+    m_fromDateTimeEdit->setEnabled(true);
     m_toDateTimeEdit->setEnabled(false);
 
     // Construct layout
@@ -424,6 +433,7 @@ void LogView::createLogTable(QWidget *parent)
     });
 
     m_logTable->setModel(m_logTableModel);
+    m_logTable->setSortingEnabled(true);
     m_logTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_logTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_logTable->verticalHeader()->setVisible(false);
@@ -444,11 +454,16 @@ void LogView::createConnections()
 {
     m_logger.verbose(logTag(), "Creating GUI component connections...");
 
+    // Push button connections
     connect(m_browseButton, &QPushButton::clicked, this, &LogView::browseLogFile);
     connect(m_refreshButton, &QPushButton::clicked, this, &LogView::refreshLog);
 
+    // Checkbox connections
+    connect(m_fromCheckBox, &QCheckBox::toggled, this, &LogView::toggleFromQueryAvailability);
+    connect(m_toCheckBox, &QCheckBox::toggled, this, &LogView::toggleToQueryAvailability);
+
     // Log level visibilty toggle buttons
-    connect(m_infoLogVisibleButton,&QPushButton::toggled, this, &LogView::toggleInfoLogVisible);
+    connect(m_infoLogVisibleButton, &QPushButton::toggled, this, &LogView::toggleInfoLogVisible);
     connect(m_warningLogVisibleButton, &QPushButton::toggled, this, &LogView::toggleWarningLogVisible);
     connect(m_errorLogVisibleButton, &QPushButton::toggled, this, &LogView::toggleErrorLogVisible);
     connect(m_debugLogVisibleButton, &QPushButton::toggled, this, &LogView::toggleDebugLogVisible);
@@ -460,46 +475,46 @@ void LogView::createConnections()
 void LogView::refreshLogDisplay()
 {
     m_logger.verbose(logTag(), "Refreshing log display...");
-    QList<LogEntry> entries = m_logEntries;
-    std::sort(entries.begin(), entries.end(), [](const LogEntry &left, const LogEntry &right)
-        {
-            return left.timestamp < right.timestamp;
-        });
 
+    // Clear old log table
     m_logTableModel->removeRows(0, m_logTableModel->rowCount());
 
+    // Go through log entries and add those that are toggled visible
     int visibleEntriesCount = 0;
-    for (const LogEntry &entry : entries)
+    for (const LogEntry &entry : m_logEntries)
     {
         if (!isEntryVisible(entry))
         {
             continue;
         }
 
+        // Create row items
+        auto *timeStampItem = new QStandardItem(entry.timestamp.toString(Qt::ISODateWithMs));
+        auto *sequenceItem = new QStandardItem(QString::number(entry.sequence));
+        auto *threadIdItem = new QStandardItem(QStringLiteral("0x%1").arg(QString::number(reinterpret_cast<quintptr>(entry.threadId), 16)));
+        auto *threadNameItem = new QStandardItem(entry.threadName);
+        auto *levelItem = new QStandardItem(logLevelToString(entry.level));
+        auto *tagItem = new QStandardItem(entry.tag);
+        auto *messageItem = new QStandardItem(entry.message);
+
+        // Set data for non string entries to enable logical sorting
+        timeStampItem->setData(entry.timestamp);
+        sequenceItem->setData(entry.sequence);
+        threadIdItem->setData(reinterpret_cast<quintptr>(entry.threadId));
+
+        // Construct table row
         QList<QStandardItem*> row;
+        row.append(timeStampItem);
+        row.append(sequenceItem);
+        row.append(threadIdItem);
+        row.append(threadNameItem);
+        row.append(levelItem);
+        row.append(tagItem);
+        row.append(messageItem);
 
-        row.append(new QStandardItem(
-            entry.timestamp.toString(Qt::ISODateWithMs)));
-
-        row.append(new QStandardItem(
-            QString::number(entry.sequence)));
-
-        row.append(new QStandardItem(
-            QStringLiteral("0x%1").arg(QString::number(reinterpret_cast<quintptr>(entry.threadId), 16))));
-
-        row.append(new QStandardItem(
-            entry.threadName));
-
-        row.append(new QStandardItem(
-            logLevelToString(entry.level)));
-
-        row.append(new QStandardItem(
-            entry.tag));
-
-        row.append(new QStandardItem(
-            entry.message));
-
+        // Add row to log table
         m_logTableModel->appendRow(row);
+
         visibleEntriesCount++;
     }
 

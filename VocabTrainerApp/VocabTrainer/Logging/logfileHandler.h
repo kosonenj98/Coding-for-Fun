@@ -1,7 +1,6 @@
 #ifndef LOGFILEHANDLER_H
 #define LOGFILEHANDLER_H
 
-#include "logger.h"
 #include "../settingshandler.h"
 #include "../errorcode.h"
 

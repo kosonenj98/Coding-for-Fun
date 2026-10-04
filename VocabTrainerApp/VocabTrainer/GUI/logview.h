@@ -44,6 +44,8 @@ signals:
 private slots:
     void browseLogFile();
     void refreshLog();
+    void toggleFromQueryAvailability(bool checked);
+    void toggleToQueryAvailability(bool checked);
     void toggleInfoLogVisible(bool checked);
     void toggleWarningLogVisible(bool checked);
     void toggleErrorLogVisible(bool checked);
