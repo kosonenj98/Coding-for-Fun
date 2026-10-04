@@ -2,8 +2,8 @@
 #define MAINWINDOW_H
 
 #include "../Logging/logger.h"
-#include "../settingshandler.h"
-#include "../errorcode.h"
+#include "../Application/settingshandler.h"
+#include "../Application/errorcode.h"
 #include "mainview.h"
 #include "settingsview.h"
 #include "logview.h"

@@ -1,8 +1,8 @@
 #ifndef LOGFILEHANDLER_H
 #define LOGFILEHANDLER_H
 
-#include "../settingshandler.h"
-#include "../errorcode.h"
+#include "../Application/settingshandler.h"
+#include "../Application/errorcode.h"
 
 #include <QObject>
 #include <QFile>

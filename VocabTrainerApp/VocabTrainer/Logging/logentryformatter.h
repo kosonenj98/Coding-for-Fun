@@ -2,7 +2,7 @@
 #define LOGENTRYFORMATTER_H
 
 #include "logdatatypes.h"
-#include "../errorcode.h"
+#include "../Application/errorcode.h"
 
 #include <QString>
 #include <QJsonDocument>

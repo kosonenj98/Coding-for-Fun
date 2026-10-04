@@ -2,7 +2,7 @@
 #define SETTINGSVIEW_H
 
 #include "../Logging/logger.h"
-#include "../settingshandler.h"
+#include "../Application/settingshandler.h"
 
 #include <QWidget>
 #include <QCheckBox>

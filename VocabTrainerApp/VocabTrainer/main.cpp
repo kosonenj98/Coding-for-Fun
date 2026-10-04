@@ -1,7 +1,7 @@
 #include "Logging/logfileHandler.h"
 #include "Logging/logger.h"
-#include "settingshandler.h"
-#include "vocabtrainer.h"
+#include "Application/settingshandler.h"
+#include "Application/vocabtrainer.h"
 #include "GUI/mainwindow.h"
 
 #include <QApplication>
