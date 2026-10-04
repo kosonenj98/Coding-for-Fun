@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 
     // Initialize LogFileHandler on its separate logging thread
     QThread logThread;
-    logThread.setObjectName(QStringLiteral("LogWriterThread"));
+    logThread.setObjectName(QStringLiteral("LogThread"));
     LogFileHandler *logFileHandler = new LogFileHandler(settingsHandler);
     logFileHandler->moveToThread(&logThread);
     QObject::connect(&logThread, &QThread::started, logFileHandler, &LogFileHandler::initialize);
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     // Initialize VocabTrainer
     logger.verbose(logTag(), QStringLiteral("Initializing VocabTrainer..."));
     QThread trainerThread;
-    trainerThread.setObjectName(QStringLiteral("VocabTrainerThread"));
+    trainerThread.setObjectName(QStringLiteral("LogicThread"));
     VocabTrainer *vocabTrainer = new VocabTrainer(logger, *logFileHandler);
     vocabTrainer->moveToThread(&trainerThread);
     QObject::connect(&trainerThread, &QThread::started, vocabTrainer, &VocabTrainer::initialize);

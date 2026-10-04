@@ -14,6 +14,7 @@ SOURCES += \
     GUI/mainview.cpp \
     GUI/mainwindow.cpp \
     GUI/settingsview.cpp \
+    Logging/logentryformatter.cpp \
     Logging/logfileHandler.cpp \
     Logging/logger.cpp \
     Logging/loglevel.cpp \
@@ -29,6 +30,8 @@ HEADERS += \
     GUI/mainview.h \
     GUI/mainwindow.h \
     GUI/settingsview.h \
+    Logging/logdatatypes.h \
+    Logging/logentryformatter.h \
     Logging/logfileHandler.h \
     Logging/logger.h \
     Logging/loglevel.h \

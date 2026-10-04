@@ -1,5 +1,5 @@
 #include "logfileHandler.h"
-#include "logger.h"
+#include "logentryformatter.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -16,16 +16,7 @@ namespace
     }
 }
 
-namespace LogJsonKeys
-{
-    inline const QString ThreadId = QStringLiteral("threadId");
-    inline const QString ThreadName = QStringLiteral("threadName");
-    inline const QString Sequence = QStringLiteral("sequence");
-    inline const QString Tag = QStringLiteral("tag");
-    inline const QString Timestamp = QStringLiteral("timestamp");
-    inline const QString Level = QStringLiteral("level");
-    inline const QString Message = QStringLiteral("message");
-}
+
 
 LogFileHandler::LogFileHandler(SettingsHandler &handler, QObject *parent)
     : QObject{parent}, m_settingsHandler(handler), m_logFile(handler.getLogFilePath())
@@ -57,18 +48,9 @@ void LogFileHandler::writeEntry(const LogEntry &entry)
     }
 
     // Produce log file entry and write it to log
-    QJsonObject json;
-    json[LogJsonKeys::ThreadId] = QString::number(reinterpret_cast<quintptr>(entry.threadId), 16);
-    json[LogJsonKeys::ThreadName] = entry.threadName;
-    json[LogJsonKeys::Sequence] = static_cast<qint64>(m_sequence++);
-    json[LogJsonKeys::Tag] = entry.tag;
-    json[LogJsonKeys::Timestamp] = entry.timestamp.toString(Qt::ISODateWithMs);
-    json[LogJsonKeys::Level] = logLevelToString(entry.level);
-    json[LogJsonKeys::Message] = entry.message;
-
-    const QJsonDocument document(json);
-    const QByteArray line = document.toJson(QJsonDocument::Compact) + '\n';
-
+    LogEntry fileEntry = entry; // Create a local copy so the sequence can be assigned for file output
+    fileEntry.sequence = m_sequence++;
+    const QByteArray line = LogEntryFormatter::logFileFormat(fileEntry).toUtf8() + '\n';
     m_logFile.write(line);
     m_entriesSinceFlush++;
 
@@ -163,27 +145,23 @@ void LogFileHandler::readAllLogEntries(const LogQuery &query)
         }
 
         QJsonParseError parseError;
-        const QJsonDocument document =
-            QJsonDocument::fromJson(line, &parseError);
-
+        const QJsonDocument document = QJsonDocument::fromJson(line, &parseError);
         if (parseError.error != QJsonParseError::NoError || !document.isObject())
         {
-            error(QStringLiteral("Parsing log file failed! Line: '%1'").arg(QString::fromUtf8(line)));
+            error(QStringLiteral("Parsing log file failed: '%1' (%2). Line: '%3'").arg(parseError.errorString(), QString::number(parseError.error), QString::fromUtf8(line)));
             debug(QStringLiteral("Skipping the problematic line..."));
             failedEntriesCount++;
             continue;
         }
 
-        const QJsonObject json = document.object();
-
         LogEntry entry;
-        entry.threadId = reinterpret_cast<Qt::HANDLE>(json.value(LogJsonKeys::ThreadId).toString().toULongLong(nullptr, 16));
-        entry.threadName = json.value(LogJsonKeys::ThreadName).toString();
-        entry.sequence = json.value(LogJsonKeys::Sequence).toVariant().toULongLong();
-        entry.tag = json.value(LogJsonKeys::Tag).toString();
-        entry.timestamp = QDateTime::fromString(json.value(LogJsonKeys::Timestamp).toString(), Qt::ISODate);
-        entry.level = logLevelFromString(json.value(LogJsonKeys::Level).toString());
-        entry.message = json.value(LogJsonKeys::Message).toString();
+        const ErrorCode errorCode = LogEntryFormatter::fromJson(document.object(), entry);
+        if (errorCode != ErrorCode::Success)
+        {
+            error(QStringLiteral("Parsing log entry failed! Line: '%1' (ErrorCode '%2')").arg(QString::fromUtf8(line), QString::number(static_cast<int>(errorCode))));
+            failedEntriesCount++;
+            continue;
+        }
 
         entries.append(entry);
     }

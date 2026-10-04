@@ -2,29 +2,10 @@
 #define LOGGER_H
 
 #include "loglevel.h"
+#include "logdatatypes.h"
 
 #include <QObject>
 #include <QDateTime>
-
-struct LogEntry
-{
-    // Info for context
-    Qt::HANDLE threadId;
-    QString threadName;
-    quint64 sequence;   // LogFileWriter's ordering number
-    QString tag;
-    QDateTime timestamp;    // Time of logging
-    LogLevel level;
-    QString message;    // Actual log message
-};
-
-struct LogQuery
-{
-    QString filePath;
-    QDateTime from;
-    QDateTime to;
-    QString searchText;
-};
 
 class Logger : public QObject
 {

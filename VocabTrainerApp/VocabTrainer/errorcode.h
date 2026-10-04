@@ -5,12 +5,13 @@
 
 enum class ErrorCode
 {
-    Unknown,
+    Success,
     FileOpenFailed,
     FileReadFailed,
     FileWriteFailed,
     InvalidJson,
-    InvalidSettings
+    InvalidSettings,
+    Unknown
 };
 
 QString errorCodeToString(ErrorCode code);

@@ -109,7 +109,7 @@ void MainWindow::handleViewTabChanged(int index)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling viewTabChanged..."));
     if (index == m_tabWidget->indexOf(m_logView)) {
-        m_logView->createRequestForLogQueryAndEmit();
+        m_logView->createInitialView();
     }
     m_logger.verbose(logTag(), QStringLiteral("Handling viewTabChanged done!"));
 }

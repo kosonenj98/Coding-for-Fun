@@ -1,4 +1,7 @@
 #include "logservice.h"
+#include "Logging/logentryformatter.h"
+
+#include <QRegularExpression>
 
 namespace
 {
@@ -57,35 +60,110 @@ QList<LogEntry> LogService::filterLogEntries(const LogQuery &query, const QList<
 
     // Filter entries with query
     QList<LogEntry> filteredEntries;
-    filteredEntries.reserve(entries.size());
-    int skippedEntriesCount = 0;
+    int maxEntryCount = query.maxEntryCount;
+    if (maxEntryCount > 0)
+    {
+        filteredEntries.reserve(maxEntryCount);
+    }
+    else
+    {
+        filteredEntries.reserve(entries.size());
+    }
+    LogEntrySelectionOrder order = query.entryOrder;
+    const QString &querySearchPattern = query.searchPattern;
+    bool queryRegEx = query.useRegularExpression;
+    bool queryEntireEntry = query.searchEntireEntry;
+    bool querySearchPatternIsValid = false;
+    const QRegularExpression regex(query.searchPattern, QRegularExpression::CaseInsensitiveOption);
+    if (queryRegEx)
+    {
+        querySearchPatternIsValid = regex.isValid();
+    }
+    if (queryRegEx && !querySearchPatternIsValid)
+    {
+        m_logger.warning(logTag(), QStringLiteral("Invalid search pattern in log query: '%1'. Nothing matches...").arg(query.searchPattern));
+    }
+    if (queryRegEx && querySearchPattern.isEmpty())
+    {
+        m_logger.warning(logTag(), QStringLiteral("Empty regEx in log query. Everything matches..."));
+    }
+    QDateTime from = query.from;
+    QDateTime to = query.to;
+    bool queryFrom = !from.isNull();
+    bool queryTo = !to.isNull();
+
     for (const LogEntry &entry : entries)
     {
-        if (!query.from.isNull() && entry.timestamp < query.from)
+        // Construct text that is compared to query search pattern
+        QString matchCandidate = entry.message;
+        if (queryEntireEntry)
         {
-            skippedEntriesCount++;
+            // Formulate entry as it is written in log
+            matchCandidate = LogEntryFormatter::logFileFormat(entry);
+        }
+
+        // Check if search pattern matches
+        if (queryRegEx)
+        {
+            if (!regex.match(matchCandidate).hasMatch())
+            {
+                // No match
+                continue;
+            }
+        }
+        else if (!matchCandidate.contains(querySearchPattern))
+        {
+            // No match
             continue;
         }
 
-        if (!query.to.isNull() && entry.timestamp > query.to)
+        // Check if entry happened after 'from'
+        if (queryFrom && entry.timestamp < from)
         {
-            skippedEntriesCount++;
             continue;
         }
 
-        if (!query.searchText.isNull() && !entry.message.contains(query.searchText, Qt::CaseInsensitive))
+        // Check if entry happened after 'to'
+        if (queryTo && entry.timestamp > to)
         {
-            skippedEntriesCount++;
             continue;
         }
 
+        // Entry matches with query
         filteredEntries.append(entry);
     }
+
+    int skippedEntriesCount = entries.count() - filteredEntries.count();
 
     m_logger.verbose(logTag(), QStringLiteral("Filtering log entries done!"));
     if (skippedEntriesCount > 0)
     {
-        m_logger.verbose(logTag(), QStringLiteral("Skipped %1 unmatching entries.").arg(QString::number(skippedEntriesCount)));
+        m_logger.verbose(logTag(), QStringLiteral("Skipped %1 entries.").arg(QString::number(skippedEntriesCount)));
+    }
+
+    // Truncate filtered entries list if needed
+    if (maxEntryCount > 0 && filteredEntries.size() > maxEntryCount)
+    {
+        m_logger.verbose(logTag(), QStringLiteral("Truncating filtered entry list..."));
+        switch (order)
+        {
+        case LogEntrySelectionOrder::Newest:
+        {
+            m_logger.verbose(logTag(), QStringLiteral("Getting %1 newest entries...").arg(QString::number(maxEntryCount)));
+            filteredEntries = filteredEntries.mid(qMax(0, filteredEntries.size() - maxEntryCount));
+            m_logger.verbose(logTag(), QStringLiteral("Getting %1 newest entries done!").arg(QString::number(maxEntryCount)));
+            break;
+        }
+
+        case LogEntrySelectionOrder::Oldest:
+        {
+            m_logger.verbose(logTag(), QStringLiteral("Getting %1 oldest entries...").arg(QString::number(maxEntryCount)));
+            filteredEntries = filteredEntries.mid(0, maxEntryCount);
+            m_logger.verbose(logTag(), QStringLiteral("Getting %1 oldest entries...").arg(QString::number(maxEntryCount)));
+            break;
+        }
+        }
+        m_logger.verbose(logTag(), QStringLiteral("Truncating filtered entry list done!"));
     }
 
     return filteredEntries;
