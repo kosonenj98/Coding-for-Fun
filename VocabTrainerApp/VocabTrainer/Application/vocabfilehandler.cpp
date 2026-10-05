@@ -1,6 +1,7 @@
 #include "vocabfilehandler.h"
 
 #include <QFile>
+#include <QFileInfo>
 
 namespace
 {
@@ -13,7 +14,7 @@ namespace
 
 enum class ParseState
 {
-    ExpectVocabularyName,
+    ExpectVocabularyTitle,
     ReadingEntries
 };
 
@@ -40,12 +41,12 @@ void VocabFileHandler::read(const QString &filePath)
     // Parse vocab file data
     VocabFileData data;
     const QStringList lines = QString::fromUtf8(file.readAll()).split('\n');
-    ParseState state = ParseState::ExpectVocabularyName;
+    ParseState state = ParseState::ExpectVocabularyTitle;
     int entryCount = 0;
     int failedEntryCount = 0;
     for (const QString &line : lines)
     {
-        QString processedLine = line;
+        QString processedLine = line.trimmed();
         const int commentIndex = processedLine.indexOf('#'); // Comments start with "#"
         if (commentIndex >= 0)
         {
@@ -61,7 +62,7 @@ void VocabFileHandler::read(const QString &filePath)
         if (!processedLine.contains("="))
         {
             // Line is either vocab or group title
-            if (state == ParseState::ExpectVocabularyName)
+            if (state == ParseState::ExpectVocabularyTitle)
             {
                 m_logger.verbose(logTag(), QStringLiteral("Set vocabulary title: '%1'").arg(processedLine));
                 data.title = processedLine;
@@ -75,6 +76,14 @@ void VocabFileHandler::read(const QString &filePath)
             group.title = processedLine;
             data.groups.append(group);
             continue;
+        }
+
+        if (state == ParseState::ExpectVocabularyTitle)
+        {
+            // Vocab file has no title
+            m_logger.warning(logTag(), QStringLiteral("Vocab file '%1' has no explicit title. Using file name instead...").arg(filePath));
+            data.title = QFileInfo(filePath).completeBaseName();
+            state = ParseState::ReadingEntries;
         }
 
         const QStringList parts = processedLine.split("=");
@@ -132,6 +141,7 @@ void VocabFileHandler::read(const QString &filePath)
         m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty entries in vocab '%2'.").arg(QString::number(failedEntryCount), data.title));
         m_logger.verbose(logTag(), QStringLiteral("Emitting partial success signal..."));
         emit readSucceededPartially(data, failedEntryCount);
+        return;
     }
 
     m_logger.verbose(logTag(), QStringLiteral("Reading vocab file '%1' done!").arg(filePath));
