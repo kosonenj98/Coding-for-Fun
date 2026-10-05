@@ -134,7 +134,7 @@ void LogFileHandler::readAllLogEntries(const LogQuery &query)
     verbose(QStringLiteral("Opening file '%1' succeeded!").arg(filePath));
 
     debug(QStringLiteral("Reading log entries..."));
-    int failedEntriesCount = 0;
+    int failedEntryCount = 0;
     while (!file.atEnd())
     {
         const QByteArray line = file.readLine().trimmed();
@@ -150,7 +150,7 @@ void LogFileHandler::readAllLogEntries(const LogQuery &query)
         {
             error(QStringLiteral("Parsing log file failed: '%1' (%2). Line: '%3'").arg(parseError.errorString(), QString::number(parseError.error), QString::fromUtf8(line)));
             debug(QStringLiteral("Skipping the problematic line..."));
-            failedEntriesCount++;
+            failedEntryCount++;
             continue;
         }
 
@@ -159,7 +159,7 @@ void LogFileHandler::readAllLogEntries(const LogQuery &query)
         if (errorCode != ErrorCode::Success)
         {
             error(QStringLiteral("Parsing log entry failed! Line: '%1' (ErrorCode '%2')").arg(QString::fromUtf8(line), QString::number(static_cast<int>(errorCode))));
-            failedEntriesCount++;
+            failedEntryCount++;
             continue;
         }
 
@@ -169,16 +169,16 @@ void LogFileHandler::readAllLogEntries(const LogQuery &query)
     file.close();
 
     debug(QStringLiteral("Reading log entries done!"));
-    if (failedEntriesCount == 0)
+    if (failedEntryCount == 0)
     {
         verbose(QStringLiteral("Emitting log entry reading success signal..."));
         emit readAllLogEntriesSucceeded(query, entries);
     }
     else
     {
-        warning(QStringLiteral("Skipped %1 faulty entries in log file '%2'.").arg(QString::number(failedEntriesCount), filePath));
+        warning(QStringLiteral("Skipped %1 faulty entries in log file '%2'.").arg(QString::number(failedEntryCount), filePath));
         verbose(QStringLiteral("Emitting log entry reading partial success signal..."));
-        emit readAllLogEntriesSucceededPartially(query, entries, failedEntriesCount);
+        emit readAllLogEntriesSucceededPartially(query, entries, failedEntryCount);
     }
 }
 

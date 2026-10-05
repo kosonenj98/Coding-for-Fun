@@ -54,13 +54,13 @@ void MainWindow::handleLogQuerySucceeded(const QList<LogEntry> &entries)
     m_logger.verbose(logTag(), QStringLiteral("Handling successful log query done!"));
 }
 
-void MainWindow::handleLogQuerySucceededPartially(const QList<LogEntry> &entries, int failedEntriesCount)
+void MainWindow::handleLogQuerySucceededPartially(const QList<LogEntry> &entries, int failedEntryCount)
 {
-    m_logger.verbose(logTag(), QStringLiteral("Handling partially successful log query with %1 skipped entries...").arg(failedEntriesCount));
+    m_logger.verbose(logTag(), QStringLiteral("Handling partially successful log query with %1 skipped entries...").arg(failedEntryCount));
     m_logView->updateView(entries);
 
     m_logger.verbose(logTag(), QStringLiteral("Informing user that log query succeeded partially..."));
-    m_dialogService->showWarning(QStringLiteral("Log Query"), QStringLiteral("Skipped %1 faulty entries in selected log file.").arg(QString::number(failedEntriesCount)));
+    m_dialogService->showWarning(QStringLiteral("Log Query"), QStringLiteral("Skipped %1 faulty entries in selected log file.").arg(QString::number(failedEntryCount)));
     m_logger.verbose(logTag(), QStringLiteral("Informing user that log query succeeded partially done!"));
 }
 

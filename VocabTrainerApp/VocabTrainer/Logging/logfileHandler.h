@@ -24,7 +24,7 @@ public slots:
 
 signals:
     void readAllLogEntriesSucceeded(const LogQuery &query, QList<LogEntry> entries);
-    void readAllLogEntriesSucceededPartially(const LogQuery &query, QList<LogEntry> entries, int failedEntriesCount);
+    void readAllLogEntriesSucceededPartially(const LogQuery &query, QList<LogEntry> entries, int failedEntryCount);
     void readAllLogEntriesFailed(ErrorCode code);
 
 private:

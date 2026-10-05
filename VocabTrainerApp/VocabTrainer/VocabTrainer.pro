@@ -12,6 +12,7 @@ SOURCES += \
     Application/errorcode.cpp \
     Application/logservice.cpp \
     Application/settingshandler.cpp \
+    Application/vocabfilehandler.cpp \
     Application/vocabtrainer.cpp \
     GUI/dialogservice.cpp \
     GUI/logview.cpp \
@@ -28,6 +29,8 @@ HEADERS += \
     Application/errorcode.h \
     Application/logservice.h \
     Application/settingshandler.h \
+    Application/vocabfiledatatypes.h \
+    Application/vocabfilehandler.h \
     Application/vocabtrainer.h \
     GUI/dialogservice.h \
     GUI/logview.h \

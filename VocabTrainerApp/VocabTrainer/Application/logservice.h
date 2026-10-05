@@ -16,13 +16,13 @@ public:
 
 public slots:
     void handleGetAllLogEntriesSucceeded(const LogQuery &query, const QList<LogEntry> &entries);
-    void handleGetAllLogEntriesSucceededPartially(const LogQuery &query, const QList<LogEntry> &entries, int failedEntriesCount);
+    void handleGetAllLogEntriesSucceededPartially(const LogQuery &query, const QList<LogEntry> &entries, int failedEntryCount);
     void handleGetAllLogEntriesFailed(ErrorCode code);
 
 signals:
     void requestGetAllLogEntries(const LogQuery &query);
     void queryLogSucceeded(const QList<LogEntry> &entries);
-    void queryLogSucceededPartially(const QList<LogEntry> &entries, int failedEntriesCount);
+    void queryLogSucceededPartially(const QList<LogEntry> &entries, int failedEntryCount);
     void queryLogFailed(ErrorCode code);
 
 private:

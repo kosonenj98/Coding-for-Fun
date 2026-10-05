@@ -480,7 +480,7 @@ void LogView::refreshLogDisplay()
     m_logTableModel->removeRows(0, m_logTableModel->rowCount());
 
     // Go through log entries and add those that are toggled visible
-    int visibleEntriesCount = 0;
+    int visibleEntryCount = 0;
     for (const LogEntry &entry : m_logEntries)
     {
         if (!isEntryVisible(entry))
@@ -515,10 +515,10 @@ void LogView::refreshLogDisplay()
         // Add row to log table
         m_logTableModel->appendRow(row);
 
-        visibleEntriesCount++;
+        visibleEntryCount++;
     }
 
-    m_entryCountLabel->setText(QStringLiteral("Displaying %1/%2 log entries").arg(QString::number(visibleEntriesCount), QString::number(m_logEntries.size())));
+    m_entryCountLabel->setText(QStringLiteral("Displaying %1/%2 log entries").arg(QString::number(visibleEntryCount), QString::number(m_logEntries.size())));
 
     m_logger.verbose(logTag(), "Refreshing log display done!");
 }

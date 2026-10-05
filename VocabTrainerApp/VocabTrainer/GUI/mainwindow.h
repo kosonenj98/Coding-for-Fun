@@ -20,7 +20,7 @@ public:
 public slots:
     void handleLogQueryRequest(const LogQuery &query);
     void handleLogQuerySucceeded(const QList<LogEntry> &entries);
-    void handleLogQuerySucceededPartially(const QList<LogEntry> &entries, int failedEntriesCount);
+    void handleLogQuerySucceededPartially(const QList<LogEntry> &entries, int failedEntryCount);
     void handleLogQueryFailed(ErrorCode code);
 
     void handleApplyNewSettingsRequest(const Settings &newSettings);

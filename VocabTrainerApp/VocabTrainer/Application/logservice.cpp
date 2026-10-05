@@ -37,13 +37,13 @@ void LogService::handleGetAllLogEntriesSucceeded(const LogQuery &query, const QL
     emit queryLogSucceeded(filteredEntries);
 }
 
-void LogService::handleGetAllLogEntriesSucceededPartially(const LogQuery &query, const QList<LogEntry> &entries, int failedEntriesCount)
+void LogService::handleGetAllLogEntriesSucceededPartially(const LogQuery &query, const QList<LogEntry> &entries, int failedEntryCount)
 {
-    m_logger.verbose(logTag(), QStringLiteral("Reading all log entries succeeded partially. Skipped %1 faulty lines in log file.").arg(QString::number(failedEntriesCount)));
+    m_logger.verbose(logTag(), QStringLiteral("Reading all log entries succeeded partially. Skipped %1 faulty lines in log file.").arg(QString::number(failedEntryCount)));
     QList<LogEntry> filteredEntries = filterLogEntries(query, entries);
 
     m_logger.verbose(logTag(), QStringLiteral("Emitting log query partial success signal..."));
-    emit queryLogSucceededPartially(filteredEntries, failedEntriesCount);
+    emit queryLogSucceededPartially(filteredEntries, failedEntryCount);
 }
 
 void LogService::handleGetAllLogEntriesFailed(ErrorCode code)
@@ -133,12 +133,12 @@ QList<LogEntry> LogService::filterLogEntries(const LogQuery &query, const QList<
         filteredEntries.append(entry);
     }
 
-    int skippedEntriesCount = entries.count() - filteredEntries.count();
+    int skippedEntryCount = entries.count() - filteredEntries.count();
 
     m_logger.verbose(logTag(), QStringLiteral("Filtering log entries done!"));
-    if (skippedEntriesCount > 0)
+    if (skippedEntryCount > 0)
     {
-        m_logger.verbose(logTag(), QStringLiteral("Skipped %1 entries.").arg(QString::number(skippedEntriesCount)));
+        m_logger.verbose(logTag(), QStringLiteral("Skipped %1 entries.").arg(QString::number(skippedEntryCount)));
     }
 
     // Truncate filtered entries list if needed
