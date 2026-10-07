@@ -1,22 +1,52 @@
 #ifndef VOCABFILEDATATYPES_H
 #define VOCABFILEDATATYPES_H
 
+#include "errorcode.h"
+
 #include <QList>
 #include <QString>
 
-using VocabFileEntry = QPair<QString,QString>;
-
-struct VocabFileGroup
+namespace VocabFile
 {
-    QString title;
-    QList<VocabFileEntry> entries;
-};
+    using Entry = QPair<QString,QString>;
 
-struct VocabFileData
-{
-    QString title;
-    QList<VocabFileEntry> entries;
-    QList<VocabFileGroup> groups;
-};
+    struct Group
+    {
+        QString title;
+        QList<Entry> entries;
+    };
+
+    struct Data
+    {
+        QString title;
+        QList<Entry> entries;
+        QList<Group> groups;
+    };
+
+    enum class ReadMode
+    {
+        Full,
+        Info
+    };
+
+    struct Info
+    {
+        QString filePath;
+        QString vocabTitle;
+    };
+
+    struct InfoResult
+    {
+        ErrorCode errorCode = ErrorCode::Success;
+        Info info;
+    };
+
+    struct ReadResult
+    {
+        ErrorCode errorCode = ErrorCode::Success;
+        int failedEntryCount = 0;
+        Data data;
+    };
+}
 
 #endif // VOCABFILEDATATYPES_H

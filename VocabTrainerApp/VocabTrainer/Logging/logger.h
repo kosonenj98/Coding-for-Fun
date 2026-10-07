@@ -21,7 +21,7 @@ public:
     void verbose(const QString &tag, const QString &message);
 
 signals:
-    void logEntryCreated(const LogEntry &entry);
+    void logEntryCreated(const Log::Entry &entry);
 };
 
 #endif // LOGGER_H

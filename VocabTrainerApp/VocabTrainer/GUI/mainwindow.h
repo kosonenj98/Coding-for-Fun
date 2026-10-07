@@ -18,9 +18,9 @@ public:
     explicit MainWindow(Logger &logger, SettingsHandler &handler, QWidget *parent = nullptr);
 
 public slots:
-    void handleLogQueryRequest(const LogQuery &query);
-    void handleLogQuerySucceeded(const QList<LogEntry> &entries);
-    void handleLogQuerySucceededPartially(const QList<LogEntry> &entries, int failedEntryCount);
+    void handleLogQueryRequest(const Log::Query &query);
+    void handleLogQuerySucceeded(const QList<Log::Entry> &entries);
+    void handleLogQuerySucceededPartially(const QList<Log::Entry> &entries, int failedEntryCount);
     void handleLogQueryFailed(ErrorCode code);
 
     void handleApplyNewSettingsRequest(const Settings &newSettings);
@@ -30,7 +30,7 @@ public slots:
     void handleViewTabChanged(int index);
 
 signals:
-    void requestLogQuery(const LogQuery &query);
+    void requestLogQuery(const Log::Query &query);
     void requestApplyNewSettings(const Settings &newSettings);
 
 private:

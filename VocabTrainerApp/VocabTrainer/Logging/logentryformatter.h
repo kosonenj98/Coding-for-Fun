@@ -20,9 +20,9 @@ namespace LogJsonKeys
 
 namespace LogEntryFormatter
 {
-    QString logFileFormat(const LogEntry& entry);
+QString logFileFormat(const Log::Entry& entry);
 
-    ErrorCode fromJson(const QJsonObject &json, LogEntry &entry);
+ErrorCode fromJson(const QJsonObject &json, Log::Entry &entry);
 }
 
 #endif // LOGENTRYFORMATTER_H

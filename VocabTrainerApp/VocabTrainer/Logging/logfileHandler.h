@@ -16,15 +16,15 @@ public:
 
 public slots:
     void initialize();
-    void writeEntry(const LogEntry &entry);
+    void writeEntry(const Log::Entry &entry);
     void flush();
     void setFilePath(const QString &newFilePath);
-    void readAllLogEntries(const LogQuery &query);
+    void readAllLogEntries(const Log::Query &query);
     void shutdown();
 
 signals:
-    void readAllLogEntriesSucceeded(const LogQuery &query, QList<LogEntry> entries);
-    void readAllLogEntriesSucceededPartially(const LogQuery &query, QList<LogEntry> entries, int failedEntryCount);
+    void readAllLogEntriesSucceeded(const Log::Query &query, QList<Log::Entry> entries);
+    void readAllLogEntriesSucceededPartially(const Log::Query &query, QList<Log::Entry> entries, int failedEntryCount);
     void readAllLogEntriesFailed(ErrorCode code);
 
 private:
@@ -34,7 +34,7 @@ private:
     void error(const QString &message);
     void debug(const QString &message);
     void verbose(const QString &message);
-    bool isLoggingEnabled(const LogEntry &entry);
+    bool isLoggingEnabled(const Log::Entry &entry);
 
     SettingsHandler &m_settingsHandler;
     QFile m_logFile;

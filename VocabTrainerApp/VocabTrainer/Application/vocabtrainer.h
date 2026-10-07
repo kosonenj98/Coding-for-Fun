@@ -2,9 +2,11 @@
 #define VOCABTRAINER_H
 
 #include "Logging/logger.h"
-#include "logservice.h"
+#include "Logging/logfileHandler.h"
 #include "errorcode.h"
+#include "logservice.h"
 #include "vocabfilehandler.h"
+#include "dataservice.h"
 
 #include <QObject>
 
@@ -19,31 +21,45 @@ public:
 public slots:
     void initialize();
 
-    void handleLogQueryRequest(const LogQuery &query);
-    void handleLogQuerySucceeded(const QList<LogEntry> entries);
-    void handleLogQuerySucceededPartially(const QList<LogEntry> entries, int failedEntryCount);
+    void handleLogQueryRequest(const Log::Query &query);
+    void handleLogQuerySucceeded(const QList<Log::Entry> entries);
+    void handleLogQuerySucceededPartially(const QList<Log::Entry> entries, int failedEntryCount);
     void handleLogQueryFailed(const ErrorCode code);
 
-    void handleVocabFileReadRequest(const QString &filePath);
-    void handleVocabFileReadSucceeded(const VocabFileData &data);
-    void handleVocabFileReadSucceededPartially(const VocabFileData &data, int failedEntryCount);
-    void handleVocabFileReadFailed(const ErrorCode code);
+    void handleVocabLoadRequest(const QString &filePath);
+    void handleVocabLoadSucceeded();
+    void handleVocabLoadSucceededPartially(int failedEntryCount);
+    void handleVocabLoadFailed(const ErrorCode code);
+
+    void handleVocabLoadMultipleRequest(const QStringList &filePaths);
+    void handleVocabLoadMultipleSucceeded();
+    void handleVocabLoadMultipleSucceededPartially(int failedVocabCount, int partiallySucceededVocabCount, int failedEntryCount);
+    void handleVocabLoadMultipleFailed(const ErrorCode code);
 
     void shutdown();
 
 signals:
-    void logQuerySucceeded(const QList<LogEntry> entries);
-    void logQuerySucceededPartially(const QList<LogEntry> entries, int failedEntryCount);
+    void logQuerySucceeded(const QList<Log::Entry> entries);
+    void logQuerySucceededPartially(const QList<Log::Entry> entries, int failedEntryCount);
     void logQueryFailed(const ErrorCode code);
 
-    void vocabFileReadSucceeded(const VocabFileData &data);
-    void vocabFileReadSucceededPartially(const VocabFileData &data, int failedEntryCount);
-    void vocabFileReadFailed(const ErrorCode code);
+    void vocabLoadSucceeded();
+    void vocabLoadSucceededPartially(int failedEntryCount);
+    void vocabLoadFailed(const ErrorCode code);
+
+    void vocabLoadMultipleSucceeded();
+    void vocabLoadMultipleSucceededPartially(int failedVocabCount, int partiallySucceededVocabCount, int failedEntryCount);
+    void vocabLoadMultipleFailed(const ErrorCode code);
 
 private:
+    void initializeLogService();
+    void initializeVocabFileHandler();
+    void initializeDataService();
+
     Logger &m_logger;
     LogFileHandler &m_logFileHandler;
     LogService *m_logService = nullptr;
     VocabFileHandler *m_vocabFileHandler = nullptr;
+    DataService *m_dataService = nullptr;
 };
 #endif // VOCABTRAINER_H

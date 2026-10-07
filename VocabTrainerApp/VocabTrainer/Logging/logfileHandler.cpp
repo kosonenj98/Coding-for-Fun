@@ -16,7 +16,7 @@ namespace
     }
 }
 
-
+using namespace Log;
 
 LogFileHandler::LogFileHandler(SettingsHandler &handler, QObject *parent)
     : QObject{parent}, m_settingsHandler(handler), m_logFile(handler.getLogFilePath())
@@ -35,7 +35,7 @@ void LogFileHandler::initialize()
     m_flushTimer->start(FlushTimerIntervalMs);
 }
 
-void LogFileHandler::writeEntry(const LogEntry &entry)
+void LogFileHandler::writeEntry(const Entry &entry)
 {
     if (!m_logFile.isOpen())
     {
@@ -48,7 +48,7 @@ void LogFileHandler::writeEntry(const LogEntry &entry)
     }
 
     // Produce log file entry and write it to log
-    LogEntry fileEntry = entry; // Create a local copy so the sequence can be assigned for file output
+    Entry fileEntry = entry; // Create a local copy so the sequence can be assigned for file output
     fileEntry.sequence = m_sequence++;
     const QByteArray line = LogEntryFormatter::logFileFormat(fileEntry).toUtf8() + '\n';
     m_logFile.write(line);
@@ -116,10 +116,10 @@ void LogFileHandler::setFilePath(const QString &newFilePath)
     verbose(QStringLiteral("Setting new log file path done!"));
 }
 
-void LogFileHandler::readAllLogEntries(const LogQuery &query)
+void LogFileHandler::readAllLogEntries(const Query &query)
 {
     debug(QStringLiteral("Reading log entries..."));
-    QList<LogEntry> entries;
+    QList<Entry> entries;
 
     QString filePath = query.filePath;
     QFile file(filePath);
@@ -154,7 +154,7 @@ void LogFileHandler::readAllLogEntries(const LogQuery &query)
             continue;
         }
 
-        LogEntry entry;
+        Entry entry;
         const ErrorCode errorCode = LogEntryFormatter::fromJson(document.object(), entry);
         if (errorCode != ErrorCode::Success)
         {
@@ -200,7 +200,7 @@ void LogFileHandler::shutdown()
 
 void LogFileHandler::logInternally(LogLevel level, const QString &message)
 {
-    LogEntry entry;
+    Entry entry;
     entry.threadId = QThread::currentThreadId();
     entry.threadName = QThread::currentThread()->objectName();
     entry.sequence = 0; // writeEntry updates
@@ -238,7 +238,7 @@ void LogFileHandler::verbose(const QString &message)
     logInternally(LogLevel::Verbose, message);
 }
 
-bool LogFileHandler::isLoggingEnabled(const LogEntry &entry)
+bool LogFileHandler::isLoggingEnabled(const Entry &entry)
 {
     if (!m_settingsHandler.getLogEnabled())
     {

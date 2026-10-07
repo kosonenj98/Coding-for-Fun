@@ -16,6 +16,8 @@ namespace
     }
 }
 
+using namespace Log;
+
 LogView::LogView(Logger &logger, const Settings &settings, QWidget *parent)
     : QWidget{parent}, m_logger(logger)
 {
@@ -46,14 +48,14 @@ void LogView::createInitialView()
     refreshLog();
 }
 
-void LogView::createQueriedView(const LogQuery &query)
+void LogView::createQueriedView(const Query &query)
 {
     m_logger.verbose(logTag(), QStringLiteral("Creating a log view with query..."));
     m_logger.verbose(logTag(), QStringLiteral("Emitting log query request..."));
     emit requestLogQuery(query);
 }
 
-void LogView::updateView(const QList<LogEntry> &entries)
+void LogView::updateView(const QList<Entry> &entries)
 {
     m_logger.verbose(logTag(), QStringLiteral("Updating view..."));
     m_logEntries = entries;
@@ -82,10 +84,10 @@ void LogView::refreshLog()
     m_logger.verbose(logTag(), "Creating new log query request...");
 
     // Construct query and emit log query request
-    LogQuery query;
+    Query query;
     query.filePath = m_logFilePathEdit->text();
     query.maxEntryCount = m_maxEntryCountSpinBox->value();
-    query.entryOrder = m_newestRadioButton->isChecked() ? LogEntrySelectionOrder::Newest : LogEntrySelectionOrder::Oldest;
+    query.entryOrder = m_newestRadioButton->isChecked() ? EntrySelectionOrder::Newest : EntrySelectionOrder::Oldest;
     query.searchPattern = m_searchPatternTextEdit->text();
     query.useRegularExpression = m_useRegularExpressionCheckBox->isChecked();
     query.searchEntireEntry = m_searchEntireEntryCheckBox->isChecked();
@@ -481,7 +483,7 @@ void LogView::refreshLogDisplay()
 
     // Go through log entries and add those that are toggled visible
     int visibleEntryCount = 0;
-    for (const LogEntry &entry : m_logEntries)
+    for (const Entry &entry : m_logEntries)
     {
         if (!isEntryVisible(entry))
         {
@@ -523,7 +525,7 @@ void LogView::refreshLogDisplay()
     m_logger.verbose(logTag(), "Refreshing log display done!");
 }
 
-bool LogView::isEntryVisible(const LogEntry &entry) const
+bool LogView::isEntryVisible(const Entry &entry) const
 {
     switch (entry.level)
     {

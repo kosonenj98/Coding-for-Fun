@@ -9,6 +9,7 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    Application/dataservice.cpp \
     Application/errorcode.cpp \
     Application/logservice.cpp \
     Application/settingshandler.cpp \
@@ -26,9 +27,11 @@ SOURCES += \
     main.cpp \
 
 HEADERS += \
+    Application/dataservice.h \
     Application/errorcode.h \
     Application/logservice.h \
     Application/settingshandler.h \
+    Application/vocabdatatypes.h \
     Application/vocabfiledatatypes.h \
     Application/vocabfilehandler.h \
     Application/vocabtrainer.h \

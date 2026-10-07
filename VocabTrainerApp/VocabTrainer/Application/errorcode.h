@@ -12,6 +12,8 @@ enum class ErrorCode
     InvalidJson,
     InvalidSettings,
     VocabFileNoEntries,
+    NoSucceededVocabs,
+    NoVocabFilesGiven,
     Unknown
 };
 

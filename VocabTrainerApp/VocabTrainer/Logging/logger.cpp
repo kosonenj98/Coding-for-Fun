@@ -2,16 +2,19 @@
 
 #include <QThread>
 
+using namespace Log;
+
 Logger::Logger(QObject *parent)
     : QObject{parent}
-{}
+{
+}
 
 void Logger::log(LogLevel level, const QString &tag, const QString &message)
 {
     QThread *thread = QThread::currentThread();
     QString threadName = thread->objectName();
 
-    LogEntry entry;
+    Entry entry;
     entry.threadId = QThread::currentThreadId();
     entry.threadName = threadName.isEmpty() ? QStringLiteral("Unnamed") : threadName;
     entry.sequence = 0; // LogFileWriter updates this

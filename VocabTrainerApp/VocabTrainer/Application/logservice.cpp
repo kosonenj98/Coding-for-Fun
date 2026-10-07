@@ -12,35 +12,34 @@ namespace
     }
 }
 
-LogService::LogService(Logger &logger, LogFileHandler &handler, QObject *parent)
-    : QObject{parent}, m_logger(logger), m_logFileHandler(handler)
+using namespace Log;
+
+LogService::LogService(Logger &logger, QObject *parent)
+    : QObject{parent}, m_logger(logger)
 {
     m_logger.verbose(logTag(), QStringLiteral("Initializing log service..."));
-    connect(this, &LogService::requestGetAllLogEntries, &m_logFileHandler, &LogFileHandler::readAllLogEntries);
-    connect(&m_logFileHandler, &LogFileHandler::readAllLogEntriesSucceeded, this, &LogService::handleGetAllLogEntriesSucceeded);
-    connect(&m_logFileHandler, &LogFileHandler::readAllLogEntriesSucceededPartially, this, &LogService::handleGetAllLogEntriesSucceededPartially);
     m_logger.verbose(logTag(), QStringLiteral("Initializing log service done!"));
 }
 
-void LogService::queryLog(const LogQuery &query)
+void LogService::queryLog(const Query &query)
 {
     m_logger.verbose(logTag(), QStringLiteral("Querying log..."));
     emit requestGetAllLogEntries(query);
 }
 
-void LogService::handleGetAllLogEntriesSucceeded(const LogQuery &query, const QList<LogEntry> &entries)
+void LogService::handleGetAllLogEntriesSucceeded(const Query &query, const QList<Entry> &entries)
 {
     m_logger.verbose(logTag(), QStringLiteral("Reading all log entries succeeded!"));
-    QList<LogEntry> filteredEntries = filterLogEntries(query, entries);
+    QList<Entry> filteredEntries = filterLogEntries(query, entries);
 
     m_logger.verbose(logTag(), QStringLiteral("Emitting log query success signal..."));
     emit queryLogSucceeded(filteredEntries);
 }
 
-void LogService::handleGetAllLogEntriesSucceededPartially(const LogQuery &query, const QList<LogEntry> &entries, int failedEntryCount)
+void LogService::handleGetAllLogEntriesSucceededPartially(const Query &query, const QList<Entry> &entries, int failedEntryCount)
 {
     m_logger.verbose(logTag(), QStringLiteral("Reading all log entries succeeded partially. Skipped %1 faulty lines in log file.").arg(QString::number(failedEntryCount)));
-    QList<LogEntry> filteredEntries = filterLogEntries(query, entries);
+    QList<Entry> filteredEntries = filterLogEntries(query, entries);
 
     m_logger.verbose(logTag(), QStringLiteral("Emitting log query partial success signal..."));
     emit queryLogSucceededPartially(filteredEntries, failedEntryCount);
@@ -54,12 +53,12 @@ void LogService::handleGetAllLogEntriesFailed(ErrorCode code)
     emit queryLogFailed(code);
 }
 
-QList<LogEntry> LogService::filterLogEntries(const LogQuery &query, const QList<LogEntry> &entries)
+QList<Entry> LogService::filterLogEntries(const Query &query, const QList<Entry> &entries)
 {
     m_logger.verbose(logTag(), QStringLiteral("Filtering log entries..."));
 
     // Filter entries with query
-    QList<LogEntry> filteredEntries;
+    QList<Entry> filteredEntries;
     int maxEntryCount = query.maxEntryCount;
     if (maxEntryCount > 0)
     {
@@ -69,7 +68,7 @@ QList<LogEntry> LogService::filterLogEntries(const LogQuery &query, const QList<
     {
         filteredEntries.reserve(entries.size());
     }
-    LogEntrySelectionOrder order = query.entryOrder;
+    EntrySelectionOrder order = query.entryOrder;
     const QString &querySearchPattern = query.searchPattern;
     bool queryRegEx = query.useRegularExpression;
     bool queryEntireEntry = query.searchEntireEntry;
@@ -92,7 +91,7 @@ QList<LogEntry> LogService::filterLogEntries(const LogQuery &query, const QList<
     bool queryFrom = !from.isNull();
     bool queryTo = !to.isNull();
 
-    for (const LogEntry &entry : entries)
+    for (const Entry &entry : entries)
     {
         // Construct text that is compared to query search pattern
         QString matchCandidate = entry.message;
@@ -147,7 +146,7 @@ QList<LogEntry> LogService::filterLogEntries(const LogQuery &query, const QList<
         m_logger.verbose(logTag(), QStringLiteral("Truncating filtered entry list..."));
         switch (order)
         {
-        case LogEntrySelectionOrder::Newest:
+        case EntrySelectionOrder::Newest:
         {
             m_logger.verbose(logTag(), QStringLiteral("Getting %1 newest entries...").arg(QString::number(maxEntryCount)));
             filteredEntries = filteredEntries.mid(qMax(0, filteredEntries.size() - maxEntryCount));
@@ -155,7 +154,7 @@ QList<LogEntry> LogService::filterLogEntries(const LogQuery &query, const QList<
             break;
         }
 
-        case LogEntrySelectionOrder::Oldest:
+        case EntrySelectionOrder::Oldest:
         {
             m_logger.verbose(logTag(), QStringLiteral("Getting %1 oldest entries...").arg(QString::number(maxEntryCount)));
             filteredEntries = filteredEntries.mid(0, maxEntryCount);

@@ -3,7 +3,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-QString LogEntryFormatter::logFileFormat(const LogEntry &entry)
+using namespace Log;
+
+QString LogEntryFormatter::logFileFormat(const Entry &entry)
 {
     // Formulate log entry for log file
     QJsonObject json;
@@ -19,7 +21,7 @@ QString LogEntryFormatter::logFileFormat(const LogEntry &entry)
     return QString::fromUtf8(document.toJson(QJsonDocument::Compact));
 }
 
-ErrorCode LogEntryFormatter::fromJson(const QJsonObject &json, LogEntry &entry)
+ErrorCode LogEntryFormatter::fromJson(const QJsonObject &json, Entry &entry)
 {
     const QJsonValue threadIdValue = json.value(LogJsonKeys::ThreadId);
     if (!threadIdValue.isString())

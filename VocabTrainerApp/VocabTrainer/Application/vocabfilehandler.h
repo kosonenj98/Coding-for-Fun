@@ -13,14 +13,35 @@ class VocabFileHandler : public QObject
 public:
     explicit VocabFileHandler(Logger &logger, QObject *parent = nullptr);
 
-    void read(const QString &filePath);
+public slots:
+    void read(const QString &filePath, VocabFile::ReadMode mode);
+    void readMultiple(const QStringList &filePaths, VocabFile::ReadMode mode);
 
 signals:
-    void readSucceeded(const VocabFileData &data);
-    void readSucceededPartially(const VocabFileData &data, int failedEntryCount);
+    void readInfoSucceeded(const VocabFile::Info &info);
+    void readInfoFailed(ErrorCode code);
+
+    void readInfoMultipleSucceeded(const QList<VocabFile::Info> &multipleInfo);
+    void readInfoMultipleSucceededPartially(const QList<VocabFile::Info> &multipleInfo, int failedVocabCount);
+    void readInfoMultipleFailed(ErrorCode code);
+
+    void readSucceeded(const VocabFile::Data &data);
+    void readSucceededPartially(const VocabFile::Data &data, int failedEntryCount);
     void readFailed(ErrorCode code);
 
+    void readMultipleSucceeded(const QList<VocabFile::Data> &multipleData);
+    void readMultipleSucceededPartially(const QList<VocabFile::Data> &multipleData, int failedVocabCount, int partiallySucceededVocabCount, int failedEntryCount);
+    void readMultipleFailed(ErrorCode code);
+
 private:
+    void handleReadFull(const QString &filePath);
+    void handleReadInfo(const QString &filePath);
+    void handleReadFullMultiple(const QStringList &filePaths);
+    void handleReadInfoMultiple(const QStringList &filePaths);
+
+    VocabFile::InfoResult readInfo(const QString &filePath);
+    VocabFile::ReadResult readFile(const QString &filePath);
+
     Logger &m_logger;
 };
 

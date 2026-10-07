@@ -32,14 +32,14 @@ public:
 
     void createInitialView();
 
-    void createQueriedView(const LogQuery &query);
+    void createQueriedView(const Log::Query &query);
 
-    void updateView(const QList<LogEntry> &entries);
+    void updateView(const QList<Log::Entry> &entries);
 
 public slots:
 
 signals:
-    void requestLogQuery(const LogQuery &query);
+    void requestLogQuery(const Log::Query &query);
 
 private slots:
     void browseLogFile();
@@ -81,7 +81,7 @@ private:
     /*-----------------------------------------------------*/
 
     void refreshLogDisplay();
-    bool isEntryVisible(const LogEntry &entry) const;
+    bool isEntryVisible(const Log::Entry &entry) const;
 
     /*-----------------------------------------------------*/
 
@@ -93,7 +93,7 @@ private:
     bool m_showError = true;
     bool m_showDebug = true;
     bool m_showVerbose = true;
-    QList<LogEntry> m_logEntries;
+    QList<Log::Entry> m_logEntries;
 
     /*-----------------------------------------------------*/
 

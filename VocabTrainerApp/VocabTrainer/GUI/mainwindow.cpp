@@ -47,14 +47,14 @@ MainWindow::MainWindow(Logger &logger, SettingsHandler &handler, QWidget *parent
     m_logger.verbose(logTag(), QStringLiteral("Constructing main window done!"));
 }
 
-void MainWindow::handleLogQuerySucceeded(const QList<LogEntry> &entries)
+void MainWindow::handleLogQuerySucceeded(const QList<Log::Entry> &entries)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling successful log query..."));
     m_logView->updateView(entries);
     m_logger.verbose(logTag(), QStringLiteral("Handling successful log query done!"));
 }
 
-void MainWindow::handleLogQuerySucceededPartially(const QList<LogEntry> &entries, int failedEntryCount)
+void MainWindow::handleLogQuerySucceededPartially(const QList<Log::Entry> &entries, int failedEntryCount)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling partially successful log query with %1 skipped entries...").arg(failedEntryCount));
     m_logView->updateView(entries);
@@ -71,7 +71,7 @@ void MainWindow::handleLogQueryFailed(ErrorCode code)
     m_logger.verbose(logTag(), QStringLiteral("Informing user that log query failed done!"));
 }
 
-void MainWindow::handleLogQueryRequest(const LogQuery &query)
+void MainWindow::handleLogQueryRequest(const Log::Query &query)
 {
     m_logger.verbose(logTag(), QStringLiteral("Emitting log query request..."));
     emit requestLogQuery(query);
