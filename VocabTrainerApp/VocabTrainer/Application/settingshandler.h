@@ -2,41 +2,11 @@
 #define SETTINGSHANDLER_H
 
 #include "Logging/logger.h"
-#include "errorcode.h"
+#include "DataTypes/requests.h"
+#include "DataTypes/results.h"
 
 #include <QObject>
 #include <QString>
-#include <QStandardPaths>
-#include <QDir>
-
-struct Settings
-{
-    Settings()
-    {
-        logEnabled = true;
-        logInfoEnabled = true;
-        logWarningEnabled = true;
-        logErrorEnabled = true;
-        logDebugEnabled = true;
-        logVerboseEnabled = true;
-
-        const QString logDirectory =QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-        if (!QDir().mkpath(logDirectory))
-        {
-            // TODO: Handle error!
-        }
-        logFilePath = QDir(logDirectory).filePath(QStringLiteral("vocabtrainer.log"));
-    }
-
-    bool logEnabled;
-    bool logInfoEnabled;
-    bool logWarningEnabled;
-    bool logErrorEnabled;
-    bool logDebugEnabled;
-    bool logVerboseEnabled;
-
-    QString logFilePath;
-};
 
 class SettingsHandler : public QObject
 {
@@ -70,11 +40,10 @@ public:
     void setLogFilePath(const QString &newPath);
 
 public slots:
-    void handleApplyNewSettingsRequest(const Settings& newSettings);
+    void handleApplyNewSettingsRequest(const ApplyNewSettingsRequest &request);
 
 signals:
-    void applyNewSettingsSucceeded();
-    void applyNewSettingsFailed(ErrorCode code, const Settings &settings);
+    void applyNewSettingsFinished(const ApplyNewSettingsResult &result);
 
 private:
     Logger &m_logger;

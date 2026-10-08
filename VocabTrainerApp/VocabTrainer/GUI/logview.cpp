@@ -48,7 +48,7 @@ void LogView::createInitialView()
     refreshLog();
 }
 
-void LogView::createQueriedView(const Query &query)
+void LogView::createQueriedView(const LogQueryRequest &query)
 {
     m_logger.verbose(logTag(), QStringLiteral("Creating a log view with query..."));
     m_logger.verbose(logTag(), QStringLiteral("Emitting log query request..."));
@@ -84,7 +84,7 @@ void LogView::refreshLog()
     m_logger.verbose(logTag(), "Creating new log query request...");
 
     // Construct query and emit log query request
-    Query query;
+    LogQueryRequest query;
     query.filePath = m_logFilePathEdit->text();
     query.maxEntryCount = m_maxEntryCountSpinBox->value();
     query.entryOrder = m_newestRadioButton->isChecked() ? EntrySelectionOrder::Newest : EntrySelectionOrder::Oldest;
@@ -495,7 +495,7 @@ void LogView::refreshLogDisplay()
         auto *sequenceItem = new QStandardItem(QString::number(entry.sequence));
         auto *threadIdItem = new QStandardItem(QStringLiteral("0x%1").arg(QString::number(reinterpret_cast<quintptr>(entry.threadId), 16)));
         auto *threadNameItem = new QStandardItem(entry.threadName);
-        auto *levelItem = new QStandardItem(logLevelToString(entry.level));
+        auto *levelItem = new QStandardItem(LogLevel::toString(entry.level));
         auto *tagItem = new QStandardItem(entry.tag);
         auto *messageItem = new QStandardItem(entry.message);
 
@@ -529,19 +529,19 @@ bool LogView::isEntryVisible(const Entry &entry) const
 {
     switch (entry.level)
     {
-    case LogLevel::Info:
+    case LogLevel::Level::Info:
         return m_showInfo;
 
-    case LogLevel::Warning:
+    case LogLevel::Level::Warning:
         return m_showWarning;
 
-    case LogLevel::Error:
+    case LogLevel::Level::Error:
         return m_showError;
 
-    case LogLevel::Debug:
+    case LogLevel::Level::Debug:
         return m_showDebug;
 
-    case LogLevel::Verbose:
+    case LogLevel::Level::Verbose:
         return m_showVerbose;
     }
 

@@ -3,17 +3,20 @@
 
 #include <QString>
 
-enum class LogLevel
+namespace LogLevel
 {
-    Info,
-    Warning,
-    Error,
-    Debug,
-    Verbose
-};
+    enum class Level
+    {
+        Info,
+        Warning,
+        Error,
+        Debug,
+        Verbose
+    };
 
-QString logLevelToString(LogLevel level);
+    QString toString(Level level);
 
-LogLevel logLevelFromString(const QString &value);
+    Level fromString(const QString &value);
+}
 
 #endif // LOGLEVEL_H

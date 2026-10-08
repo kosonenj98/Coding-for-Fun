@@ -21,39 +21,36 @@ LogService::LogService(Logger &logger, QObject *parent)
     m_logger.verbose(logTag(), QStringLiteral("Initializing log service done!"));
 }
 
-void LogService::queryLog(const Query &query)
+void LogService::queryLog(const LogQueryRequest &request)
 {
-    m_logger.verbose(logTag(), QStringLiteral("Querying log..."));
-    emit requestGetAllLogEntries(query);
+    GetAllLogEntriesRequest getAllLogEntriesRequest;
+    getAllLogEntriesRequest.request = request;
+
+    emit requestGetAllLogEntries(getAllLogEntriesRequest);
 }
 
-void LogService::handleGetAllLogEntriesSucceeded(const Query &query, const QList<Entry> &entries)
+void LogService::handleGetAllLogEntriesFinished(const GetAllLogEntriesResult &result)
 {
-    m_logger.verbose(logTag(), QStringLiteral("Reading all log entries succeeded!"));
-    QList<Entry> filteredEntries = filterLogEntries(query, entries);
+    LogQueryResult logQueryResult;
+    if (result.code != ErrorCode::Success)
+    {
+        logQueryResult.code = result.code;
+        emit queryLogFinished(logQueryResult);
+        return;
+    }
 
-    m_logger.verbose(logTag(), QStringLiteral("Emitting log query success signal..."));
-    emit queryLogSucceeded(filteredEntries);
+    if (result.failedEntryCount > 0)
+    {
+        m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty log entries while reading log file.").arg(QString::number(result.failedEntryCount)));
+    }
+    logQueryResult.failedEntryCount = result.failedEntryCount;
+
+    logQueryResult.entries = filterLogEntries(result.request, result.entries);
+
+    emit queryLogFinished(logQueryResult);
 }
 
-void LogService::handleGetAllLogEntriesSucceededPartially(const Query &query, const QList<Entry> &entries, int failedEntryCount)
-{
-    m_logger.verbose(logTag(), QStringLiteral("Reading all log entries succeeded partially. Skipped %1 faulty lines in log file.").arg(QString::number(failedEntryCount)));
-    QList<Entry> filteredEntries = filterLogEntries(query, entries);
-
-    m_logger.verbose(logTag(), QStringLiteral("Emitting log query partial success signal..."));
-    emit queryLogSucceededPartially(filteredEntries, failedEntryCount);
-}
-
-void LogService::handleGetAllLogEntriesFailed(ErrorCode code)
-{
-    m_logger.error(logTag(), QStringLiteral("Reading all log entries failed! Reason: '%1'").arg(errorCodeToString(code)));
-
-    m_logger.verbose(logTag(), QStringLiteral("Emitting log query failure signal..."));
-    emit queryLogFailed(code);
-}
-
-QList<Entry> LogService::filterLogEntries(const Query &query, const QList<Entry> &entries)
+QList<Entry> LogService::filterLogEntries(const LogQueryRequest &query, const QList<Entry> &entries)
 {
     m_logger.verbose(logTag(), QStringLiteral("Filtering log entries..."));
 

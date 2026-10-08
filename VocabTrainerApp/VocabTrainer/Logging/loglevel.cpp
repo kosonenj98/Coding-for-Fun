@@ -10,23 +10,25 @@ namespace LogStrings
     inline const QString Unknown = QStringLiteral("UNKNOWN");
 }
 
-QString logLevelToString(LogLevel level)
+using namespace LogLevel;
+
+QString LogLevel::toString(Level level)
 {
     switch (level)
     {
-    case LogLevel::Info:
+    case Level::Info:
         return LogStrings::Info;
 
-    case LogLevel::Warning:
+    case Level::Warning:
         return LogStrings::Warning;
 
-    case LogLevel::Error:
+    case Level::Error:
         return LogStrings::Error;
 
-    case LogLevel::Debug:
+    case Level::Debug:
         return LogStrings::Debug;
 
-    case LogLevel::Verbose:
+    case Level::Verbose:
         return LogStrings::Verbose;
     }
 
@@ -34,33 +36,33 @@ QString logLevelToString(LogLevel level)
     return LogStrings::Unknown;
 }
 
-LogLevel logLevelFromString(const QString &value)
+Level LogLevel::fromString(const QString &value)
 {
     if (value == LogStrings::Info)
     {
-        return LogLevel::Info;
+        return Level::Info;
     }
 
     if (value == LogStrings::Warning)
     {
-        return LogLevel::Warning;
+        return Level::Warning;
     }
 
     if (value == LogStrings::Error)
     {
-        return LogLevel::Error;
+        return Level::Error;
     }
 
     if (value == LogStrings::Debug)
     {
-        return LogLevel::Debug;
+        return Level::Debug;
     }
 
-    if (value ==LogStrings::Verbose)
+    if (value == LogStrings::Verbose)
     {
-        return LogLevel::Verbose;
+        return Level::Verbose;
     }
 
     // TODO: Error handling here!
-    return LogLevel::Info;
+    return Level::Info;
 }

@@ -1,8 +1,8 @@
 #ifndef SETTINGSVIEW_H
 #define SETTINGSVIEW_H
 
-#include "../Logging/logger.h"
-#include "../Application/settingshandler.h"
+#include "Logging/logger.h"
+#include "DataTypes/requests.h"
 
 #include <QWidget>
 #include <QCheckBox>
@@ -18,10 +18,10 @@ public:
     void updateView(const Settings &settings);
 
 public slots:
-    void createRequestForNewSettingsAndEmit();
+    void handleApplyClicked();
 
 signals:
-    void requestApplyNewSettings(const Settings &newSettings);
+    void requestApplyNewSettings(const ApplyNewSettingsRequest &request);
 
 private:
     Logger &m_logger;

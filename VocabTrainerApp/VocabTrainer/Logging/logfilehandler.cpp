@@ -1,4 +1,4 @@
-#include "logfileHandler.h"
+#include "logfilehandler.h"
 #include "logentryformatter.h"
 
 #include <QJsonDocument>
@@ -55,7 +55,7 @@ void LogFileHandler::writeEntry(const Entry &entry)
     m_entriesSinceFlush++;
 
     // Flush error messaged immediately. Else flush if flush interval is exceeded
-    if (entry.level == LogLevel::Error || m_entriesSinceFlush >= FlushInterval)
+    if (entry.level == LogLevel::Level::Error || m_entriesSinceFlush >= FlushInterval)
     {
         flush();
     }
@@ -116,70 +116,28 @@ void LogFileHandler::setFilePath(const QString &newFilePath)
     verbose(QStringLiteral("Setting new log file path done!"));
 }
 
-void LogFileHandler::readAllLogEntries(const Query &query)
+void LogFileHandler::handleGetAllLogEntriesRequest(const GetAllLogEntriesRequest &request)
 {
-    debug(QStringLiteral("Reading log entries..."));
-    QList<Entry> entries;
+    GetAllLogEntriesResult result;
+    result.request = request.request;
 
-    QString filePath = query.filePath;
-    QFile file(filePath);
+    ReadAllResult readAllResult = readAll(request.request.filePath);
 
-    verbose(QStringLiteral("Opening file '%1'...").arg(filePath));
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    if (readAllResult.code != ErrorCode::Success)
     {
-        error(QStringLiteral("Failed to open '%1': '%2' (FileError '%3')").arg(filePath, file.errorString(), QString::number(file.error())));
-        emit readAllLogEntriesFailed(ErrorCode::FileOpenFailed);
+        result.code = readAllResult.code;
+        emit getAllLogEntriesFinished(result);
         return;
     }
-    verbose(QStringLiteral("Opening file '%1' succeeded!").arg(filePath));
 
-    debug(QStringLiteral("Reading log entries..."));
-    int failedEntryCount = 0;
-    while (!file.atEnd())
+    if (readAllResult.failedEntryCount > 0)
     {
-        const QByteArray line = file.readLine().trimmed();
-
-        if (line.isEmpty())
-        {
-            continue;
-        }
-
-        QJsonParseError parseError;
-        const QJsonDocument document = QJsonDocument::fromJson(line, &parseError);
-        if (parseError.error != QJsonParseError::NoError || !document.isObject())
-        {
-            error(QStringLiteral("Parsing log file failed: '%1' (%2). Line: '%3'").arg(parseError.errorString(), QString::number(parseError.error), QString::fromUtf8(line)));
-            debug(QStringLiteral("Skipping the problematic line..."));
-            failedEntryCount++;
-            continue;
-        }
-
-        Entry entry;
-        const ErrorCode errorCode = LogEntryFormatter::fromJson(document.object(), entry);
-        if (errorCode != ErrorCode::Success)
-        {
-            error(QStringLiteral("Parsing log entry failed! Line: '%1' (ErrorCode '%2')").arg(QString::fromUtf8(line), QString::number(static_cast<int>(errorCode))));
-            failedEntryCount++;
-            continue;
-        }
-
-        entries.append(entry);
+        warning(QStringLiteral("Skipped %1 faulty log entries in log file '%2'").arg(QString::number(readAllResult.failedEntryCount), request.request.filePath));
     }
+    result.failedEntryCount = readAllResult.failedEntryCount;
+    result.entries = readAllResult.entries;
 
-    file.close();
-
-    debug(QStringLiteral("Reading log entries done!"));
-    if (failedEntryCount == 0)
-    {
-        verbose(QStringLiteral("Emitting log entry reading success signal..."));
-        emit readAllLogEntriesSucceeded(query, entries);
-    }
-    else
-    {
-        warning(QStringLiteral("Skipped %1 faulty entries in log file '%2'.").arg(QString::number(failedEntryCount), filePath));
-        verbose(QStringLiteral("Emitting log entry reading partial success signal..."));
-        emit readAllLogEntriesSucceededPartially(query, entries, failedEntryCount);
-    }
+    emit getAllLogEntriesFinished(result);
 }
 
 void LogFileHandler::shutdown()
@@ -198,7 +156,58 @@ void LogFileHandler::shutdown()
     }
 }
 
-void LogFileHandler::logInternally(LogLevel level, const QString &message)
+const ReadAllResult LogFileHandler::readAll(const QString &filePath)
+{
+    ReadAllResult result;
+
+    verbose(QStringLiteral("Opening file '%1'...").arg(filePath));
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        error(QStringLiteral("Failed to open '%1': '%2' (FileError '%3')").arg(filePath, file.errorString(), QString::number(file.error())));
+        result.code = ErrorCode::FileOpenFailed;
+        return result;
+    }
+    verbose(QStringLiteral("Opening file '%1' succeeded!").arg(filePath));
+
+    debug(QStringLiteral("Reading log entries..."));
+    while (!file.atEnd())
+    {
+        const QByteArray line = file.readLine().trimmed();
+
+        if (line.isEmpty())
+        {
+            continue;
+        }
+
+        QJsonParseError parseError;
+        const QJsonDocument document = QJsonDocument::fromJson(line, &parseError);
+        if (parseError.error != QJsonParseError::NoError || !document.isObject())
+        {
+            error(QStringLiteral("Parsing log file failed: '%1' (%2). Line: '%3'").arg(parseError.errorString(), QString::number(parseError.error), QString::fromUtf8(line)));
+            debug(QStringLiteral("Skipping the problematic line..."));
+            result.failedEntryCount++;
+            continue;
+        }
+
+        Entry entry;
+        const ErrorCode errorCode = LogEntryFormatter::fromJson(document.object(), entry);
+        if (errorCode != ErrorCode::Success)
+        {
+            error(QStringLiteral("Parsing log entry failed! Line: '%1' (ErrorCode '%2')").arg(QString::fromUtf8(line), QString::number(static_cast<int>(errorCode))));
+            result.failedEntryCount++;
+            continue;
+        }
+
+        result.entries.append(entry);
+    }
+
+    file.close();
+
+    return result;
+}
+
+void LogFileHandler::logInternally(LogLevel::Level level, const QString &message)
 {
     Entry entry;
     entry.threadId = QThread::currentThreadId();
@@ -215,27 +224,27 @@ void LogFileHandler::logInternally(LogLevel level, const QString &message)
 
 void LogFileHandler::info(const QString &message)
 {
-    logInternally(LogLevel::Info, message);
+    logInternally(LogLevel::Level::Info, message);
 }
 
 void LogFileHandler::warning(const QString &message)
 {
-    logInternally(LogLevel::Warning, message);
+    logInternally(LogLevel::Level::Warning, message);
 }
 
 void LogFileHandler::error(const QString &message)
 {
-    logInternally(LogLevel::Error, message);
+    logInternally(LogLevel::Level::Error, message);
 }
 
 void LogFileHandler::debug(const QString &message)
 {
-    logInternally(LogLevel::Debug, message);
+    logInternally(LogLevel::Level::Debug, message);
 }
 
 void LogFileHandler::verbose(const QString &message)
 {
-    logInternally(LogLevel::Verbose, message);
+    logInternally(LogLevel::Level::Verbose, message);
 }
 
 bool LogFileHandler::isLoggingEnabled(const Entry &entry)
@@ -249,19 +258,19 @@ bool LogFileHandler::isLoggingEnabled(const Entry &entry)
     // Check if entry's log level is enabled
     switch (entry.level)
     {
-    case LogLevel::Info:
+    case LogLevel::Level::Info:
         return m_settingsHandler.getLogInfoEnabled();
 
-    case LogLevel::Warning:
+    case LogLevel::Level::Warning:
         return m_settingsHandler.getLogWarningEnabled();
 
-    case LogLevel::Error:
+    case LogLevel::Level::Error:
         return m_settingsHandler.getLogErrorEnabled();
 
-    case LogLevel::Debug:
+    case LogLevel::Level::Debug:
         return m_settingsHandler.getLogDebugEnabled();
 
-    case LogLevel::Verbose:
+    case LogLevel::Level::Verbose:
         return m_settingsHandler.getLogVerboseEnabled();
     }
 

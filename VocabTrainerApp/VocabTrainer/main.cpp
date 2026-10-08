@@ -1,12 +1,11 @@
-#include "Logging/logfileHandler.h"
 #include "Logging/logger.h"
 #include "Application/settingshandler.h"
+#include "Logging/logfilehandler.h"
 #include "Application/vocabtrainer.h"
 #include "GUI/mainwindow.h"
 
 #include <QApplication>
 #include <QThread>
-
 
 namespace
 {
@@ -54,16 +53,13 @@ int main(int argc, char *argv[])
     logger.verbose(logTag(), QStringLiteral("Initializing MainWindow..."));
     MainWindow mainWindow(logger, settingsHandler);
 
-    // Connect logQuery events
+    // Connect log query events
     QObject::connect(&mainWindow, &MainWindow::requestLogQuery, vocabTrainer, &VocabTrainer::handleLogQueryRequest, Qt::QueuedConnection);
-    QObject::connect(vocabTrainer, &VocabTrainer::logQuerySucceeded, &mainWindow, &MainWindow::handleLogQuerySucceeded, Qt::QueuedConnection);
-    QObject::connect(vocabTrainer, &VocabTrainer::logQuerySucceededPartially, &mainWindow, &MainWindow::handleLogQuerySucceededPartially, Qt::QueuedConnection);
-    QObject::connect(vocabTrainer, &VocabTrainer::logQueryFailed, &mainWindow, &MainWindow::handleLogQueryFailed, Qt::QueuedConnection);
+    QObject::connect(vocabTrainer, &VocabTrainer::logQueryFinished, &mainWindow, &MainWindow::handleLogQueryFinished, Qt::QueuedConnection);
 
     // Connect setting events
     QObject::connect(&mainWindow, &MainWindow::requestApplyNewSettings, &settingsHandler, &SettingsHandler::handleApplyNewSettingsRequest, Qt::QueuedConnection);
-    QObject::connect(&settingsHandler, &SettingsHandler::applyNewSettingsSucceeded, &mainWindow, &MainWindow::handleApplyNewSettingsSucceeded, Qt::QueuedConnection);
-    QObject::connect(&settingsHandler, &SettingsHandler::applyNewSettingsFailed, &mainWindow, &MainWindow::handleApplyNewSettingsFailed, Qt::QueuedConnection);
+    QObject::connect(&settingsHandler, &SettingsHandler::applyNewSettingsFinished, &mainWindow, &MainWindow::handleApplyNewSettingsFinished, Qt::QueuedConnection);
 
     {
         QString threadId = QString::number(reinterpret_cast<quintptr>(QThread::currentThread()->currentThreadId()), 16);

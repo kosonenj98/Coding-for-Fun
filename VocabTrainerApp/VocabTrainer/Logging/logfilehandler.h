@@ -1,8 +1,7 @@
 #ifndef LOGFILEHANDLER_H
 #define LOGFILEHANDLER_H
 
-#include "../Application/settingshandler.h"
-#include "../Application/errorcode.h"
+#include "Application/settingshandler.h"
 
 #include <QObject>
 #include <QFile>
@@ -19,16 +18,16 @@ public slots:
     void writeEntry(const Log::Entry &entry);
     void flush();
     void setFilePath(const QString &newFilePath);
-    void readAllLogEntries(const Log::Query &query);
+    void handleGetAllLogEntriesRequest(const GetAllLogEntriesRequest &request);
     void shutdown();
 
 signals:
-    void readAllLogEntriesSucceeded(const Log::Query &query, QList<Log::Entry> entries);
-    void readAllLogEntriesSucceededPartially(const Log::Query &query, QList<Log::Entry> entries, int failedEntryCount);
-    void readAllLogEntriesFailed(ErrorCode code);
+    void getAllLogEntriesFinished(const GetAllLogEntriesResult &result);
 
 private:
-    void logInternally(LogLevel level, const QString &message);
+    const ReadAllResult readAll(const QString &filePath);
+
+    void logInternally(LogLevel::Level level, const QString &message);
     void info(const QString &message);
     void warning(const QString &message);
     void error(const QString &message);

@@ -1,8 +1,9 @@
 #ifndef LOGSERVICE_H
 #define LOGSERVICE_H
 
-#include "../Logging/logger.h"
-#include "errorcode.h"
+#include "Logging/logger.h"
+#include "DataTypes/requests.h"
+#include "DataTypes/results.h"
 
 #include <QObject>
 
@@ -12,21 +13,18 @@ class LogService : public QObject
 public:
     explicit LogService(Logger &logger, QObject *parent = nullptr);
 
-    void queryLog(const Log::Query &query);
+    void queryLog(const LogQueryRequest &request);
 
 public slots:
-    void handleGetAllLogEntriesSucceeded(const Log::Query &query, const QList<Log::Entry> &entries);
-    void handleGetAllLogEntriesSucceededPartially(const Log::Query &query, const QList<Log::Entry> &entries, int failedEntryCount);
-    void handleGetAllLogEntriesFailed(ErrorCode code);
+    void handleGetAllLogEntriesFinished(const GetAllLogEntriesResult &result);
 
 signals:
-    void requestGetAllLogEntries(const Log::Query &query);
-    void queryLogSucceeded(const QList<Log::Entry> &entries);
-    void queryLogSucceededPartially(const QList<Log::Entry> &entries, int failedEntryCount);
-    void queryLogFailed(ErrorCode code);
+    void requestGetAllLogEntries(const GetAllLogEntriesRequest &request);
+
+    void queryLogFinished(const LogQueryResult &result);
 
 private:
-    QList<Log::Entry> filterLogEntries(const Log::Query &query, const QList<Log::Entry> &entries);
+    QList<Log::Entry> filterLogEntries(const LogQueryRequest &query, const QList<Log::Entry> &entries);
 
     Logger &m_logger;
 };

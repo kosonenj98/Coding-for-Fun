@@ -1,8 +1,8 @@
 #ifndef LOGENTRYFORMATTER_H
 #define LOGENTRYFORMATTER_H
 
-#include "logdatatypes.h"
-#include "../Application/errorcode.h"
+#include "DataTypes/datatypes.h"
+#include "Application/errorcode.h"
 
 #include <QString>
 #include <QJsonDocument>
@@ -20,9 +20,9 @@ namespace LogJsonKeys
 
 namespace LogEntryFormatter
 {
-QString logFileFormat(const Log::Entry& entry);
+    QString logFileFormat(const Log::Entry& entry);
 
-ErrorCode fromJson(const QJsonObject &json, Log::Entry &entry);
+    ErrorCode fromJson(const QJsonObject &json, Log::Entry &entry);
 }
 
 #endif // LOGENTRYFORMATTER_H

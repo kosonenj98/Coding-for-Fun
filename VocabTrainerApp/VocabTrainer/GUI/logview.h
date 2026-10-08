@@ -1,8 +1,8 @@
 #ifndef LOGVIEW_H
 #define LOGVIEW_H
 
-#include "../Logging/logger.h"
-#include "../Application/settingshandler.h"
+#include "Logging/logger.h"
+#include "DataTypes/requests.h"
 
 #include <QWidget>
 #include <QDateTimeEdit>
@@ -32,14 +32,14 @@ public:
 
     void createInitialView();
 
-    void createQueriedView(const Log::Query &query);
+    void createQueriedView(const LogQueryRequest &query);
 
     void updateView(const QList<Log::Entry> &entries);
 
 public slots:
 
 signals:
-    void requestLogQuery(const Log::Query &query);
+    void requestLogQuery(const LogQueryRequest &query);
 
 private slots:
     void browseLogFile();

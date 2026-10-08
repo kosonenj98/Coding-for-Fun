@@ -1,9 +1,10 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "../Logging/logger.h"
-#include "../Application/settingshandler.h"
-#include "../Application/errorcode.h"
+#include "Logging/logger.h"
+#include "Application/settingshandler.h"
+#include "DataTypes/requests.h"
+#include "DataTypes/results.h"
 #include "mainview.h"
 #include "settingsview.h"
 #include "logview.h"
@@ -18,20 +19,17 @@ public:
     explicit MainWindow(Logger &logger, SettingsHandler &handler, QWidget *parent = nullptr);
 
 public slots:
-    void handleLogQueryRequest(const Log::Query &query);
-    void handleLogQuerySucceeded(const QList<Log::Entry> &entries);
-    void handleLogQuerySucceededPartially(const QList<Log::Entry> &entries, int failedEntryCount);
-    void handleLogQueryFailed(ErrorCode code);
+    void handleLogQueryRequest(const LogQueryRequest &request);
+    void handleLogQueryFinished(const LogQueryResult &result);
 
-    void handleApplyNewSettingsRequest(const Settings &newSettings);
-    void handleApplyNewSettingsSucceeded();
-    void handleApplyNewSettingsFailed(ErrorCode code, const Settings &settings);
+    void handleApplyNewSettingsRequest(const ApplyNewSettingsRequest &request);
+    void handleApplyNewSettingsFinished(const ApplyNewSettingsResult &result);
 
     void handleViewTabChanged(int index);
 
 signals:
-    void requestLogQuery(const Log::Query &query);
-    void requestApplyNewSettings(const Settings &newSettings);
+    void requestLogQuery(const LogQueryRequest &query);
+    void requestApplyNewSettings(const ApplyNewSettingsRequest &request);
 
 private:
     Logger &m_logger;

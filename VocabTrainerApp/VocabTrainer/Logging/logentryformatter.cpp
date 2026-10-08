@@ -14,7 +14,7 @@ QString LogEntryFormatter::logFileFormat(const Entry &entry)
     json[LogJsonKeys::Sequence] = QString::number(entry.sequence);
     json[LogJsonKeys::Tag] = entry.tag;
     json[LogJsonKeys::Timestamp] = entry.timestamp.toString(Qt::ISODateWithMs);
-    json[LogJsonKeys::Level] = logLevelToString(entry.level);
+    json[LogJsonKeys::Level] = LogLevel::toString(entry.level);
     json[LogJsonKeys::Message] = entry.message;
 
     const QJsonDocument document(json);
@@ -72,7 +72,7 @@ ErrorCode LogEntryFormatter::fromJson(const QJsonObject &json, Entry &entry)
     entry.sequence = sequence;
     entry.tag = tagValue.toString();
     entry.timestamp = timestamp;
-    entry.level = logLevelFromString(levelValue.toString());
+    entry.level = LogLevel::fromString(levelValue.toString());
     entry.message = messageValue.toString();
 
     return ErrorCode::Success;

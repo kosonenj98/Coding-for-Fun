@@ -12,8 +12,6 @@ namespace
     }
 }
 
-using namespace VocabFile;
-
 enum class ParseState
 {
     ExpectVocabularyTitle,
@@ -27,217 +25,161 @@ VocabFileHandler::VocabFileHandler(Logger &logger, QObject *parent)
     m_logger.verbose(logTag(), QStringLiteral("Constructing VocabFileHandler done!"));
 }
 
-void VocabFileHandler::read(const QString &filePath, ReadMode mode)
+void VocabFileHandler::read(const ReadVocabFileRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling read request..."));
-    switch (mode)
+    switch (request.mode)
     {
-    case ReadMode::Info:
-        handleReadInfo(filePath);
+    case VocabFile::ReadMode::Info:
+        handleReadInfo(request.filePath);
         break;
-    case ReadMode::Full:
-        handleReadFull(filePath);
+    case VocabFile::ReadMode::Data:
+        handleReadData(request.filePath);
         break;
     }
     m_logger.verbose(logTag(), QStringLiteral("Handling read request done!"));
 }
 
-void VocabFileHandler::readMultiple(const QStringList &filePaths, ReadMode mode)
+void VocabFileHandler::readMultiple(const ReadVocabFilesRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling read multiple request..."));
 
-    if (filePaths.isEmpty())
+    if (request.filePaths.isEmpty())
     {
         m_logger.error(logTag(), QStringLiteral("No vocab files given!"));
         m_logger.verbose(logTag(), QStringLiteral("Emitting failure signal..."));
         ErrorCode code = ErrorCode::NoVocabFilesGiven;
-        switch (mode)
+        switch (request.mode)
         {
-        case ReadMode::Info:
-            emit readInfoMultipleFailed(code);
-            break;
+            case VocabFile::ReadMode::Info:
+            {
+                ReadVocabFileInfosResult result;
+                result.errorCode = code;
+                emit readInfosFinished(result);
+                break;
+            }
 
-        case ReadMode::Full:
-            emit readMultipleFailed(code);
-            break;
+            case VocabFile::ReadMode::Data:
+            {
+                ReadVocabFileDatasResult result;
+                result.errorCode = code;
+                emit readDatasFinished(result);
+                break;
+            }
         }
         return;
     }
 
-    switch (mode)
+    switch (request.mode)
     {
-    case ReadMode::Info:
-        handleReadInfoMultiple(filePaths);
+    case VocabFile::ReadMode::Info:
+        handleReadInfos(request.filePaths);
         break;
-    case ReadMode::Full:
-        handleReadFullMultiple(filePaths);
+    case VocabFile::ReadMode::Data:
+        handleReadDatas(request.filePaths);
         break;
     }
 
     m_logger.verbose(logTag(), QStringLiteral("Handling read multiple request done!"));
 }
 
-void VocabFileHandler::handleReadFull(const QString &filePath)
+void VocabFileHandler::handleReadData(const QString &filePath)
 {
     // Read full vocab file
     m_logger.verbose(logTag(), QStringLiteral("Handling file read..."));
-    ReadResult result = readFile(filePath);
+    const ReadVocabFileDataResult result = readData(filePath);
     m_logger.verbose(logTag(), QStringLiteral("Handling file read done!"));
 
-    if (result.errorCode != ErrorCode::Success)
-    {
-        m_logger.error(logTag(), QStringLiteral("Failed to read vocab file '%1' (%2)...").arg(filePath, errorCodeToString(result.errorCode)));
-        m_logger.verbose(logTag(), QStringLiteral("Emitting failure signal..."));
-        emit readFailed(result.errorCode);
-        return;
-    }
-
-    if (result.failedEntryCount > 0)
-    {
-        m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty entries in vocab file '%2'...").arg(QString::number(result.failedEntryCount), filePath));
-        m_logger.verbose(logTag(), QStringLiteral("Emitting partial success signal..."));
-        emit readSucceededPartially(result.data, result.failedEntryCount);
-        return;
-    }
-
-    m_logger.info(logTag(), QStringLiteral("Succesfully read vocab file '%1'!").arg(filePath));
-    m_logger.verbose(logTag(), QStringLiteral("Emitting success signal..."));
-    emit readSucceeded(result.data);
+    emit readDataFinished(result);
 }
 
 void VocabFileHandler::handleReadInfo(const QString &filePath)
 {
     // Read only file info (file path and vocab title)
     m_logger.verbose(logTag(), QStringLiteral("Handling file info read..."));
-    InfoResult result = readInfo(filePath);
+    const ReadVocabFileInfoResult result = readInfo(filePath);
     m_logger.verbose(logTag(), QStringLiteral("Handling file info read done!"));
 
-    if (result.errorCode != ErrorCode::Success)
-    {
-        m_logger.error(logTag(), QStringLiteral("Failed to read vocab file '%1' info (%2)...").arg(filePath, errorCodeToString(result.errorCode)));
-        m_logger.verbose(logTag(), QStringLiteral("Emitting failure signal..."));
-        emit readInfoFailed(result.errorCode);
-        return;
-    }
-
-    m_logger.info(logTag(), QStringLiteral("Succesfully read vocab file '%1' info!").arg(filePath));
-    m_logger.verbose(logTag(), QStringLiteral("Emitting success signal..."));
-    emit readInfoSucceeded(result.info);
-    return;
+    emit readInfoFinished(result);
 }
 
-void VocabFileHandler::handleReadFullMultiple(const QStringList &filePaths)
+void VocabFileHandler::handleReadDatas(const QStringList &filePaths)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling multiple file read..."));
     m_logger.debug(logTag(), QStringLiteral("Trying to read %1 vocab files...").arg(QString::number(filePaths.count())));
-    QList<ReadResult> results;
+    QList<ReadVocabFileDataResult> results;
     for (const QString &filePath : filePaths)
     {
-        results.append(readFile(filePath));
+        results.append(readData(filePath));
     }
     m_logger.verbose(logTag(), QStringLiteral("Handling multiple file read done!"));
 
-    QList<Data> multipleData;
-    int failedVocabCount = 0;
-    int partiallySucceededVocabCount = 0;
-    int failedEntryCount = 0;
+    ReadVocabFileDatasResult readDatasResult;
     int succeededVocabCount = 0;
     for (const auto &result : results)
     {
         if (result.errorCode != ErrorCode::Success)
         {
-            failedVocabCount++;
+            readDatasResult.failedVocabCount++;
             continue;
         }
 
-        multipleData.append(result.data);
+        readDatasResult.datas.append(result.data);
 
         if (result.failedEntryCount > 0)
         {
-            partiallySucceededVocabCount++;
-            failedEntryCount += result.failedEntryCount;
+            readDatasResult.partiallySucceededVocabCount++;
+            readDatasResult.failedEntryCount += result.failedEntryCount;
             continue;
         }
 
         succeededVocabCount++;
     }
 
-    if (!(succeededVocabCount + partiallySucceededVocabCount > 0))
+    if (!(succeededVocabCount + readDatasResult.partiallySucceededVocabCount > 0))
     {
-        m_logger.error(logTag(), QStringLiteral("No valid vocabs found!"));
-        m_logger.verbose(logTag(), QStringLiteral("Emitting failure signal..."));
-        emit readMultipleFailed(ErrorCode::NoSucceededVocabs);
-        return;
+        readDatasResult.errorCode = ErrorCode::NoSucceededVocabs;
     }
 
-    if (failedVocabCount > 0 || partiallySucceededVocabCount > 0 || failedEntryCount > 0)
-    {
-        m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty entries from %2 partially succeeded vocabs. Found %3 failed vocabs.")
-                                       .arg(QString::number(failedEntryCount),
-                                            QString::number(partiallySucceededVocabCount),
-                                            QString::number(failedVocabCount)));
-
-        m_logger.verbose(logTag(), QStringLiteral("Emitting partial success signal..."));
-        emit readMultipleSucceededPartially(multipleData, failedVocabCount, partiallySucceededVocabCount, failedEntryCount);
-        return;
-    }
-
-    m_logger.info(logTag(), QStringLiteral("Successfully read multiple vocab files!"));
-    m_logger.verbose(logTag(), QStringLiteral("Emitting success signal..."));
-    emit readMultipleSucceeded(multipleData);
+    emit readDatasFinished(readDatasResult);
 }
 
-void VocabFileHandler::handleReadInfoMultiple(const QStringList &filePaths)
+void VocabFileHandler::handleReadInfos(const QStringList &filePaths)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling multiple file info read..."));
     m_logger.debug(logTag(), QStringLiteral("Trying to read %1 vocab file infos...").arg(QString::number(filePaths.count())));
-    QList<InfoResult> results;
+    QList<ReadVocabFileInfoResult> results;
     for (const QString &filePath : filePaths)
     {
         results.append(readInfo(filePath));
     }
     m_logger.verbose(logTag(), QStringLiteral("Handling multiple file info read done!"));
 
-    QList<Info> multipleInfos;
-    int failedVocabCount = 0;
+    ReadVocabFileInfosResult readInfosResult;
     for (const auto &result : results)
     {
         if (result.errorCode != ErrorCode::Success)
         {
-            failedVocabCount++;
+            readInfosResult.failedVocabCount++;
             continue;
         }
 
-        multipleInfos.append(result.info);
+        readInfosResult.infos.append(result.info);
     }
 
-    int succeededInfoCount = results.count() - failedVocabCount;
+    int succeededInfoCount = results.count() - readInfosResult.failedVocabCount;
     if (!(succeededInfoCount > 0))
     {
-        m_logger.error(logTag(), QStringLiteral("No valid vocabs found!"));
-        m_logger.verbose(logTag(), QStringLiteral("Emitting failure signal..."));
-        emit readInfoMultipleFailed(ErrorCode::NoSucceededVocabs);
-        return;
+        readInfosResult.errorCode = ErrorCode::NoSucceededVocabs;
     }
 
-    if (failedVocabCount > 0)
-    {
-        m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty vocabs.").arg(QString::number(failedVocabCount)));
-        m_logger.verbose(logTag(), QStringLiteral("Emitting partial success signal..."));
-        emit readInfoMultipleSucceededPartially(multipleInfos, failedVocabCount);
-        return;
-    }
-
-    m_logger.info(logTag(), QStringLiteral("Successfully read multiple vocab infos!"));
-    m_logger.verbose(logTag(), QStringLiteral("Emitting success signal..."));
-    emit readInfoMultipleSucceeded(multipleInfos);
-    return;
+    emit readInfosFinished(readInfosResult);
 }
 
-InfoResult VocabFileHandler::readInfo(const QString &filePath)
+const ReadVocabFileInfoResult VocabFileHandler::readInfo(const QString &filePath)
 {
     m_logger.verbose(logTag(), QStringLiteral("Reading vocab file '%1' info...").arg(filePath));
-    InfoResult result;
+    ReadVocabFileInfoResult result;
     result.info.filePath = filePath;
 
     QFile file(filePath);
@@ -286,10 +228,11 @@ InfoResult VocabFileHandler::readInfo(const QString &filePath)
     return result;
 }
 
-ReadResult VocabFileHandler::readFile(const QString &filePath)
+const ReadVocabFileDataResult VocabFileHandler::readData(const QString &filePath)
 {
     m_logger.verbose(logTag(), QStringLiteral("Reading vocab file '%1'...").arg(filePath));
-    ReadResult result;
+    ReadVocabFileDataResult result;
+    result.data.info.filePath = filePath;
 
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -324,14 +267,14 @@ ReadResult VocabFileHandler::readFile(const QString &filePath)
             if (state == ParseState::ExpectVocabularyTitle)
             {
                 m_logger.verbose(logTag(), QStringLiteral("Set vocabulary title: '%1'").arg(processedLine));
-                result.data.title = processedLine;
+                result.data.info.vocabTitle = processedLine;
                 state = ParseState::ReadingEntries;
                 continue;
             }
 
             // Line is group title
             m_logger.verbose(logTag(), QStringLiteral("Set group title: '%1'").arg(processedLine));
-            Group group;
+            VocabFile::Group group;
             group.title = processedLine;
             result.data.groups.append(group);
             continue;
@@ -341,7 +284,7 @@ ReadResult VocabFileHandler::readFile(const QString &filePath)
         {
             // Vocab file has no title
             m_logger.warning(logTag(), QStringLiteral("Vocab file '%1' has no explicit title. Using file name instead...").arg(filePath));
-            result.data.title = QFileInfo(filePath).completeBaseName();
+            result.data.info.vocabTitle = QFileInfo(filePath).completeBaseName();
             state = ParseState::ReadingEntries;
         }
 
@@ -368,14 +311,14 @@ ReadResult VocabFileHandler::readFile(const QString &filePath)
         if (result.data.groups.isEmpty())
         {
             // Vocab has not yet any groups. Append pair to entries
-            m_logger.verbose(logTag(), QStringLiteral("Adding new entry '%1' in '%2'").arg(processedLine, result.data.title));
+            m_logger.verbose(logTag(), QStringLiteral("Adding new entry '%1' in '%2'").arg(processedLine, result.data.info.vocabTitle));
             result.data.entries.append(vocabFileEntry);
         }
         else
         {
             // Append pair to most recent group
-            Group *mostRecentGroup = &result.data.groups.last();
-            m_logger.verbose(logTag(), QStringLiteral("Adding new entry '%1' in '%2':'%3'").arg(processedLine, result.data.title, mostRecentGroup->title));
+            VocabFile::Group *mostRecentGroup = &result.data.groups.last();
+            m_logger.verbose(logTag(), QStringLiteral("Adding new entry '%1' in '%2':'%3'").arg(processedLine, result.data.info.vocabTitle, mostRecentGroup->title));
             mostRecentGroup->entries.append(vocabFileEntry);
         }
 
@@ -387,17 +330,17 @@ ReadResult VocabFileHandler::readFile(const QString &filePath)
     if (!(entryCount > 0))
     {
         // Vocab contained no entries
-        m_logger.error(logTag(), QStringLiteral("No valid entries found in vocab '%1'.").arg(result.data.title));
+        m_logger.error(logTag(), QStringLiteral("No valid entries found in vocab '%1'.").arg(result.data.info.vocabTitle));
         m_logger.verbose(logTag(), QStringLiteral("Emitting failure signal..."));
         result.errorCode = ErrorCode::VocabFileNoEntries;
         return result;
     }
 
-    m_logger.debug(logTag(), QStringLiteral("Added %1 entries in vocab '%2'").arg(QString::number(entryCount), result.data.title));
+    m_logger.debug(logTag(), QStringLiteral("Added %1 entries in vocab '%2'").arg(QString::number(entryCount), result.data.info.vocabTitle));
 
     if (result.failedEntryCount > 0)
     {
-        m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty entries in vocab '%2'.").arg(QString::number(result.failedEntryCount), result.data.title));
+        m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty entries in vocab '%2'.").arg(QString::number(result.failedEntryCount), result.data.info.vocabTitle));
         m_logger.verbose(logTag(), QStringLiteral("Emitting partial success signal..."));
         return result;
     }

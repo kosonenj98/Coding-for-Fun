@@ -1,8 +1,8 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#include "DataTypes/datatypes.h"
 #include "loglevel.h"
-#include "logdatatypes.h"
 
 #include <QObject>
 #include <QDateTime>
@@ -13,7 +13,7 @@ class Logger : public QObject
 public:
     explicit Logger(QObject *parent = nullptr);
 
-    void log(LogLevel level, const QString &tag, const QString &message);
+    void log(LogLevel::Level level, const QString &tag, const QString &message);
     void info(const QString &tag, const QString &message);
     void warning(const QString &tag, const QString &message);
     void error(const QString &tag, const QString &message);

@@ -14,6 +14,7 @@ SOURCES += \
     Application/logservice.cpp \
     Application/settingshandler.cpp \
     Application/vocabfilehandler.cpp \
+    Application/vocabgenerator.cpp \
     Application/vocabtrainer.cpp \
     GUI/dialogservice.cpp \
     GUI/logview.cpp \
@@ -21,7 +22,7 @@ SOURCES += \
     GUI/mainwindow.cpp \
     GUI/settingsview.cpp \
     Logging/logentryformatter.cpp \
-    Logging/logfileHandler.cpp \
+    Logging/logfilehandler.cpp \
     Logging/logger.cpp \
     Logging/loglevel.cpp \
     main.cpp \
@@ -31,18 +32,19 @@ HEADERS += \
     Application/errorcode.h \
     Application/logservice.h \
     Application/settingshandler.h \
-    Application/vocabdatatypes.h \
-    Application/vocabfiledatatypes.h \
     Application/vocabfilehandler.h \
+    Application/vocabgenerator.h \
     Application/vocabtrainer.h \
+    DataTypes/datatypes.h \
+    DataTypes/requests.h \
+    DataTypes/results.h \
     GUI/dialogservice.h \
     GUI/logview.h \
     GUI/mainview.h \
     GUI/mainwindow.h \
     GUI/settingsview.h \
-    Logging/logdatatypes.h \
     Logging/logentryformatter.h \
-    Logging/logfileHandler.h \
+    Logging/logfilehandler.h \
     Logging/logger.h \
     Logging/loglevel.h \
 

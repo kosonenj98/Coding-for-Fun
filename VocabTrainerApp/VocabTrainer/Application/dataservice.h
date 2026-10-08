@@ -1,10 +1,10 @@
 #ifndef DATASERVICE_H
 #define DATASERVICE_H
 
-#include "../Logging/logger.h"
-#include "vocabdatatypes.h"
-#include "errorcode.h"
-#include "vocabfiledatatypes.h"
+#include "Logging/logger.h"
+#include "DataTypes/requests.h"
+#include "DataTypes/results.h"
+#include "vocabgenerator.h"
 
 #include <QObject>
 
@@ -14,36 +14,32 @@ class DataService : public QObject
 public:
     explicit DataService(Logger &logger, QObject *parent = nullptr);
 
-    void loadVocabData(const QString &filePath);
-    void loadVocabDataMultiple(const QStringList &filePaths);
-
-    void getVocabData(const QString &title);
+    void loadVocab(const LoadVocabRequest &request);
+    void loadVocabs(const LoadVocabsRequest &request);
 
 public slots:
-    void vocabFileReadSucceeded(const VocabFile::Data &data);
-    void vocabFileReadSucceededPartially(const VocabFile::Data &data, int failedEntryCount);
-    void vocabFileReadFailed(ErrorCode code);
+    void handleVocabFileReadInfoFinished(const ReadVocabFileInfoResult &result);
+    void handleVocabFileReadInfosFinished(const ReadVocabFileInfosResult &result);
 
-    void vocabFileReadMultipleSucceeded(const QList<VocabFile::Data> &multipleData);
-    void vocabFileReadMultipleSucceededPartially(const QList<VocabFile::Data> &multipleData, int failedVocabCount, int partiallySucceededVocabCount, int failedEntryCount);
-    void vocabFileReadMultipleFailed(ErrorCode code);
+    void handleVocabFileReadDataFinished(const ReadVocabFileDataResult &result);
+    void handleVocabFileReadDatasFinished(const ReadVocabFileDatasResult &result);
 
 signals:
-    void requestVocabFileRead(const QString &filePath, VocabFile::ReadMode mode);
-    void requestVocabFileReadMultiple(const QStringList &filePaths, VocabFile::ReadMode mode);
+    void readVocabFile(const ReadVocabFileRequest &request);
+    void readVocabFiles(const ReadVocabFilesRequest &request);
 
-    void loadVocabDataSucceeded();
-    void loadVocabDataSucceededPartially(int failedEntryCount);
-    void loadVocabDataFailed(ErrorCode code);
+    void loadVocabInfoFinished(const LoadVocabInfoResult &result);
+    void loadVocabInfosFinished(const LoadVocabInfosResult &result);
 
-    void loadVocabDataMultipleSucceeded();
-    void loadVocabDataMultipleSucceededPartially(int failedVocabCount, int partiallySucceededVocabCount, int failedEntryCount);
-    void loadVocabDataMultipleFailed(ErrorCode code);
+    void loadVocabDataFinished(const LoadVocabDataResult &result);
+    void loadVocabDatasFinished(const LoadVocabDatasResult &result);
 
 private:
+    const CreateVocabDataResult createVocabData(const VocabFile::Data &data);
+
     Logger &m_logger;
-    QList<VocabFile::Data> m_VocabFileData;
-    Vocab::Data m_VocabData;
+    VocabGenerator m_vocabGenerator;
+    QMap<QString,Vocab::Data> m_vocabDatas;
 };
 
 #endif // DATASERVICE_H

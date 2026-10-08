@@ -47,62 +47,53 @@ MainWindow::MainWindow(Logger &logger, SettingsHandler &handler, QWidget *parent
     m_logger.verbose(logTag(), QStringLiteral("Constructing main window done!"));
 }
 
-void MainWindow::handleLogQuerySucceeded(const QList<Log::Entry> &entries)
-{
-    m_logger.verbose(logTag(), QStringLiteral("Handling successful log query..."));
-    m_logView->updateView(entries);
-    m_logger.verbose(logTag(), QStringLiteral("Handling successful log query done!"));
-}
-
-void MainWindow::handleLogQuerySucceededPartially(const QList<Log::Entry> &entries, int failedEntryCount)
-{
-    m_logger.verbose(logTag(), QStringLiteral("Handling partially successful log query with %1 skipped entries...").arg(failedEntryCount));
-    m_logView->updateView(entries);
-
-    m_logger.verbose(logTag(), QStringLiteral("Informing user that log query succeeded partially..."));
-    m_dialogService->showWarning(QStringLiteral("Log Query"), QStringLiteral("Skipped %1 faulty entries in selected log file.").arg(QString::number(failedEntryCount)));
-    m_logger.verbose(logTag(), QStringLiteral("Informing user that log query succeeded partially done!"));
-}
-
-void MainWindow::handleLogQueryFailed(ErrorCode code)
-{
-    m_logger.verbose(logTag(), QStringLiteral("Informing user that log query failed..."));
-    m_dialogService->showError(QStringLiteral("Log Query"), QStringLiteral("Log query failed: (%1)").arg(errorCodeToString(code)));
-    m_logger.verbose(logTag(), QStringLiteral("Informing user that log query failed done!"));
-}
-
-void MainWindow::handleLogQueryRequest(const Log::Query &query)
+void MainWindow::handleLogQueryRequest(const LogQueryRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Emitting log query request..."));
-    emit requestLogQuery(query);
+    emit requestLogQuery(request);
 }
 
-void MainWindow::handleApplyNewSettingsRequest(const Settings &newSettings)
+void MainWindow::handleLogQueryFinished(const LogQueryResult &result)
+{
+    m_logger.verbose(logTag(), QStringLiteral("Handling log query finished..."));
+    if (result.code != ErrorCode::Success)
+    {
+        m_logger.verbose(logTag(), QStringLiteral("Informing user about failed log query..."));
+        m_dialogService->showError(QStringLiteral("Log Query"), QStringLiteral("Log query failed: (%1)").arg(errorCodeToString(result.code)));
+        m_logger.verbose(logTag(), QStringLiteral("Informing user about failed log query done!"));
+        return;
+    }
+
+    m_logger.verbose(logTag(), QStringLiteral("Updating log view..."));
+    m_logView->updateView(result.entries);
+    m_logger.verbose(logTag(), QStringLiteral("Updating log view done!"));
+
+    if (result.failedEntryCount > 0)
+    {
+        m_dialogService->showWarning(QStringLiteral("Log Query"), QStringLiteral("Skipped %1 faulty entries in selected log file.").arg(QString::number(result.failedEntryCount)));
+    }
+
+    m_logger.verbose(logTag(), QStringLiteral("Handling log query finished done!"));
+}
+
+void MainWindow::handleApplyNewSettingsRequest(const ApplyNewSettingsRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Emitting request to apply the new settings..."));
-    emit requestApplyNewSettings(newSettings);
+    emit requestApplyNewSettings(request);
 }
 
-void MainWindow::handleApplyNewSettingsSucceeded()
+void MainWindow::handleApplyNewSettingsFinished(const ApplyNewSettingsResult &result)
 {
-    m_logger.verbose(logTag(), QStringLiteral("Applying the new settings succeeded!"));
+    m_logger.verbose(logTag(), QStringLiteral("Handling applying new settings finished..."));
+    if (result.code != ErrorCode::Success)
+    {
+        m_dialogService->showError(QStringLiteral("Settings change"), QStringLiteral("Applying new settings failed: (%1)").arg(errorCodeToString(result.code)));
+        m_settingsView->updateView(result.settings);
+        return;
+    }
 
-    m_logger.verbose(logTag(), QStringLiteral("Informing user about successful settings change..."));
     m_dialogService->showInformation(QStringLiteral("Settings change"), QStringLiteral("Settings saved successfully."));
-    m_logger.verbose(logTag(), QStringLiteral("Informing user about successful settings change done!"));
-}
-
-void MainWindow::handleApplyNewSettingsFailed(ErrorCode code, const Settings &settings)
-{
-    m_logger.verbose(logTag(), QStringLiteral("Applying the new settings failed! Reason: %1").arg(errorCodeToString(code)));
-
-    m_logger.verbose(logTag(), QStringLiteral("Informing user that applying the new settings failed..."));
-    m_dialogService->showError(QStringLiteral("Settings change"), QStringLiteral("Applying new settings failed: (%1)").arg(errorCodeToString(code)));
-    m_logger.verbose(logTag(), QStringLiteral("Informing user that applying the new settings failed done!"));
-
-    m_logger.verbose(logTag(), QStringLiteral("Fixing problematic settings in SettingsView..."));
-    m_settingsView->updateView(settings);
-    m_logger.verbose(logTag(), QStringLiteral("Fixing problematic settings in SettingsView done!"));
+    m_logger.verbose(logTag(), QStringLiteral("Handling applying new settings finished done!"));
 }
 
 void MainWindow::handleViewTabChanged(int index)
