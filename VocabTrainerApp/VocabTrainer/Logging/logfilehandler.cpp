@@ -191,10 +191,10 @@ const ReadAllResult LogFileHandler::readAll(const QString &filePath)
         }
 
         Entry entry;
-        const ErrorCode errorCode = LogEntryFormatter::fromJson(document.object(), entry);
-        if (errorCode != ErrorCode::Success)
+        const ErrorCode code = LogEntryFormatter::fromJson(document.object(), entry);
+        if (code != ErrorCode::Success)
         {
-            error(QStringLiteral("Parsing log entry failed! Line: '%1' (ErrorCode '%2')").arg(QString::fromUtf8(line), QString::number(static_cast<int>(errorCode))));
+            error(QStringLiteral("Parsing log entry failed! Line: '%1' (ErrorCode '%2')").arg(QString::fromUtf8(line), QString::number(static_cast<int>(code))));
             result.failedEntryCount++;
             continue;
         }

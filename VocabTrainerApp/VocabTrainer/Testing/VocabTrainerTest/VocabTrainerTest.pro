@@ -6,11 +6,18 @@ CONFIG -= app_bundle
 
 TEMPLATE = app
 
+INCLUDEPATH += ../..
+
 SOURCES += \
     tst_vocabfilehandler.cpp \
-    ../../Application/VocabFileHandler.cpp \
-    ../../Logging/logger.cpp
+    ../../Application/vocabfilehandler.cpp \
+    ../../Logging/logger.cpp \
+    ../../Application/errorcode.cpp
 
 HEADERS += \
-    ../../Application/VocabFileHandler.h \
-    ../../Logging/logger.h
+    ../../DataTypes/datatypes.h \
+    ../../DataTypes/requests.h \
+    ../../DataTypes/results.h \
+    ../../Application/vocabfilehandler.h \
+    ../../Logging/logger.h \
+    ../../Application/errorcode.h

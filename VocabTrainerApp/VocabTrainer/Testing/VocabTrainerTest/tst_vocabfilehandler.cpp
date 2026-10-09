@@ -1,5 +1,5 @@
-#include "../../Logging/logger.h"
-#include "../../Application/vocabfilehandler.h"
+#include "Logging/logger.h"
+#include "Application/vocabfilehandler.h"
 
 #include <QtTest>
 
@@ -10,22 +10,47 @@ class TestVocabFileHandler : public QObject
 private slots:
     void init();
 
-    // Positive tests
-    void readsSimpleVocabulary();
-    void readsVocabularyWithGroups();
-    void readsVocabularyWithEntriesAndGroups();
-    void readsVocabularyWithoutTitle();
+    // Positive tests for single read
+    void readsSimpleVocab();
+    void readsVocabWithGroups();
+    void readsVocabWithEntriesAndGroups();
+    void readsVocabWithoutTitle();
     void readsTitleWithSpaces();
     void readsEntryWithSpaces();
     void readsComments();
     void readsEmptyLines();
 
-    // Negative tests
+    // Negative tests for single read
     void rejectsInvalidEntry();
     void rejectsInvalidEntryInGroup();
     void failsWhenFileDoesNotExist();
     void failsWhenNoEntries();
     void failsWhenNoValidEntries();
+
+    // Positive tests for single info read
+    void readsInfo();
+    void readsInfoWithoutTitle();
+    void readsInfoWithLeadingCommentsAndEmptyLines();
+
+    // Negative tests for single info read
+    void failsInfoWhenFileDoesNotExist();
+
+    // Positive tests for multiple read
+    void readsValidVocabs();
+    void readsFaultyVocabs();
+    void readsVocabsWithInvalidEntries();
+
+    // Negative tests for multiple read
+    void failsReadVocabsWhenNoVocabsCanBeRead();
+    void failsReadWhenNoVocabFilesAreGiven();
+
+    // Positive tests for multiple info read
+    void readsVocabInfos();
+    void readsMultipleFaultyVocabInfos();
+
+    // Negative tests for multiple info read
+    void failsReadInfosWhenNoVocabsCanBeRead();
+    void failsReadInfosWhenNoVocabFilesAreGiven();
 
 private:
     std::unique_ptr<Logger> m_logger;
@@ -40,7 +65,7 @@ void TestVocabFileHandler::init()
 }
 
 // Reads simple vocab file with title and entries
-void TestVocabFileHandler::readsSimpleVocabulary()
+void TestVocabFileHandler::readsSimpleVocab()
 {
     // Create temporary vocab file and write its contents
     QTemporaryFile file;
@@ -63,24 +88,35 @@ void TestVocabFileHandler::readsSimpleVocabulary()
     file.close();
 
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
     // Read test vocab file
-    m_handler->read(file.fileName());
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request);
 
-    // Read should succeed
-    QCOMPARE(successSpy.count(), 1);
-    QCOMPARE(partialSpy.count(), 0);
-    QCOMPARE(failedSpy.count(), 0);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 1);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse vocab file data from signal
-    const QList<QVariant> arguments = successSpy.takeFirst();
-    const VocabFileData data = qvariant_cast<VocabFileData>(arguments.at(0));
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+    const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedEntryCount, 0);
 
     // Validate vocab file data
-    QCOMPARE(data.title, vocabTitle);
+    VocabFile::Data data = result.data;
+    QCOMPARE(data.info.filePath, request.filePath);
+    QCOMPARE(data.info.vocabTitle, vocabTitle);
     QCOMPARE(data.entries.size(), 2);
     QCOMPARE(data.groups.size(), 0);
     QCOMPARE(data.entries.at(0).first, k1);
@@ -90,7 +126,7 @@ void TestVocabFileHandler::readsSimpleVocabulary()
 }
 
 // Reads vocab file with title and two groups
-void TestVocabFileHandler::readsVocabularyWithGroups()
+void TestVocabFileHandler::readsVocabWithGroups()
 {
     // Create temporary vocab file and write its contents
     QTemporaryFile file;
@@ -126,24 +162,35 @@ void TestVocabFileHandler::readsVocabularyWithGroups()
     file.close();
 
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
     // Read test vocab file
-    m_handler->read(file.fileName());
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request);
 
-    // Read should succeed
-    QCOMPARE(successSpy.count(), 1);
-    QCOMPARE(partialSpy.count(), 0);
-    QCOMPARE(failedSpy.count(), 0);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 1);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse vocab file data from signal
-    const QList<QVariant> arguments = successSpy.takeFirst();
-    const VocabFileData data = qvariant_cast<VocabFileData>(arguments.at(0));
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+    const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedEntryCount, 0);
 
     // Validate vocab file data
-    QCOMPARE(data.title, vocabTitle);
+    VocabFile::Data data = result.data;
+    QCOMPARE(data.info.filePath, request.filePath);
+    QCOMPARE(data.info.vocabTitle, vocabTitle);
     QCOMPARE(data.entries.size(), 0);
     QCOMPARE(data.groups.size(), 2);
 
@@ -167,7 +214,7 @@ void TestVocabFileHandler::readsVocabularyWithGroups()
 }
 
 // Reads vocab file with title, entries and two groups
-void TestVocabFileHandler::readsVocabularyWithEntriesAndGroups()
+void TestVocabFileHandler::readsVocabWithEntriesAndGroups()
 {
     // Create temporary vocab file and write its contents
     QTemporaryFile file;
@@ -210,24 +257,34 @@ void TestVocabFileHandler::readsVocabularyWithEntriesAndGroups()
     file.close();
 
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
     // Read test vocab file
-    m_handler->read(file.fileName());
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request);
 
-    // Read should succeed
-    QCOMPARE(successSpy.count(), 1);
-    QCOMPARE(partialSpy.count(), 0);
-    QCOMPARE(failedSpy.count(), 0);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 1);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse vocab file data from signal
-    const QList<QVariant> arguments = successSpy.takeFirst();
-    const VocabFileData data = qvariant_cast<VocabFileData>(arguments.at(0));
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+    const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedEntryCount, 0);
 
     // Validate vocab file data
-    QCOMPARE(data.title, vocabTitle);
+    VocabFile::Data data = result.data;
+    QCOMPARE(data.info.filePath, request.filePath);
     QCOMPARE(data.entries.size(), 2);
     QCOMPARE(data.groups.size(), 2);
 
@@ -257,7 +314,7 @@ void TestVocabFileHandler::readsVocabularyWithEntriesAndGroups()
 }
 
 // Reads vocab file without title
-void TestVocabFileHandler::readsVocabularyWithoutTitle()
+void TestVocabFileHandler::readsVocabWithoutTitle()
 {
     const QString k1 = QStringLiteral("k1");
     const QString k2 = QStringLiteral("k2");
@@ -286,28 +343,44 @@ void TestVocabFileHandler::readsVocabularyWithoutTitle()
     file2.close();
 
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
-    // Read test vocab file
-    m_handler->read(file1.fileName());
-    m_handler->read(file2.fileName());
+    // Read test vocab files
+    ReadVocabFileRequest request1;
+    request1.filePath = file1.fileName();
+    request1.mode = VocabFile::ReadMode::Data;
+    ReadVocabFileRequest request2;
+    request2.filePath = file2.fileName();
+    request2.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request1);
+    m_handler->read(request2);
 
-    // Read should succeed
-    QCOMPARE(successSpy.count(), 2);
-    QCOMPARE(partialSpy.count(), 0);
-    QCOMPARE(failedSpy.count(), 0);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 2);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse vocab file data from signal
-    QStringList fileNames = {QFileInfo(file1).completeBaseName(), QFileInfo(file2).completeBaseName()};
-    for (int i=0; i < successSpy.count(); i++)
+    QList<VocabFile::Info> fileInfos = {{file1.fileName(), QFileInfo(file1).completeBaseName()},
+                                        {file2.fileName(), QFileInfo(file2).completeBaseName()}};
+
+    for (int i=0; i < readDataFinishedSpy.count(); i++)
     {
-        const QList<QVariant> arguments = successSpy.at(i);
-        const VocabFileData data = qvariant_cast<VocabFileData>(arguments.at(0));
+        // Parse vocab file read result from signal
+        const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+        const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
+
+        // Validate result
+        QCOMPARE(result.code, ErrorCode::Success);
+        QCOMPARE(result.failedEntryCount, 0);
 
         // Validate vocab file data
-        QCOMPARE(data.title, fileNames.at(i));
+        VocabFile::Data data = result.data;
+        QCOMPARE(data.info.filePath, fileInfos.at(i).filePath);
+        QCOMPARE(data.info.vocabTitle, fileInfos.at(i).vocabTitle);
         QCOMPARE(data.entries.size(), 2);
         QCOMPARE(data.groups.size(), 0);
         QCOMPARE(data.entries.at(0).first, k1);
@@ -352,24 +425,35 @@ void TestVocabFileHandler::readsTitleWithSpaces()
     file.close();
 
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
     // Read test vocab file
-    m_handler->read(file.fileName());
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request);
 
-    // Read should succeed
-    QCOMPARE(successSpy.count(), 1);
-    QCOMPARE(partialSpy.count(), 0);
-    QCOMPARE(failedSpy.count(), 0);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 1);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse vocab file data from signal
-    const QList<QVariant> arguments = successSpy.takeFirst();
-    const VocabFileData data = qvariant_cast<VocabFileData>(arguments.at(0));
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+    const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedEntryCount, 0);
 
     // Validate vocab file data
-    QCOMPARE(data.title, vocabTitle);
+    VocabFile::Data data = result.data;
+    QCOMPARE(data.info.filePath, request.filePath);
+    QCOMPARE(data.info.vocabTitle, vocabTitle);
     QCOMPARE(data.entries.size(), 0);
     QCOMPARE(data.groups.size(), 2);
 
@@ -460,24 +544,35 @@ void TestVocabFileHandler::readsEntryWithSpaces()
     file.close();
 
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
     // Read test vocab file
-    m_handler->read(file.fileName());
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request);
 
-    // Read should succeed
-    QCOMPARE(successSpy.count(), 1);
-    QCOMPARE(partialSpy.count(), 0);
-    QCOMPARE(failedSpy.count(), 0);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 1);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse vocab file data from signal
-    const QList<QVariant> arguments = successSpy.takeFirst();
-    const VocabFileData data = qvariant_cast<VocabFileData>(arguments.at(0));
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+    const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedEntryCount, 0);
 
     // Validate vocab file data
-    QCOMPARE(data.title, vocabTitle);
+    VocabFile::Data data = result.data;
+    QCOMPARE(data.info.filePath, request.filePath);
+    QCOMPARE(data.info.vocabTitle, vocabTitle);
     QCOMPARE(data.entries.size(), 16);
     QCOMPARE(data.groups.size(), 0);
     QCOMPARE(data.entries.at(0).first, k1);
@@ -551,24 +646,35 @@ void TestVocabFileHandler::readsComments()
     file.close();
 
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
     // Read test vocab file
-    m_handler->read(file.fileName());
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request);
 
-    // Read should succeed
-    QCOMPARE(successSpy.count(), 1);
-    QCOMPARE(partialSpy.count(), 0);
-    QCOMPARE(failedSpy.count(), 0);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 1);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse vocab file data from signal
-    const QList<QVariant> arguments = successSpy.takeFirst();
-    const VocabFileData data = qvariant_cast<VocabFileData>(arguments.at(0));
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+    const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedEntryCount, 0);
 
     // Validate vocab file data
-    QCOMPARE(data.title, vocabTitle);
+    VocabFile::Data data = result.data;
+    QCOMPARE(data.info.filePath, request.filePath);
+    QCOMPARE(data.info.vocabTitle, vocabTitle);
     QCOMPARE(data.entries.size(), 2);
     QCOMPARE(data.groups.size(), 0);
     QCOMPARE(data.entries.at(0).first, k1);
@@ -624,24 +730,35 @@ void TestVocabFileHandler::readsEmptyLines()
     file.close();
 
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
     // Read test vocab file
-    m_handler->read(file.fileName());
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request);
 
-    // Read should succeed
-    QCOMPARE(successSpy.count(), 1);
-    QCOMPARE(partialSpy.count(), 0);
-    QCOMPARE(failedSpy.count(), 0);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 1);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse vocab file data from signal
-    const QList<QVariant> arguments = successSpy.takeFirst();
-    const VocabFileData data = qvariant_cast<VocabFileData>(arguments.at(0));
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+    const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedEntryCount, 0);
 
     // Validate vocab file data
-    QCOMPARE(data.title, vocabTitle);
+    VocabFile::Data data = result.data;
+    QCOMPARE(data.info.filePath, request.filePath);
+    QCOMPARE(data.info.vocabTitle, vocabTitle);
     QCOMPARE(data.entries.size(), 2);
     QCOMPARE(data.groups.size(), 1);
     QCOMPARE(data.entries.at(0).first, k1);
@@ -690,26 +807,35 @@ void TestVocabFileHandler::rejectsInvalidEntry()
     file.close();
 
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
     // Read test vocab file
-    m_handler->read(file.fileName());
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request);
 
-    // Read should succeed partially
-    QCOMPARE(successSpy.count(), 0);
-    QCOMPARE(partialSpy.count(), 1);
-    QCOMPARE(failedSpy.count(), 0);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 1);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse vocab file data from signal
-    const QList<QVariant> arguments = partialSpy.takeFirst();
-    const VocabFileData data = qvariant_cast<VocabFileData>(arguments.at(0));
-    int failedEntryCount = qvariant_cast<int>(arguments.at(1));
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+    const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
 
-    // Validate vocab file data and failed entry count
-    QCOMPARE(failedEntryCount, 4);
-    QCOMPARE(data.title, vocabTitle);
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedEntryCount, 4);
+
+    // Validate vocab file data
+    VocabFile::Data data = result.data;
+    QCOMPARE(data.info.filePath, request.filePath);
+    QCOMPARE(data.info.vocabTitle, vocabTitle);
     QCOMPARE(data.entries.size(), 1);
     QCOMPARE(data.groups.size(), 0);
     QCOMPARE(data.entries.at(0).first, k1);
@@ -750,26 +876,35 @@ void TestVocabFileHandler::rejectsInvalidEntryInGroup()
     file.close();
 
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
     // Read test vocab file
-    m_handler->read(file.fileName());
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request);
 
-    // Read should succeed partially
-    QCOMPARE(successSpy.count(), 0);
-    QCOMPARE(partialSpy.count(), 1);
-    QCOMPARE(failedSpy.count(), 0);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 1);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse vocab file data from signal
-    const QList<QVariant> arguments = partialSpy.takeFirst();
-    const VocabFileData data = qvariant_cast<VocabFileData>(arguments.at(0));
-    int failedEntryCount = qvariant_cast<int>(arguments.at(1));
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+    const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
 
-    // Validate vocab file data and failed entry count
-    QCOMPARE(failedEntryCount, 4);
-    QCOMPARE(data.title, vocabTitle);
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedEntryCount, 4);
+
+    // Validate vocab file data
+    VocabFile::Data data = result.data;
+    QCOMPARE(data.info.filePath, request.filePath);
+    QCOMPARE(data.info.vocabTitle, vocabTitle);
     QCOMPARE(data.entries.size(), 0);
     QCOMPARE(data.groups.size(), 1);
 
@@ -784,26 +919,32 @@ void TestVocabFileHandler::rejectsInvalidEntryInGroup()
 void TestVocabFileHandler::failsWhenFileDoesNotExist()
 {
     const QString faultyFileName = QStringLiteral("nofile.log");
+
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
-    // Read non-existent vocab file
-    m_handler->read(faultyFileName);
+    // Read test vocab file
+    ReadVocabFileRequest request;
+    request.filePath = faultyFileName;
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request);
 
-    // Read should fail
-    QCOMPARE(successSpy.count(), 0);
-    QCOMPARE(partialSpy.count(), 0);
-    QCOMPARE(failedSpy.count(), 1);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 1);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse error code from signal
-    const QList<QVariant> arguments = failedSpy.takeFirst();
-    const ErrorCode code = qvariant_cast<ErrorCode>(arguments.at(0));
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+    const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
 
-    // Validate error code
-    QCOMPARE_NE(code, ErrorCode::Success);
-    QCOMPARE(code, ErrorCode::FileOpenFailed);
+    // Validate result
+    QCOMPARE_NE(result.code, ErrorCode::Success);
+    QCOMPARE(result.code, ErrorCode::FileOpenFailed);
 }
 
 void TestVocabFileHandler::failsWhenNoEntries()
@@ -826,25 +967,30 @@ void TestVocabFileHandler::failsWhenNoEntries()
     file.close();
 
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
     // Read test vocab file
-    m_handler->read(file.fileName());
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request);
 
-    // Read should fail
-    QCOMPARE(successSpy.count(), 0);
-    QCOMPARE(partialSpy.count(), 0);
-    QCOMPARE(failedSpy.count(), 1);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 1);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse error code from signal
-    const QList<QVariant> arguments = failedSpy.takeFirst();
-    const ErrorCode code = qvariant_cast<ErrorCode>(arguments.at(0));
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+    const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
 
-    // Validate error code
-    QCOMPARE_NE(code, ErrorCode::Success);
-    QCOMPARE(code, ErrorCode::VocabFileNoEntries);
+    // Validate result
+    QCOMPARE_NE(result.code, ErrorCode::Success);
+    QCOMPARE(result.code, ErrorCode::VocabFileNoEntries);
 }
 
 void TestVocabFileHandler::failsWhenNoValidEntries()
@@ -880,25 +1026,788 @@ void TestVocabFileHandler::failsWhenNoValidEntries()
     file.close();
 
     // Spy on signals emitted by VocabFileHandler
-    QSignalSpy successSpy(m_handler.get(), &VocabFileHandler::readSucceeded);
-    QSignalSpy partialSpy(m_handler.get(), &VocabFileHandler::readSucceededPartially);
-    QSignalSpy failedSpy(m_handler.get(), &VocabFileHandler::readFailed);
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
 
     // Read test vocab file
-    m_handler->read(file.fileName());
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->read(request);
 
-    // Read should fail
-    QCOMPARE(successSpy.count(), 0);
-    QCOMPARE(partialSpy.count(), 0);
-    QCOMPARE(failedSpy.count(), 1);
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 1);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
 
-    // Parse error code from signal
-    const QList<QVariant> arguments = failedSpy.takeFirst();
-    const ErrorCode code = qvariant_cast<ErrorCode>(arguments.at(0));
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDataFinishedSpy.takeFirst();
+    const ReadVocabFileDataResult result = qvariant_cast<ReadVocabFileDataResult>(arguments.at(0));
 
-    // Validate error code
-    QCOMPARE_NE(code, ErrorCode::Success);
-    QCOMPARE(code, ErrorCode::VocabFileNoEntries);
+    // Validate result
+    QCOMPARE_NE(result.code, ErrorCode::Success);
+    QCOMPARE(result.code, ErrorCode::VocabFileNoEntries);
+}
+
+// Reads vocabulary info from file with title
+void TestVocabFileHandler::readsInfo()
+{
+    QTemporaryFile file;
+    QVERIFY(file.open());
+
+    const QString vocabTitle = QStringLiteral("vocabTitle");
+    const QString k1 = QStringLiteral("k1");
+    const QString v1 = QStringLiteral("v1");
+
+    const QStringList lines = {
+        vocabTitle,
+        QString(),
+        QStringLiteral("%1=%2").arg(k1, v1)
+    };
+
+    const QByteArray content = lines.join('\n').toUtf8();
+
+    QVERIFY(file.write(content) != -1);
+    file.close();
+
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    // Read test vocab file
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Info;
+    m_handler->read(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 1);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readInfoFinishedSpy.takeFirst();
+    const ReadVocabFileInfoResult result = qvariant_cast<ReadVocabFileInfoResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+
+    // Validate vocab file info
+    VocabFile::Info info = result.info;
+    QCOMPARE(info.filePath, file.fileName());
+    QCOMPARE(info.vocabTitle, vocabTitle);
+}
+
+// Reads vocab info without explicit title
+void TestVocabFileHandler::readsInfoWithoutTitle()
+{
+    QTemporaryFile file;
+    QVERIFY(file.open());
+
+    const QString k1 = QStringLiteral("k1");
+    const QString v1 = QStringLiteral("v1");
+    const QStringList lines = {
+        QStringLiteral("%1=%2").arg(k1, v1)
+    };
+    const QByteArray content = lines.join('\n').toUtf8();
+
+    QVERIFY(file.write(content) != -1);
+    file.close();
+
+    const QString expectedTitle = QFileInfo(file.fileName()).completeBaseName();
+
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    // Read test vocab file
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Info;
+    m_handler->read(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 1);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readInfoFinishedSpy.takeFirst();
+    const ReadVocabFileInfoResult result = qvariant_cast<ReadVocabFileInfoResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+
+    // Validate vocab file info
+    VocabFile::Info info = result.info;
+    QCOMPARE(info.filePath, file.fileName());
+    QCOMPARE(info.vocabTitle, expectedTitle);
+}
+
+// Reads vocab info when empty lines and comments are present
+void TestVocabFileHandler::readsInfoWithLeadingCommentsAndEmptyLines()
+{
+    QTemporaryFile file;
+    QVERIFY(file.open());
+
+    const QString vocabTitle = QStringLiteral("vocabTitle");
+
+    const QString k1 = QStringLiteral("k1");
+    const QString v1 = QStringLiteral("v1");
+    const QStringList lines = {
+        QStringLiteral("# comment"),
+        QString(),
+        QStringLiteral("   "),
+        QStringLiteral("### another comment"),
+        vocabTitle,
+        QStringLiteral("%1=%2").arg(k1, v1)
+    };
+    const QByteArray content = lines.join('\n').toUtf8();
+
+    QVERIFY(file.write(content) != -1);
+    file.close();
+
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    // Read test vocab file
+    ReadVocabFileRequest request;
+    request.filePath = file.fileName();
+    request.mode = VocabFile::ReadMode::Info;
+    m_handler->read(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 1);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readInfoFinishedSpy.takeFirst();
+    const ReadVocabFileInfoResult result = qvariant_cast<ReadVocabFileInfoResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+
+    // Validate vocab file info
+    VocabFile::Info info = result.info;
+    QCOMPARE(info.vocabTitle, vocabTitle);
+}
+
+// Fails to read non-existent file
+void TestVocabFileHandler::failsInfoWhenFileDoesNotExist()
+{
+    const QString filePath = QStringLiteral("nofile.vocab");
+
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    // Read test vocab file
+    ReadVocabFileRequest request;
+    request.filePath = filePath;
+    request.mode = VocabFile::ReadMode::Info;
+    m_handler->read(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 1);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readInfoFinishedSpy.takeFirst();
+    const ReadVocabFileInfoResult result = qvariant_cast<ReadVocabFileInfoResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE_NE(result.code, ErrorCode::Success);
+    QCOMPARE(result.code, ErrorCode::FileOpenFailed);
+}
+
+// Reads multiple valid vocab files
+void TestVocabFileHandler::readsValidVocabs()
+{
+    QTemporaryFile file1;
+    QVERIFY(file1.open());
+
+    const QString f1vocabTitle = QStringLiteral("f1vocabTitle");
+    const QString f1k1 = QStringLiteral("f1k1");
+    const QString f1k2 = QStringLiteral("f1k2");
+    const QString f1v1 = QStringLiteral("f1v1");
+    const QString f1v2 = QStringLiteral("f1v2");
+    const QStringList f1lines = {
+        f1vocabTitle,
+        QString(),
+        QStringLiteral("%1=%2").arg(f1k1, f1v1),
+        QStringLiteral("%1=%2").arg(f1k2, f1v2),
+    };
+    const QByteArray f1content = f1lines.join('\n').toUtf8();
+
+    QVERIFY(file1.write(f1content) != -1);
+    file1.close();
+
+    QTemporaryFile file2;
+    QVERIFY(file2.open());
+
+    const QString f2vocabTitle = QStringLiteral("f2vocabTitle");
+    const QString f2k1 = QStringLiteral("f2k1");
+    const QString f2k2 = QStringLiteral("f2k2");
+    const QString f2v1 = QStringLiteral("f2v1");
+    const QString f2v2 = QStringLiteral("f2v2");
+    const QStringList f2lines = {
+        f2vocabTitle,
+        QString(),
+        QStringLiteral("%1=%2").arg(f2k1, f2v1),
+        QStringLiteral("%1=%2").arg(f2k2, f2v2),
+    };
+    const QByteArray f2content = f2lines.join('\n').toUtf8();
+
+    QVERIFY(file2.write(f2content) != -1);
+    file2.close();
+
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    const QStringList filePaths = {
+        file1.fileName(),
+        file2.fileName()
+    };
+
+    // Read test vocab file
+    ReadVocabFilesRequest request;
+    request.filePaths = filePaths;
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->readMultiple(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 1);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDatasFinishedSpy.takeFirst();
+    const ReadVocabFileDatasResult result = qvariant_cast<ReadVocabFileDatasResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedVocabCount, 0);
+    QCOMPARE(result.partiallySucceededVocabCount, 0);
+    QCOMPARE(result.failedEntryCount, 0);
+
+    // Validate vocab file datas
+    QList<VocabFile::Data> datas = result.datas;
+    QCOMPARE(datas.size(), 2);
+
+    VocabFile::Data data1 = datas.at(0);
+    QCOMPARE(data1.info.filePath, file1.fileName());
+    QCOMPARE(data1.info.vocabTitle, f1vocabTitle);
+    QCOMPARE(data1.entries.size(), 2);
+    QCOMPARE(data1.groups.size(), 0);
+    QCOMPARE(data1.entries.at(0).first, f1k1);
+    QCOMPARE(data1.entries.at(0).second, f1v1);
+    QCOMPARE(data1.entries.at(1).first, f1k2);
+    QCOMPARE(data1.entries.at(1).second, f1v2);
+
+    VocabFile::Data data2 = datas.at(1);
+    QCOMPARE(data2.info.filePath, file2.fileName());
+    QCOMPARE(data2.info.vocabTitle, f2vocabTitle);
+    QCOMPARE(data2.entries.size(), 2);
+    QCOMPARE(data2.groups.size(), 0);
+    QCOMPARE(data2.entries.at(0).first, f2k1);
+    QCOMPARE(data2.entries.at(0).second, f2v1);
+    QCOMPARE(data2.entries.at(1).first, f2k2);
+    QCOMPARE(data2.entries.at(1).second, f2v2);
+}
+
+// Fails when no vocab is valid
+void TestVocabFileHandler::readsFaultyVocabs()
+{
+    const QString f1FileName = QStringLiteral("nofile.log");
+
+    // Create temporary vocab file and write its contents
+    QTemporaryFile file2;
+    QVERIFY(file2.open());
+
+    const QString f2vocabTitle = QStringLiteral("f2vocabTitle");
+    const QString f2gTitle = QStringLiteral("f2gTitle");
+
+    const QStringList f2lines = {
+        f2vocabTitle,
+        QString(),
+        f2gTitle
+    };
+    const QByteArray f2content = f2lines.join('\n').toUtf8();
+
+    QVERIFY(file2.write(f2content) != -1);
+    file2.close();
+
+    // Create temporary vocab file and write its contents
+    QTemporaryFile file3;
+    QVERIFY(file3.open());
+
+    const QString f3vocabTitle = QStringLiteral("f3vocabTitle");
+    const QString f3gTitle = QStringLiteral("f3gTitle");
+    const QString f3gk1 = QStringLiteral("f3gk1");
+    const QString f3gk3 = QStringLiteral("f3gk3");
+    const QString f3gk4 = QStringLiteral("f3gk4");
+    const QString f3gv1 = QStringLiteral("f3gv1");
+    const QString f3gv2 = QStringLiteral("f3gv2");
+    const QString f3gv4 = QStringLiteral("f3gv4");
+    const QString f3gv5 = QStringLiteral("f3gv5");
+
+
+    const QStringList f3lines = {
+        f3vocabTitle,
+        QString(),
+        f3gTitle,
+        QStringLiteral("%1==%2").arg(f3gk1, f3gv1),
+        QStringLiteral("=%1").arg(f3gv2),
+        QStringLiteral("%1=").arg(f3gk3),
+        QStringLiteral("="),
+        QStringLiteral("%1=%2=%3").arg(f3gk4, f3gv4, f3gv5)
+    };
+    const QByteArray f3content = f3lines.join('\n').toUtf8();
+
+    QVERIFY(file3.write(f3content) != -1);
+    file3.close();
+
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    const QStringList filePaths = {
+        f1FileName,
+        file2.fileName(),
+        file3.fileName()
+    };
+
+    // Read test vocab file
+    ReadVocabFilesRequest request;
+    request.filePaths = filePaths;
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->readMultiple(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 1);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDatasFinishedSpy.takeFirst();
+    const ReadVocabFileDatasResult result = qvariant_cast<ReadVocabFileDatasResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE_NE(result.code, ErrorCode::Success);
+    QCOMPARE(result.code, ErrorCode::NoSucceededVocabs);
+    QCOMPARE(result.failedVocabCount, filePaths.count());
+    QCOMPARE(result.partiallySucceededVocabCount, 0);
+    QCOMPARE(result.failedEntryCount, 0);
+}
+
+// Reads vocabs with invalid entries
+void TestVocabFileHandler::readsVocabsWithInvalidEntries()
+{
+    // Create temporary vocab file and write its contents
+    QTemporaryFile file1;
+    QVERIFY(file1.open());
+
+    const QString f1vocabTitle = QStringLiteral("f1vocabTitle");
+    const QString f1k1 = QStringLiteral("f1k1");
+    const QString f1k3 = QStringLiteral("f1k3");
+    const QString f1k4 = QStringLiteral("f1k4");
+    const QString f1v1 = QStringLiteral("f1v1");
+    const QString f1v2 = QStringLiteral("f1v2");
+    const QString f1v4 = QStringLiteral("f1v4");
+    const QString f1v5 = QStringLiteral("f1v5");
+
+    const QStringList f1lines = {
+        f1vocabTitle,
+        QString(),
+        QStringLiteral("%1=%2").arg(f1k1, f1v1),
+        QStringLiteral("=%1").arg(f1v2),
+        QStringLiteral("%1=").arg(f1k3),
+        QStringLiteral("="),
+        QStringLiteral("%1=%2=%3").arg(f1k4, f1v4, f1v5)
+    };
+    const QByteArray f1content = f1lines.join('\n').toUtf8();
+
+    QVERIFY(file1.write(f1content) != -1);
+    file1.close();
+
+    // Create temporary vocab file and write its contents
+    QTemporaryFile file2;
+    QVERIFY(file2.open());
+
+    const QString f2vocabTitle = QStringLiteral("f2vocabTitle");
+    const QString f2gTitle = QStringLiteral("f2gTitle");
+    const QString f2gk1 = QStringLiteral("f2gk1");
+    const QString f2gk3 = QStringLiteral("f2gk3");
+    const QString f2gk4 = QStringLiteral("f2gk4");
+    const QString f2gv1 = QStringLiteral("f2gv1");
+    const QString f2gv2 = QStringLiteral("f2gv2");
+    const QString f2gv4 = QStringLiteral("f2gv4");
+    const QString f2gv5 = QStringLiteral("f2gv5");
+
+
+    const QStringList f2lines = {
+        f2vocabTitle,
+        QString(),
+        f2gTitle,
+        QStringLiteral("%1=%2").arg(f2gk1, f2gv1),
+        QStringLiteral("=%1").arg(f2gv2),
+        QStringLiteral("%1=").arg(f2gk3),
+        QStringLiteral("="),
+        QStringLiteral("%1=%2=%3").arg(f2gk4, f2gv4, f2gv5)
+    };
+    const QByteArray f2content = f2lines.join('\n').toUtf8();
+
+    QVERIFY(file2.write(f2content) != -1);
+    file2.close();
+
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    const QStringList filePaths = {
+        file1.fileName(),
+        file2.fileName()
+    };
+
+    // Read test vocab file
+    ReadVocabFilesRequest request;
+    request.filePaths = filePaths;
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->readMultiple(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 1);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDatasFinishedSpy.takeFirst();
+    const ReadVocabFileDatasResult result = qvariant_cast<ReadVocabFileDatasResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedVocabCount, 0);
+    QCOMPARE(result.partiallySucceededVocabCount, 2);
+    QCOMPARE(result.failedEntryCount, 8);
+
+    // Validate vocab file datas
+    QList<VocabFile::Data> datas = result.datas;
+    QCOMPARE(datas.size(), 2);
+
+    VocabFile::Data data1 = datas.at(0);
+    QCOMPARE(data1.info.filePath, file1.fileName());
+    QCOMPARE(data1.info.vocabTitle, f1vocabTitle);
+    QCOMPARE(data1.entries.size(), 1);
+    QCOMPARE(data1.groups.size(), 0);
+    QCOMPARE(data1.entries.at(0).first, f1k1);
+    QCOMPARE(data1.entries.at(0).second, f1v1);
+
+    VocabFile::Data data2 = datas.at(1);
+    QCOMPARE(data2.info.filePath, file2.fileName());
+    QCOMPARE(data2.info.vocabTitle, f2vocabTitle);
+    QCOMPARE(data2.entries.size(), 0);
+    QCOMPARE(data2.groups.size(), 1);
+    VocabFile::Group group = data2.groups.at(0);
+    QCOMPARE(group.entries.size(), 1);
+    QCOMPARE(group.entries.at(0).first, f2gk1);
+    QCOMPARE(group.entries.at(0).second, f2gv1);
+}
+
+void TestVocabFileHandler::failsReadVocabsWhenNoVocabsCanBeRead()
+{
+    const QStringList filePaths = {
+        QStringLiteral("missing1.vocab"),
+        QStringLiteral("missing2.vocab")
+    };
+
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    // Read test vocab file
+    ReadVocabFilesRequest request;
+    request.filePaths = filePaths;
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->readMultiple(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 1);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDatasFinishedSpy.takeFirst();
+    const ReadVocabFileDatasResult result = qvariant_cast<ReadVocabFileDatasResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE_NE(result.code, ErrorCode::Success);
+    QCOMPARE(result.code, ErrorCode::NoSucceededVocabs);
+    QCOMPARE(result.failedVocabCount, filePaths.count());
+}
+
+void TestVocabFileHandler::failsReadWhenNoVocabFilesAreGiven()
+{
+    const QStringList filePaths;
+
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    // Read test vocab file
+    ReadVocabFilesRequest request;
+    request.filePaths = filePaths;
+    request.mode = VocabFile::ReadMode::Data;
+    m_handler->readMultiple(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 0);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 1);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readDatasFinishedSpy.takeFirst();
+    const ReadVocabFileDatasResult result = qvariant_cast<ReadVocabFileDatasResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE_NE(result.code, ErrorCode::Success);
+    QCOMPARE(result.code, ErrorCode::NoVocabFilesGiven);
+}
+
+void TestVocabFileHandler::readsVocabInfos()
+{
+    QTemporaryFile file1;
+    QVERIFY(file1.open());
+
+    const QString f1vocabTitle = QStringLiteral("f1vocabTitle");
+    const QString f1k1 = QStringLiteral("f1k1");
+    const QString f1v1 = QStringLiteral("f1v1");
+
+    const QStringList f1lines = {
+        f1vocabTitle,
+        QString(),
+        QStringLiteral("%1=%2").arg(f1k1, f1v1)
+    };
+
+    const QByteArray f1content = f1lines.join('\n').toUtf8();
+
+    QVERIFY(file1.write(f1content) != -1);
+    file1.close();
+
+    QTemporaryFile file2;
+    QVERIFY(file2.open());
+
+    const QString f2vocabTitle = QStringLiteral("f2vocabTitle");
+    const QString f2k1 = QStringLiteral("f2k1");
+    const QString f2v1 = QStringLiteral("f2v1");
+
+    const QStringList f2lines = {
+        f2vocabTitle,
+        QString(),
+        QStringLiteral("%1=%2").arg(f2k1, f2v1)
+    };
+
+    const QByteArray f2content = f2lines.join('\n').toUtf8();
+
+    QVERIFY(file2.write(f2content) != -1);
+    file2.close();
+
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    const QStringList filePaths = {
+        file1.fileName(),
+        file2.fileName()
+    };
+
+    // Read test vocab file
+    ReadVocabFilesRequest request;
+    request.filePaths = filePaths;
+    request.mode = VocabFile::ReadMode::Info;
+    m_handler->readMultiple(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 1);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readInfosFinishedSpy.takeFirst();
+    const ReadVocabFileInfosResult result = qvariant_cast<ReadVocabFileInfosResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedVocabCount, 0);
+    QCOMPARE(result.infos.count(), filePaths.count());
+
+    // Validate vocab file info
+    QList<VocabFile::Info> infos = result.infos;
+    QCOMPARE(infos.at(0).filePath, file1.fileName());
+    QCOMPARE(infos.at(0).vocabTitle, f1vocabTitle);
+    QCOMPARE(infos.at(1).filePath, file2.fileName());
+    QCOMPARE(infos.at(1).vocabTitle, f2vocabTitle);
+}
+
+void TestVocabFileHandler::readsMultipleFaultyVocabInfos()
+{
+    QTemporaryFile file1;
+    QVERIFY(file1.open());
+
+    const QString f1vocabTitle = QStringLiteral("f1vocabTitle");
+    const QString f1k1 = QStringLiteral("f1k1");
+    const QString f1v1 = QStringLiteral("f1v1");
+
+    const QStringList f1lines = {
+        f1vocabTitle,
+        QString(),
+        QStringLiteral("%1=%2").arg(f1k1, f1v1)
+    };
+
+    const QByteArray f1content = f1lines.join('\n').toUtf8();
+
+    QVERIFY(file1.write(f1content) != -1);
+    file1.close();
+
+    const QString invalidFileName = QStringLiteral("missing.vocab");
+
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    const QStringList filePaths = {
+        file1.fileName(),
+        invalidFileName
+    };
+
+    // Read test vocab file
+    ReadVocabFilesRequest request;
+    request.filePaths = filePaths;
+    request.mode = VocabFile::ReadMode::Info;
+    m_handler->readMultiple(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 1);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readInfosFinishedSpy.takeFirst();
+    const ReadVocabFileInfosResult result = qvariant_cast<ReadVocabFileInfosResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE(result.code, ErrorCode::Success);
+    QCOMPARE(result.failedVocabCount, 1);
+    QCOMPARE(result.infos.count(), 1);
+
+    // Validate vocab file info
+    QList<VocabFile::Info> infos = result.infos;
+    QCOMPARE(infos.at(0).filePath, file1.fileName());
+    QCOMPARE(infos.at(0).vocabTitle, f1vocabTitle);
+}
+
+void TestVocabFileHandler::failsReadInfosWhenNoVocabsCanBeRead()
+{
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    const QStringList filePaths = {
+        QStringLiteral("Nofile1.vocab"),
+        QStringLiteral("Nofile2.vocab")
+    };
+
+    // Read test vocab file
+    ReadVocabFilesRequest request;
+    request.filePaths = filePaths;
+    request.mode = VocabFile::ReadMode::Info;
+    m_handler->readMultiple(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 1);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readInfosFinishedSpy.takeFirst();
+    const ReadVocabFileInfosResult result = qvariant_cast<ReadVocabFileInfosResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE_NE(result.code, ErrorCode::Success);
+    QCOMPARE(result.code, ErrorCode::NoSucceededVocabs);
+}
+
+void TestVocabFileHandler::failsReadInfosWhenNoVocabFilesAreGiven()
+{
+    // Spy on signals emitted by VocabFileHandler
+    QSignalSpy readInfoFinishedSpy(m_handler.get(), &VocabFileHandler::readInfoFinished);
+    QSignalSpy readInfosFinishedSpy(m_handler.get(), &VocabFileHandler::readInfosFinished);
+    QSignalSpy readDataFinishedSpy(m_handler.get(), &VocabFileHandler::readDataFinished);
+    QSignalSpy readDatasFinishedSpy(m_handler.get(), &VocabFileHandler::readDatasFinished);
+
+    const QStringList filePaths = {};
+
+    // Read test vocab file
+    ReadVocabFilesRequest request;
+    request.filePaths = filePaths;
+    request.mode = VocabFile::ReadMode::Info;
+    m_handler->readMultiple(request);
+
+    // Check signals
+    QCOMPARE(readInfoFinishedSpy.count(), 0);
+    QCOMPARE(readInfosFinishedSpy.count(), 1);
+    QCOMPARE(readDataFinishedSpy.count(), 0);
+    QCOMPARE(readDatasFinishedSpy.count(), 0);
+
+    // Parse vocab file read result from signal
+    const QList<QVariant> arguments = readInfosFinishedSpy.takeFirst();
+    const ReadVocabFileInfosResult result = qvariant_cast<ReadVocabFileInfosResult>(arguments.at(0));
+
+    // Validate result
+    QCOMPARE_NE(result.code, ErrorCode::Success);
+    QCOMPARE(result.code, ErrorCode::NoVocabFilesGiven);
 }
 
 QTEST_APPLESS_MAIN(TestVocabFileHandler)

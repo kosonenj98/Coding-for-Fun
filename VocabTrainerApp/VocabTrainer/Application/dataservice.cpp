@@ -39,10 +39,10 @@ void DataService::loadVocabs(const LoadVocabsRequest &request)
 void DataService::handleVocabFileReadInfoFinished(const ReadVocabFileInfoResult &result)
 {
     LoadVocabInfoResult loadVocabInfoResult;
-    if (result.errorCode != ErrorCode::Success)
+    if (result.code != ErrorCode::Success)
     {
-        m_logger.error(logTag(), QStringLiteral("Failed to load vocab file '%1' (%2)").arg(result.info.filePath, errorCodeToString(result.errorCode)));
-        loadVocabInfoResult.code = result.errorCode;
+        m_logger.error(logTag(), QStringLiteral("Failed to load vocab file '%1' (%2)").arg(result.info.filePath, errorCodeToString(result.code)));
+        loadVocabInfoResult.code = result.code;
         emit loadVocabInfoFinished(loadVocabInfoResult);
         return;
     }
@@ -54,10 +54,10 @@ void DataService::handleVocabFileReadInfoFinished(const ReadVocabFileInfoResult 
 void DataService::handleVocabFileReadInfosFinished(const ReadVocabFileInfosResult &result)
 {
     LoadVocabInfosResult loadVocabInfosResult;
-    if (result.errorCode != ErrorCode::Success)
+    if (result.code != ErrorCode::Success)
     {
-        m_logger.error(logTag(), QStringLiteral("Failed to load vocab files (%1)").arg(errorCodeToString(result.errorCode)));
-        loadVocabInfosResult.code = result.errorCode;
+        m_logger.error(logTag(), QStringLiteral("Failed to load vocab files (%1)").arg(errorCodeToString(result.code)));
+        loadVocabInfosResult.code = result.code;
         emit loadVocabInfosFinished(loadVocabInfosResult);
         return;
     }
@@ -73,10 +73,10 @@ void DataService::handleVocabFileReadInfosFinished(const ReadVocabFileInfosResul
 void DataService::handleVocabFileReadDataFinished(const ReadVocabFileDataResult &result)
 {
     LoadVocabDataResult loadVocabDataResult;
-    if (result.errorCode != ErrorCode::Success)
+    if (result.code != ErrorCode::Success)
     {
-        m_logger.error(logTag(), QStringLiteral("Failed to load vocab file '%1' (%2)").arg(result.data.info.filePath, errorCodeToString(result.errorCode)));
-        loadVocabDataResult.code = result.errorCode;
+        m_logger.error(logTag(), QStringLiteral("Failed to load vocab file '%1' (%2)").arg(result.data.info.filePath, errorCodeToString(result.code)));
+        loadVocabDataResult.code = result.code;
         emit loadVocabDataFinished(loadVocabDataResult);
         return;
     }
@@ -113,9 +113,9 @@ void DataService::handleVocabFileReadDataFinished(const ReadVocabFileDataResult 
 void DataService::handleVocabFileReadDatasFinished(const ReadVocabFileDatasResult &result)
 {
     LoadVocabDatasResult loadVocabDatasResult;
-    if (result.errorCode != ErrorCode::Success)
+    if (result.code != ErrorCode::Success)
     {
-        loadVocabDatasResult.code = result.errorCode;
+        loadVocabDatasResult.code = result.code;
         emit loadVocabDatasFinished(loadVocabDatasResult);
     }
 

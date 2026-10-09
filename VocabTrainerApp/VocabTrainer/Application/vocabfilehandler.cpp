@@ -54,7 +54,7 @@ void VocabFileHandler::readMultiple(const ReadVocabFilesRequest &request)
             case VocabFile::ReadMode::Info:
             {
                 ReadVocabFileInfosResult result;
-                result.errorCode = code;
+                result.code = code;
                 emit readInfosFinished(result);
                 break;
             }
@@ -62,7 +62,7 @@ void VocabFileHandler::readMultiple(const ReadVocabFilesRequest &request)
             case VocabFile::ReadMode::Data:
             {
                 ReadVocabFileDatasResult result;
-                result.errorCode = code;
+                result.code = code;
                 emit readDatasFinished(result);
                 break;
             }
@@ -118,7 +118,7 @@ void VocabFileHandler::handleReadDatas(const QStringList &filePaths)
     int succeededVocabCount = 0;
     for (const auto &result : results)
     {
-        if (result.errorCode != ErrorCode::Success)
+        if (result.code != ErrorCode::Success)
         {
             readDatasResult.failedVocabCount++;
             continue;
@@ -138,7 +138,7 @@ void VocabFileHandler::handleReadDatas(const QStringList &filePaths)
 
     if (!(succeededVocabCount + readDatasResult.partiallySucceededVocabCount > 0))
     {
-        readDatasResult.errorCode = ErrorCode::NoSucceededVocabs;
+        readDatasResult.code = ErrorCode::NoSucceededVocabs;
     }
 
     emit readDatasFinished(readDatasResult);
@@ -158,7 +158,7 @@ void VocabFileHandler::handleReadInfos(const QStringList &filePaths)
     ReadVocabFileInfosResult readInfosResult;
     for (const auto &result : results)
     {
-        if (result.errorCode != ErrorCode::Success)
+        if (result.code != ErrorCode::Success)
         {
             readInfosResult.failedVocabCount++;
             continue;
@@ -170,7 +170,7 @@ void VocabFileHandler::handleReadInfos(const QStringList &filePaths)
     int succeededInfoCount = results.count() - readInfosResult.failedVocabCount;
     if (!(succeededInfoCount > 0))
     {
-        readInfosResult.errorCode = ErrorCode::NoSucceededVocabs;
+        readInfosResult.code = ErrorCode::NoSucceededVocabs;
     }
 
     emit readInfosFinished(readInfosResult);
@@ -186,7 +186,7 @@ const ReadVocabFileInfoResult VocabFileHandler::readInfo(const QString &filePath
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         m_logger.error(logTag(), QStringLiteral("Failed to open vocab file '%1': '%2' (%3)").arg(filePath, file.errorString(), QString::number(file.error())));
-        result.errorCode = ErrorCode::FileOpenFailed;
+        result.code = ErrorCode::FileOpenFailed;
         return result;
     }
 
@@ -238,7 +238,7 @@ const ReadVocabFileDataResult VocabFileHandler::readData(const QString &filePath
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         m_logger.error(logTag(), QStringLiteral("Failed to open vocab file '%1': '%2' (%3)").arg(filePath, file.errorString(), QString::number(file.error())));
-        result.errorCode = ErrorCode::FileOpenFailed;
+        result.code = ErrorCode::FileOpenFailed;
         return result;
     }
 
@@ -332,7 +332,7 @@ const ReadVocabFileDataResult VocabFileHandler::readData(const QString &filePath
         // Vocab contained no entries
         m_logger.error(logTag(), QStringLiteral("No valid entries found in vocab '%1'.").arg(result.data.info.vocabTitle));
         m_logger.verbose(logTag(), QStringLiteral("Emitting failure signal..."));
-        result.errorCode = ErrorCode::VocabFileNoEntries;
+        result.code = ErrorCode::VocabFileNoEntries;
         return result;
     }
 

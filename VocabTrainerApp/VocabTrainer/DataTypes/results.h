@@ -54,27 +54,27 @@ struct ApplyNewSettingsResult
 
 struct ReadVocabFileInfoResult
 {
-    ErrorCode errorCode = ErrorCode::Success;
+    ErrorCode code = ErrorCode::Success;
     VocabFile::Info info;
 };
 
 struct ReadVocabFileDataResult
 {
-    ErrorCode errorCode = ErrorCode::Success;
+    ErrorCode code = ErrorCode::Success;
     int failedEntryCount = 0;
     VocabFile::Data data;
 };
 
 struct ReadVocabFileInfosResult
 {
-    ErrorCode errorCode = ErrorCode::Success;
+    ErrorCode code = ErrorCode::Success;
     int failedVocabCount = 0;
     QList<VocabFile::Info> infos;
 };
 
 struct ReadVocabFileDatasResult
 {
-    ErrorCode errorCode = ErrorCode::Success;
+    ErrorCode code = ErrorCode::Success;
     int failedVocabCount = 0;
     int partiallySucceededVocabCount = 0;
     int failedEntryCount = 0;
