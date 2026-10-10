@@ -14,6 +14,10 @@ enum class ErrorCode
     VocabFileNoEntries,
     NoSucceededVocabs,
     NoVocabFilesGiven,
+    VocabNoEntries,
+    UnsupportedBracket,
+    MismatchingBrackets,
+    MismatchingOptions,
     Unknown
 };
 

@@ -31,9 +31,11 @@ struct LoadVocabDatasResult
     int failedEntryCount = 0;
 };
 
-struct CreateVocabDataResult
+struct GenerateVocabDataResult
 {
     ErrorCode code = ErrorCode::Success;
+    int failedGroupCount = 0;
+    int partiallySucceededGroupCount = 0;
     int failedEntryCount = 0;
     Vocab::Data data;
 };
@@ -93,6 +95,19 @@ struct ReadAllResult
     ErrorCode code = ErrorCode::Success;
     int failedEntryCount = 0;
     QList<Log::Entry> entries;
+};
+
+struct GenerateVocabEntriesResult
+{
+    ErrorCode code = ErrorCode::Success;
+    int failedEntryCount = 0;
+    Vocab::Entries entries;
+};
+
+struct GenerateVocabEntryVariantsResult
+{
+    ErrorCode code = ErrorCode::Success;
+    Vocab::Entries entries;
 };
 
 #endif // RESULTS_H

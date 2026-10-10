@@ -40,7 +40,7 @@ namespace VocabFile
 
 namespace Vocab
 {
-    using Entries = QMultiMap<QString,QString>;
+    using Entries = QMap<QString,QSet<QString>>;
 
     using GroupEntries = QMap<QString,Entries>;
 

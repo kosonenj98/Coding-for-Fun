@@ -10,7 +10,7 @@ namespace
 }
 
 DataService::DataService(Logger &logger, QObject *parent)
-    : QObject{parent}, m_logger(logger)
+    : QObject{parent}, m_logger(logger), m_vocabGenerator(logger)
 {
     m_logger.verbose(logTag(), QStringLiteral("Initializing data service..."));
     m_logger.verbose(logTag(), QStringLiteral("Initializing data service done!"));
@@ -87,7 +87,7 @@ void DataService::handleVocabFileReadDataFinished(const ReadVocabFileDataResult 
     }
     loadVocabDataResult.failedEntryCount = result.failedEntryCount;
 
-    CreateVocabDataResult createVocabDataResult = createVocabData(result.data);
+    GenerateVocabDataResult createVocabDataResult = createVocabData(result.data);
 
     if (createVocabDataResult.code != ErrorCode::Success)
     {
@@ -130,7 +130,7 @@ void DataService::handleVocabFileReadDatasFinished(const ReadVocabFileDatasResul
     QMap<QString,Vocab::Data> vocabDatas;
     for (const auto &data : result.datas)
     {
-        CreateVocabDataResult createVocabDataResult = createVocabData(data);
+        GenerateVocabDataResult createVocabDataResult = createVocabData(data);
 
         if (createVocabDataResult.code != ErrorCode::Success)
         {
@@ -164,8 +164,8 @@ void DataService::handleVocabFileReadDatasFinished(const ReadVocabFileDatasResul
     emit loadVocabDatasFinished(loadVocabDatasResult);
 }
 
-const CreateVocabDataResult DataService::createVocabData(const VocabFile::Data &data)
+const GenerateVocabDataResult DataService::createVocabData(const VocabFile::Data &data)
 {
-    CreateVocabDataResult result;
+    GenerateVocabDataResult result = m_vocabGenerator.generate(data);
     return result;
 }

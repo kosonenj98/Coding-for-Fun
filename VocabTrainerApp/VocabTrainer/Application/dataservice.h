@@ -35,7 +35,7 @@ signals:
     void loadVocabDatasFinished(const LoadVocabDatasResult &result);
 
 private:
-    const CreateVocabDataResult createVocabData(const VocabFile::Data &data);
+    const GenerateVocabDataResult createVocabData(const VocabFile::Data &data);
 
     Logger &m_logger;
     VocabGenerator m_vocabGenerator;
