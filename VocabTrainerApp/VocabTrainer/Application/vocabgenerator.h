@@ -49,9 +49,9 @@ private:
     const GenerateVocabEntryVariantsResult generateVariants(const VocabFile::Entry &vocabFileEntry);
 
     QPair<QList<VocabFile::Entry>,QList<VocabFile::Entry>> extractEntriesWithVariants(const QList<VocabFile::Entry> &entries);
-    const ExtractBracketPartsResult extractBracketParts(const VocabFile::Entry &entry, const BracketType &type);
-    const ExtractBracketPartResult extractBracketPart(const QString &text, const BracketType &type);
-    const QString toString(const BracketParts &parts, bool inside = true);
+    const ExtractBracketPartsResult extractInnermostBracketParts(const VocabFile::Entry &entry, const BracketType &type);
+    const ExtractBracketPartResult extractInnermostBracketPart(const QString &text, const BracketType &type);
+    const QString toString(BracketParts parts, bool inside = true);
 
     const HandleBracketsResult handleCurlyBraces(const QPair<BracketParts,BracketParts> &parts);
     const HandleBracketsResult handleParenthesis(const QPair<BracketParts,BracketParts> &parts);
