@@ -29,6 +29,7 @@ struct LoadVocabDatasResult
     int failedVocabCount = 0;
     int partiallySucceededVocabCount = 0;
     int failedEntryCount = 0;
+    QList<Vocab::Info> infos;
 };
 
 struct GenerateVocabDataResult

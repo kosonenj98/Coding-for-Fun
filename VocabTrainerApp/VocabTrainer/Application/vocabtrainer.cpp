@@ -119,5 +119,7 @@ void VocabTrainer::initializeDataService()
     connect(m_vocabFileHandler, &VocabFileHandler::readInfosFinished, m_dataService, &DataService::handleVocabFileReadInfosFinished);
     connect(m_vocabFileHandler, &VocabFileHandler::readDatasFinished, m_dataService, &DataService::handleVocabFileReadDatasFinished);
 
+    connect(m_dataService, &DataService::loadVocabDatasFinished, this, &VocabTrainer::handleLoadVocabDatasFinished);
+
     m_logger.verbose(logTag(), QStringLiteral("Initializing data service done!"));
 }

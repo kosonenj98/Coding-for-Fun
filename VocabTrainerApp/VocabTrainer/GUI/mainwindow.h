@@ -25,23 +25,34 @@ public slots:
     void handleApplyNewSettingsRequest(const ApplyNewSettingsRequest &request);
     void handleApplyNewSettingsFinished(const ApplyNewSettingsResult &result);
 
+    void handleLoadVocabsRequest(const LoadVocabsRequest &request);
+    void handleLoadVocabDatasFinished(const LoadVocabDatasResult &result);
+
     void handleViewTabChanged(int index);
 
 signals:
     void requestLogQuery(const LogQueryRequest &query);
     void requestApplyNewSettings(const ApplyNewSettingsRequest &request);
+    void requestLoadVocabs(const LoadVocabsRequest &request);
 
 private:
+    void initializeDialogService();
+    void initializeMainView();
+    void initializeSettingsView();
+    void initializeLogView();
+    void initializeTabWidget();
+
     Logger &m_logger;
     SettingsHandler &m_settingsHandler;
+    DialogService* m_dialogService = nullptr;
 
-    QTabWidget *m_tabWidget;
-
+    // Views
     MainView *m_mainView = nullptr;
     SettingsView *m_settingsView = nullptr;
     LogView *m_logView = nullptr;
 
-    DialogService* m_dialogService;
+    // GUI components
+    QTabWidget *m_tabWidget;
 };
 
 #endif // MAINWINDOW_H

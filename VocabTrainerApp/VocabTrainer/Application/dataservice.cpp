@@ -130,6 +130,9 @@ void DataService::handleVocabFileReadDatasFinished(const ReadVocabFileDatasResul
     QMap<QString,Vocab::Data> vocabDatas;
     for (const auto &data : result.datas)
     {
+        Vocab::Info info;
+        info.title = data.info.vocabTitle;
+
         GenerateVocabDataResult createVocabDataResult = createVocabData(data);
 
         if (createVocabDataResult.code != ErrorCode::Success)
@@ -158,8 +161,26 @@ void DataService::handleVocabFileReadDatasFinished(const ReadVocabFileDatasResul
         return;
     }
 
+    if (result.failedVocabCount > 0 || result.partiallySucceededVocabCount > 0 || result.failedEntryCount > 0)
+    {
+        m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty vocabs and %2 faulty entries in %3 vocabs.").arg(QString::number(result.failedVocabCount), QString::number(result.failedEntryCount), QString::number(result.partiallySucceededVocabCount)));
+    }
+
     m_vocabDatas.clear();
     m_vocabDatas = vocabDatas;
+
+    for (const auto &data : m_vocabDatas)
+    {
+        Vocab::Info info;
+        info.title = data.title;
+
+        for (const auto &groupTitle : data.groupEntries.keys())
+        {
+            info.groupTitles.append(groupTitle);
+        }
+
+        loadVocabDatasResult.infos.append(info);
+    }
 
     emit loadVocabDatasFinished(loadVocabDatasResult);
 }

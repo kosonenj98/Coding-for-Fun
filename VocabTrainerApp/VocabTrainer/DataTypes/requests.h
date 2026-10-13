@@ -13,6 +13,7 @@ struct LoadVocabsRequest
 {
     QList<VocabFile::Info> infos;
     VocabFile::ReadMode mode = VocabFile::ReadMode::Data;;
+    Training::Direction direction = Training::Direction::Forward;
 };
 
 struct LogQueryRequest
@@ -50,6 +51,7 @@ struct ReadVocabFilesRequest
 {
     QStringList filePaths;
     VocabFile::ReadMode mode;
+    Training::Direction direction = Training::Direction::Forward;
 };
 
 #endif // REQUESTS_H

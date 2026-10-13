@@ -61,6 +61,10 @@ int main(int argc, char *argv[])
     QObject::connect(&mainWindow, &MainWindow::requestApplyNewSettings, &settingsHandler, &SettingsHandler::handleApplyNewSettingsRequest, Qt::QueuedConnection);
     QObject::connect(&settingsHandler, &SettingsHandler::applyNewSettingsFinished, &mainWindow, &MainWindow::handleApplyNewSettingsFinished, Qt::QueuedConnection);
 
+    // Connect vocab load events
+    QObject::connect(&mainWindow, &MainWindow::requestLoadVocabs, vocabTrainer, &VocabTrainer::handleLoadVocabsRequest, Qt::QueuedConnection);
+    QObject::connect(vocabTrainer, &VocabTrainer::loadVocabDatasFinished, &mainWindow, &MainWindow::handleLoadVocabDatasFinished, Qt::QueuedConnection);
+
     {
         QString threadId = QString::number(reinterpret_cast<quintptr>(QThread::currentThread()->currentThreadId()), 16);
         QString threadName = QThread::currentThread()->objectName();

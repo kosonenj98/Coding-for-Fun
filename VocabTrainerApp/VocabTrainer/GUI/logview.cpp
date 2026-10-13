@@ -234,16 +234,22 @@ QFrame *LogView::createFileSelectionFrame(QWidget *parent, const Settings &setti
     frame->setFrameShadow(QFrame::Raised);
 
     // Allocate GUI components
+    m_logFileLabel = new QLabel(QStringLiteral("Log file:"), frame);
     m_logFilePathEdit = new QLineEdit(frame);
     m_browseButton = new QPushButton(QStringLiteral("Browse..."), frame);
 
     // Modify GUI component states
     m_logFilePathEdit->setText(settings.logFilePath);
+    m_logFilePathEdit->setClearButtonEnabled(true);
 
     // Construct layout
-    auto *fileLayout = new QHBoxLayout(frame);
+    auto *fileLayout = new QHBoxLayout();
     fileLayout->addWidget(m_logFilePathEdit);
     fileLayout->addWidget(m_browseButton);
+
+    auto *layout = new QVBoxLayout(frame);
+    layout->addWidget(m_logFileLabel);
+    layout->addLayout(fileLayout);
 
     m_logger.verbose(logTag(), "Creating file selection frame done!");
 

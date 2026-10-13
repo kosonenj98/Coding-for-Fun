@@ -307,7 +307,7 @@ const ReadVocabFileDataResult VocabFileHandler::readData(const QString &filePath
             continue;
         }
 
-        const VocabFile::Entry vocabFileEntry = {key, value};
+        const VocabFile::Entry vocabFileEntry = {key, value}; // TODO: Swap these based on training direction
         if (result.data.groups.isEmpty())
         {
             // Vocab has not yet any groups. Append pair to entries

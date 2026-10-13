@@ -8,6 +8,15 @@
 #include <QStandardPaths>
 #include <QDir>
 
+namespace Training
+{
+    enum class Direction
+    {
+        Forward,
+        Reversed
+    };
+}
+
 namespace VocabFile
 {
     enum class ReadMode
@@ -43,6 +52,12 @@ namespace Vocab
     using Entries = QMap<QString,QSet<QString>>;
 
     using GroupEntries = QMap<QString,Entries>;
+
+    struct Info
+    {
+        QString title;
+        QStringList groupTitles;
+    };
 
     struct Data
     {

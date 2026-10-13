@@ -100,6 +100,7 @@ private:
     // Query control attributes
 
     // Log file selection
+    QLabel *m_logFileLabel;
     QLineEdit *m_logFilePathEdit;
     QPushButton *m_browseButton;
 

@@ -6,7 +6,7 @@ namespace
 {
     const QString &logTag()
     {
-        static const QString tag = QStringLiteral("VocabFileHandler");
+        static const QString tag = QStringLiteral("VocabGenerator");
         return tag;
     }
 }
@@ -80,6 +80,13 @@ const GenerateVocabEntriesResult VocabGenerator::handleVocabFileEntries(const QL
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling vocab file entries..."));
     GenerateVocabEntriesResult result;
+
+    if (entries.isEmpty())
+    {
+        m_logger.verbose(logTag(), QStringLiteral("Nothing to handle. Returning..."));
+        return result;
+    }
+
     for (const auto &entry : entries)
     {
         GenerateVocabEntryVariantsResult generateVariantsResult = generateVariants(entry);
