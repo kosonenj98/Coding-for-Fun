@@ -21,19 +21,20 @@ LogService::LogService(Logger &logger, QObject *parent)
     m_logger.verbose(logTag(), QStringLiteral("Initializing log service done!"));
 }
 
-void LogService::queryLog(const LogQueryRequest &request)
+void LogService::queryLog(const QueryRequest &request)
 {
-    GetAllLogEntriesRequest getAllLogEntriesRequest;
-    getAllLogEntriesRequest.request = request;
+    GetAllEntriesRequest getAllLogEntriesRequest;
+    getAllLogEntriesRequest.query = request;
 
     emit requestGetAllLogEntries(getAllLogEntriesRequest);
 }
 
-void LogService::handleGetAllLogEntriesFinished(const GetAllLogEntriesResult &result)
+void LogService::handleGetAllLogEntriesFinished(const GetAllEntriesResult &result)
 {
-    LogQueryResult logQueryResult;
-    if (result.code != ErrorCode::Success)
+    QueryResult logQueryResult;
+    if (result.code != Error::Code::Success)
     {
+        m_logger.error(logTag(), QStringLiteral("Failed to query log! ErrorCode %1").arg(Error::codeToQString(result.code)));
         logQueryResult.code = result.code;
         emit queryLogFinished(logQueryResult);
         return;
@@ -45,12 +46,12 @@ void LogService::handleGetAllLogEntriesFinished(const GetAllLogEntriesResult &re
     }
     logQueryResult.failedEntryCount = result.failedEntryCount;
 
-    logQueryResult.entries = filterLogEntries(result.request, result.entries);
+    logQueryResult.entries = filterLogEntries(result.query, result.entries);
 
     emit queryLogFinished(logQueryResult);
 }
 
-QList<Entry> LogService::filterLogEntries(const LogQueryRequest &query, const QList<Entry> &entries)
+QList<Entry> LogService::filterLogEntries(const QueryRequest &query, const QList<Entry> &entries)
 {
     m_logger.verbose(logTag(), QStringLiteral("Filtering log entries..."));
 

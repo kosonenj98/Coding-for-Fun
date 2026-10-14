@@ -10,12 +10,13 @@ CONFIG += c++17
 
 SOURCES += \
     Application/dataservice.cpp \
-    Application/errorcode.cpp \
     Application/logservice.cpp \
     Application/settingshandler.cpp \
     Application/vocabfilehandler.cpp \
     Application/vocabgenerator.cpp \
     Application/vocabtrainer.cpp \
+    DataTypes/error.cpp \
+    DataTypes/log.cpp \
     GUI/dialogservice.cpp \
     GUI/logview.cpp \
     GUI/mainview.cpp \
@@ -24,20 +25,22 @@ SOURCES += \
     Logging/logentryformatter.cpp \
     Logging/logfilehandler.cpp \
     Logging/logger.cpp \
-    Logging/loglevel.cpp \
     main.cpp \
 
 HEADERS += \
     Application/dataservice.h \
-    Application/errorcode.h \
     Application/logservice.h \
     Application/settingshandler.h \
     Application/vocabfilehandler.h \
     Application/vocabgenerator.h \
     Application/vocabtrainer.h \
-    DataTypes/datatypes.h \
-    DataTypes/requests.h \
-    DataTypes/results.h \
+    DataTypes/error.h \
+    DataTypes/log.h \
+    DataTypes/settings.h \
+    DataTypes/training.h \
+    DataTypes/vocab.h \
+    DataTypes/vocabfile.h \
+    DataTypes/vocabgeneration.h \
     GUI/dialogservice.h \
     GUI/logview.h \
     GUI/mainview.h \
@@ -46,7 +49,6 @@ HEADERS += \
     Logging/logentryformatter.h \
     Logging/logfilehandler.h \
     Logging/logger.h \
-    Logging/loglevel.h \
 
 TRANSLATIONS += \
 

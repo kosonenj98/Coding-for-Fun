@@ -2,8 +2,7 @@
 #define LOGSERVICE_H
 
 #include "Logging/logger.h"
-#include "DataTypes/requests.h"
-#include "DataTypes/results.h"
+#include "DataTypes/log.h"
 
 #include <QObject>
 
@@ -13,18 +12,18 @@ class LogService : public QObject
 public:
     explicit LogService(Logger &logger, QObject *parent = nullptr);
 
-    void queryLog(const LogQueryRequest &request);
+    void queryLog(const Log::QueryRequest &request);
 
 public slots:
-    void handleGetAllLogEntriesFinished(const GetAllLogEntriesResult &result);
+    void handleGetAllLogEntriesFinished(const Log::GetAllEntriesResult &result);
 
 signals:
-    void requestGetAllLogEntries(const GetAllLogEntriesRequest &request);
+    void requestGetAllLogEntries(const Log::GetAllEntriesRequest &request);
 
-    void queryLogFinished(const LogQueryResult &result);
+    void queryLogFinished(const Log::QueryResult &result);
 
 private:
-    QList<Log::Entry> filterLogEntries(const LogQueryRequest &query, const QList<Log::Entry> &entries);
+    QList<Log::Entry> filterLogEntries(const Log::QueryRequest &query, const QList<Log::Entry> &entries);
 
     Logger &m_logger;
 };

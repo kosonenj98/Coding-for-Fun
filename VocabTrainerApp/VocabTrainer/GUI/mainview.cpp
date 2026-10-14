@@ -17,7 +17,6 @@ namespace
     constexpr int PANEL_SPACING = 16;
 
     constexpr int INFO_FONT_SIZE = 20;
-    constexpr int DIRECTION_FONT_SIZE = 15;
 
     constexpr int NAV_BUTTON_WIDTH = 44;
     constexpr int NAV_BUTTON_HEIGHT = 40;
@@ -46,12 +45,12 @@ MainView::MainView(Logger &logger, QWidget *parent)
 
     // Construct view panels
     auto *trainingSettingsPanel = createTrainingSettingsPanel();
-    auto *displayPanel = createDisplayPanel();
+    auto *trainingPanel = createTrainingPanel();
 
     // Splitter is very flexible with adjusting panel sizes
     auto* splitter = new QSplitter(Qt::Horizontal, this);
     splitter->addWidget(trainingSettingsPanel);
-    splitter->addWidget(displayPanel);
+    splitter->addWidget(trainingPanel);
 
     // Construct layout
     auto* mainLayout = new QHBoxLayout(this);
@@ -63,38 +62,156 @@ MainView::MainView(Logger &logger, QWidget *parent)
     m_logger.verbose(logTag(), QStringLiteral("Constructing main view done!"));
 }
 
-void MainView::createInitialView()
+void MainView::showLobbyView()
 {
-    // Show the welcome view initially
-    m_displayStack->setCurrentWidget(m_welcomeView);
+    m_trainingStack->setCurrentWidget(m_lobbyView);
 }
 
-void MainView::updateVocabTree(const QList<Vocab::Info> vocabInfos)
+void MainView::showLoadingView()
 {
-    // TODO: How to keep previous settings and only modify those that are needed?
-    m_vocabTree->clear();
+    m_trainingStack->setCurrentWidget(m_loadingView);
+}
 
-    for (const Vocab::Info &info : vocabInfos)
+void MainView::showErrorView(const QString &message)
+{
+    m_errorLabel->setText(message);
+    m_trainingStack->setCurrentWidget(m_errorView);
+}
+
+void MainView::showTrainingView()
+{
+    m_trainingStack->setCurrentWidget(m_trainingView);
+}
+
+void MainView::updateView(const QList<Vocab::ContentInfo> &contentInfos)
+{
+    updateVocabTree(contentInfos);
+}
+
+void MainView::updateVocabTree(const QList<Vocab::ContentInfo> &contentInfos)
+{
+    removeObsoleteVocabs(contentInfos);
+
+    int totalEntryCount = 0;
+    for (const auto &info : contentInfos)
     {
-        // Create the vocabulary item
-        auto *vocabItem = new QTreeWidgetItem(m_vocabTree);
-        vocabItem->setText(0, info.title);
+        totalEntryCount += info.totalEntryCount;
+        updateVocabItem(info);
+    }
+
+    updateVocabTreeLabel(totalEntryCount);
+}
+
+void MainView::removeObsoleteVocabs(const QList<Vocab::ContentInfo> &contentInfos)
+{
+    m_logger.debug(logTag(), QStringLiteral("Removing obsolete vocabs from vocab tree.."));
+
+    auto *root = m_vocabTree->invisibleRootItem();
+    for (int i = root->childCount() - 1; i >= 0; i--)
+    {
+        auto *item = root->child(i);
+        const QString id = item->data(0, Qt::UserRole).toString();
+        const bool exists = std::any_of(contentInfos.cbegin(), contentInfos.cend(), [&id](const Vocab::ContentInfo &info){return info.title == id;});
+
+        if (!exists)
+        {
+            m_logger.debug(logTag(), QStringLiteral("Removing obsolete vocab '%1' from vocab tree.").arg(id));
+            delete root->takeChild(i);
+        }
+    }
+
+    m_logger.debug(logTag(), QStringLiteral("Removing obsolete vocabs from vocab tree done!"));
+}
+
+void MainView::updateVocabItem(const Vocab::ContentInfo &info)
+{
+    auto *root = m_vocabTree->invisibleRootItem();
+    auto *vocabItem = findChildById(root, info.title);
+    int column = 0;
+
+    if (!vocabItem)
+    {
+        // Create new vocab item
+        vocabItem = new QTreeWidgetItem(m_vocabTree);
+        vocabItem->setData(column, Qt::UserRole, info.title);
         vocabItem->setFlags(vocabItem->flags() | Qt::ItemIsUserCheckable);
         vocabItem->setCheckState(0, Qt::Checked);
+        vocabItem->setExpanded(m_vocabTree->topLevelItemCount() == 1);
+    }
 
-        // Create a child item for each group
-        for (const QString &groupTitle : info.groupTitles)
+    vocabItem->setText(column, QStringLiteral("%1 (%2)").arg(info.title, QString::number(info.totalEntryCount)));
+    updateVocabChildren(vocabItem, info);
+}
+
+void MainView::updateVocabChildren(QTreeWidgetItem *vocabItem, const Vocab::ContentInfo &info)
+{
+    QHash<QString, int> newChildrenContentInfo;
+
+    if (info.entryCount > 0)
+    {
+        newChildrenContentInfo.insert(info.title, info.entryCount);
+    }
+
+    for (const auto &groupInfo : info.groupInfos)
+    {
+        newChildrenContentInfo.insert(groupInfo.title, groupInfo.entryCount);
+    }
+
+    // Remove obsolete children.
+    for (int i = vocabItem->childCount() - 1; i >= 0; i--)
+    {
+        auto *child = vocabItem->child(i);
+        const QString id = child->data(0, Qt::UserRole).toString();
+
+        if (!newChildrenContentInfo.contains(id))
         {
-            auto *groupItem = new QTreeWidgetItem(vocabItem);
-            groupItem->setText(0, groupTitle);
-            groupItem->setFlags(vocabItem->flags() | Qt::ItemIsUserCheckable);
-            groupItem->setCheckState(0, Qt::Checked);
+            delete vocabItem->takeChild(i);
         }
+    }
 
-        // Expand the vocabulary item only if one vocab is present
-        vocabItem->setExpanded(!(vocabInfos.count() > 1));
+    // Update existing children and create new ones.
+    for (auto it = newChildrenContentInfo.cbegin(); it != newChildrenContentInfo.cend(); ++it)
+    {
+        auto *child = getOrCreateChild(vocabItem, it.key());
+
+        if (it.key() == info.title)
+        {
+            child->setText(0, QStringLiteral("Groupless (%1)").arg(it.value()));
+        }
+        else
+        {
+            child->setText(0, QStringLiteral("%1 (%2)").arg(it.key()).arg(it.value()));
+        }
     }
 }
+
+void MainView::updateVocabTreeLabel(int totalEntryCount)
+{
+    if (totalEntryCount > 0)
+    {
+        m_vocabTreeLabel->setText(QStringLiteral("Contents (%1 entries)").arg(totalEntryCount));
+    }
+    else
+    {
+        m_vocabTreeLabel->setText(QStringLiteral("Contents"));
+    }
+}
+
+QTreeWidgetItem *MainView::getOrCreateChild(QTreeWidgetItem *parent, const QString &id)
+{
+    auto *item = findChildById(parent, id);
+
+    if (!item)
+    {
+        item = new QTreeWidgetItem(parent);
+        item->setData(0, Qt::UserRole, id);
+        item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+        item->setCheckState(0, Qt::Checked);
+    }
+
+    return item;
+}
+
 
 void MainView::browseVocabFiles()
 {
@@ -137,43 +254,75 @@ void MainView::switchTrainingDirection()
 {
     switch (m_trainingDirection)
     {
-    case Training::Direction::Forward:
-        m_trainingDirection = Training::Direction::Reversed;
-        m_leftFlagLabel->setText(QStringLiteral("🇫🇮"));
-        m_rightFlagLabel->setText(QStringLiteral("🇮🇹"));
+    case Training::Direction::KeyToValue:
+        m_trainingDirection = Training::Direction::ValueToKey;
+        m_switchDirectionArrowLabel->setText(QStringLiteral("←"));
         break;
 
-    case Training::Direction::Reversed:
-        m_trainingDirection = Training::Direction::Forward;
-        m_leftFlagLabel->setText(QStringLiteral("🇮🇹"));
-        m_rightFlagLabel->setText(QStringLiteral("🇫🇮"));
+    case Training::Direction::ValueToKey:
+        m_trainingDirection = Training::Direction::KeyToValue;
+        m_switchDirectionArrowLabel->setText(QStringLiteral("→"));
         break;
     }
 
     m_logger.debug(logTag(), QStringLiteral("Training direction switched."));
+    initializeVocabChange();
 }
 
-void MainView::initializeVocabLoad()
+void MainView::handleVocabTreeItemChanged(QTreeWidgetItem *item, int column)
 {
-    LoadVocabsRequest request;
-    request.direction = m_trainingDirection;
+    if (m_updatingVocabTree || column != 0)
+    {
+        return;
+    }
 
-    QList<VocabFile::Info> infos;
+    m_updatingVocabTree = true;
+
+    // A parent selection applies to its entire subtree.
+    if (item->childCount() > 0 &&
+        item->checkState(0) != Qt::PartiallyChecked)
+    {
+        setSubtreeCheckState(item, item->checkState(0));
+    }
+
+    // Update all ancestors based on their children's states.
+    auto *parent = item->parent();
+
+    while (parent)
+    {
+        updateParentCheckState(parent);
+        parent = parent->parent();
+    }
+
+    m_updatingVocabTree = false;
+}
+
+void MainView::initializeVocabChange()
+{
+    m_logger.debug(logTag(), QStringLiteral("Handling initializing vocab change..."));
+    if (m_vocabSourcePaths.isEmpty())
+    {
+        // No vocab source selected
+        m_logger.debug(logTag(), QStringLiteral("Requesting to clear vocab data..."));
+        Vocab::ClearRequest clearRequest;
+        emit requestVocabClear(clearRequest);
+        return;
+    }
+
+    Vocab::LoadRequest loadRequest;
+    loadRequest.direction = m_trainingDirection;
     for (const auto &path : m_vocabSourcePaths)
     {
-        VocabFile::Info info;
-        info.filePath = path;
-        infos.append(info);
+        loadRequest.filePaths.append(path);
     }
-    request.infos = infos;
 
-    m_logger.verbose(logTag(), QStringLiteral("Emitting vocab load request..."));
-    emit requestVocabLoad(request);
+    m_logger.verbose(logTag(), QStringLiteral("Requesting to load vocab..."));
+    emit requestVocabLoad(loadRequest);
 }
 
 QWidget *MainView::createTrainingSettingsPanel()
 {
-    m_logger.verbose(logTag(), "Creating view settings panel...");
+    m_logger.verbose(logTag(), "Creating training settings panel...");
 
     auto *panel = new QWidget(this);
 
@@ -184,37 +333,37 @@ QWidget *MainView::createTrainingSettingsPanel()
     layout->addWidget(trainingSettingsGroup);
     layout->addWidget(m_startButton);
 
-    m_logger.verbose(logTag(), "Creating view settings panel done!");
+    m_logger.verbose(logTag(), "Creating training settings panel done!");
 
     return panel;
 }
 
-QWidget *MainView::createDisplayPanel()
+QWidget *MainView::createTrainingPanel()
 {
-    m_logger.verbose(logTag(), "Creating display panel...");
+    m_logger.verbose(logTag(), "Creating training panel...");
 
     auto *panel = new QWidget(this);
 
     // Create the stacked widget
-    m_displayStack = new QStackedWidget(panel);
+    m_trainingStack = new QStackedWidget(panel);
 
     // Create the individual views
-    m_welcomeView = createWelcomeView(m_displayStack);
-    m_loadingView = createLoadingView(m_displayStack);
-    m_errorView = createErrorView(m_displayStack);
-    m_trainingView = createTrainingView(m_displayStack);
+    m_lobbyView = createWelcomeView(m_trainingStack);
+    m_loadingView = createLoadingView(m_trainingStack);
+    m_errorView = createErrorView(m_trainingStack);
+    m_trainingView = createTrainingView(m_trainingStack);
 
     // Add views to the stack
-    m_displayStack->addWidget(m_welcomeView);
-    m_displayStack->addWidget(m_loadingView);
-    m_displayStack->addWidget(m_errorView);
-    m_displayStack->addWidget(m_trainingView);
+    m_trainingStack->addWidget(m_lobbyView);
+    m_trainingStack->addWidget(m_loadingView);
+    m_trainingStack->addWidget(m_errorView);
+    m_trainingStack->addWidget(m_trainingView);
 
     // Construct the layout
     auto *layout = new QVBoxLayout(panel);
-    layout->addWidget(m_displayStack);
+    layout->addWidget(m_trainingStack);
 
-    m_logger.verbose(logTag(), "Creating display panel done!");
+    m_logger.verbose(logTag(), "Creating training panel done!");
 
     return panel;
 }
@@ -243,16 +392,11 @@ QFrame *MainView::createVocabSourceFrame(QWidget *parent)
     frame->setFrameShape(QFrame::StyledPanel);
     frame->setFrameShadow(QFrame::Raised);
 
-
     // Allocate GUI components
-    m_vocabLabel = new QLabel(QStringLiteral("Vocabulary sources:"), frame);
-
+    m_vocabSourcesLabel = new QLabel(QStringLiteral("Sources:"), frame);
     m_addFilesButton = new QPushButton(QStringLiteral("Add files"), frame);
-
     m_addFoldersButton = new QPushButton(QStringLiteral("Add folders"), frame);
-
     m_removeSourceButton = new QPushButton(QStringLiteral("Remove selected"), frame);
-
     m_vocabSourceList = new QListWidget(frame);
 
     // Modify GUI component states
@@ -267,7 +411,7 @@ QFrame *MainView::createVocabSourceFrame(QWidget *parent)
 
     // Construct layout
     auto *layout = new QVBoxLayout(frame);
-    layout->addWidget(m_vocabLabel);
+    layout->addWidget(m_vocabSourcesLabel);
     layout->addLayout(buttonLayout);
     layout->addWidget(m_vocabSourceList);
     layout->addWidget(m_removeSourceButton);
@@ -286,23 +430,25 @@ QFrame *MainView::createTrainingDirectionFrame(QWidget *parent)
     frame->setFrameShadow(QFrame::Raised);
 
     // Allocate GUI components
-    m_switchDirectionLabel = new QLabel(QStringLiteral("Training direction:"), frame);
-    m_leftFlagLabel = new QLabel(frame);
-    auto *arrowLabel = new QLabel(QStringLiteral("→"), frame);
-    m_rightFlagLabel = new QLabel(frame);
+    m_switchDirectionLabel = new QLabel(QStringLiteral("Direction:"), frame);
+    m_switchDirectionKeyLabel = new QLabel(frame);
+    m_switchDirectionArrowLabel = new QLabel(frame);
+    m_switchDirectionValueLabel = new QLabel(frame);
     m_switchDirectionButton = new QPushButton(QStringLiteral("⇄"), frame);
 
     // Modify GUI component states
-    m_leftFlagLabel->setAlignment(Qt::AlignCenter);
-    m_rightFlagLabel->setAlignment(Qt::AlignCenter);
-    m_leftFlagLabel->setText(QStringLiteral("🇮🇹"));
-    m_rightFlagLabel->setText(QStringLiteral("🇫🇮"));
+    m_switchDirectionKeyLabel->setAlignment(Qt::AlignCenter);
+    m_switchDirectionValueLabel->setAlignment(Qt::AlignCenter);
+    m_switchDirectionArrowLabel->setAlignment(Qt::AlignCenter);
+    m_switchDirectionKeyLabel->setText(QStringLiteral("Question"));
+    m_switchDirectionArrowLabel->setText(QStringLiteral("→"));
+    m_switchDirectionValueLabel->setText(QStringLiteral("Answer"));
 
     QFont font;
-    font.setPointSize(DIRECTION_FONT_SIZE);
-    m_leftFlagLabel->setFont(font);
-    arrowLabel->setFont(font);
-    m_rightFlagLabel->setFont(font);
+    font.setBold(true);
+    m_switchDirectionKeyLabel->setFont(font);
+    m_switchDirectionArrowLabel->setFont(font);
+    m_switchDirectionValueLabel->setFont(font);
 
     m_switchDirectionButton->setToolTip(QStringLiteral("Switch training direction"));
 
@@ -315,9 +461,9 @@ QFrame *MainView::createTrainingDirectionFrame(QWidget *parent)
 
     auto *directionLayout = new QHBoxLayout();
     directionLayout->addStretch();
-    directionLayout->addWidget(m_leftFlagLabel);
-    directionLayout->addWidget(arrowLabel);
-    directionLayout->addWidget(m_rightFlagLabel);
+    directionLayout->addWidget(m_switchDirectionKeyLabel);
+    directionLayout->addWidget(m_switchDirectionArrowLabel);
+    directionLayout->addWidget(m_switchDirectionValueLabel);
     directionLayout->addStretch();
 
     auto *layout = new QVBoxLayout(frame);
@@ -339,7 +485,7 @@ QFrame *MainView::createVocabTreeFrame(QWidget *parent)
     frame->setFrameShadow(QFrame::Raised);
 
     // Allocate GUI components
-    m_vocabTreeLabel = new QLabel(QStringLiteral("Vocab contents"), frame);
+    m_vocabTreeLabel = new QLabel(QStringLiteral("Contents"), frame);
     m_vocabTree = createVocabularyTree(frame);
 
     // Construct the layout
@@ -393,7 +539,7 @@ QWidget *MainView::createLoadingView(QWidget *parent)
 {
     auto *view = new QWidget(parent);
 
-    auto *label = new QLabel(QStringLiteral("Loading vocabulary..."), view);
+    auto *label = new QLabel(QStringLiteral("Loading vocabulary data..."), view);
     label->setAlignment(Qt::AlignCenter);
 
     QFont font = label->font();
@@ -493,7 +639,7 @@ QWidget *MainView::createTrainingView(QWidget *parent)
     layout->addStretch(1);
     layout->addWidget(m_progressBar);
 
-    m_logger.verbose(logTag(), "Creating display panel done!");
+    m_logger.verbose(logTag(), "Creating training panel done!");
 
     return panel;
 }
@@ -622,6 +768,7 @@ void MainView::createConnections()
     connect(m_addFoldersButton, &QPushButton::clicked, this, &MainView::browseVocabFolder);
     connect(m_removeSourceButton, &QPushButton::clicked, this, &MainView::removeSelectedVocabSource);
     connect(m_switchDirectionButton, &QPushButton::clicked, this,&MainView::switchTrainingDirection);
+    connect(m_vocabTree, &QTreeWidget::itemChanged, this, &MainView::handleVocabTreeItemChanged);
 
     m_logger.verbose(logTag(), "Creating GUI component connections done!");
 }
@@ -702,26 +849,24 @@ QStringList MainView::findVocabFiles(const QString &path) const
 
     if (info.isFile())
     {
-        if (info.suffix().compare(
-                QStringLiteral("txt"), Qt::CaseInsensitive) == 0)
+        if (info.suffix().compare(QStringLiteral("txt"), Qt::CaseInsensitive) == 0)
         {
             return {info.absoluteFilePath()};
         }
 
+        m_logger.warning(logTag(), QStringLiteral("Skipping non-txt file '%1'...").arg(path));
         return {};
     }
 
     if (!info.isDir())
+    {
+        m_logger.warning(logTag(), QStringLiteral("Skipping invalid folder path '%1'...").arg(path));
         return {};
+    }
 
+    // Extract txt file paths inside given folder
     QStringList files;
-
-    QDirIterator iterator(
-        info.absoluteFilePath(),
-        QStringList{QStringLiteral("*.txt")},
-        QDir::Files,
-        QDirIterator::Subdirectories);
-
+    QDirIterator iterator(info.absoluteFilePath(), QStringList{QStringLiteral("*.txt")}, QDir::Files, QDirIterator::Subdirectories);
     while (iterator.hasNext())
     {
         files.append(QFileInfo(iterator.next()).absoluteFilePath());
@@ -747,5 +892,68 @@ void MainView::rebuildVocabSourcePaths()
     m_vocabSourcePaths = uniquePaths.values();
     m_vocabSourcePaths.sort(Qt::CaseInsensitive);
 
-    initializeVocabLoad();
+    initializeVocabChange();
+}
+
+void MainView::setSubtreeCheckState(QTreeWidgetItem *item, Qt::CheckState state)
+{
+    for (int i = 0; i < item->childCount(); i++)
+    {
+        auto *child = item->child(i);
+        child->setCheckState(0, state);
+        setSubtreeCheckState(child, state);
+    }
+}
+
+void MainView::updateParentCheckState(QTreeWidgetItem *parent)
+{
+    if (!parent || parent->childCount() == 0)
+    {
+        return;
+    }
+
+    bool allChecked = true;
+    bool allUnchecked = true;
+
+    for (int i = 0; i < parent->childCount(); i++)
+    {
+        const auto state = parent->child(i)->checkState(0);
+
+        allUnchecked &= state == Qt::Unchecked;
+        allChecked &= state == Qt::Checked;
+
+        if (!allChecked && !allUnchecked)
+        {
+            // Parent has both checked and unchecked children
+            break;
+        }
+    }
+
+    if (allChecked)
+    {
+        parent->setCheckState(0, Qt::Checked);
+    }
+    else if (allUnchecked)
+    {
+        parent->setCheckState(0, Qt::Unchecked);
+    }
+    else
+    {
+        parent->setCheckState(0, Qt::PartiallyChecked);
+    }
+}
+
+QTreeWidgetItem *MainView::findChildById(QTreeWidgetItem *parent, const QString &id)
+{
+    for (int i = 0; i < parent->childCount(); ++i)
+    {
+        auto *child = parent->child(i);
+
+        if (child->data(0, Qt::UserRole).toString() == id)
+        {
+            return child;
+        }
+    }
+
+    return nullptr;
 }

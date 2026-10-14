@@ -9,7 +9,7 @@ Logger::Logger(QObject *parent)
 {
 }
 
-void Logger::log(LogLevel::Level level, const QString &tag, const QString &message)
+void Logger::log(Level level, const QString &tag, const QString &message)
 {
     QThread *thread = QThread::currentThread();
     QString threadName = thread->objectName();
@@ -28,25 +28,25 @@ void Logger::log(LogLevel::Level level, const QString &tag, const QString &messa
 
 void Logger::info(const QString &tag, const QString &message)
 {
-    log(LogLevel::Level::Info, tag, message);
+    log(Level::Info, tag, message);
 }
 
 void Logger::warning(const QString &tag, const QString &message)
 {
-    log(LogLevel::Level::Warning, tag, message);
+    log(Level::Warning, tag, message);
 }
 
 void Logger::error(const QString &tag, const QString &message)
 {
-    log(LogLevel::Level::Error, tag, message);
+    log(Level::Error, tag, message);
 }
 
 void Logger::debug(const QString &tag, const QString &message)
 {
-    log(LogLevel::Level::Debug, tag, message);
+    log(Level::Debug, tag, message);
 }
 
 void Logger::verbose(const QString &tag, const QString &message)
 {
-    log(LogLevel::Level::Verbose, tag, message);
+    log(Level::Verbose, tag, message);
 }

@@ -1,4 +1,4 @@
-#include "loglevel.h"
+#include "log.h"
 
 namespace LogStrings
 {
@@ -10,9 +10,7 @@ namespace LogStrings
     inline const QString Unknown = QStringLiteral("UNKNOWN");
 }
 
-using namespace LogLevel;
-
-QString LogLevel::toString(Level level)
+QString Log::levelToQString(Level level)
 {
     switch (level)
     {
@@ -36,7 +34,7 @@ QString LogLevel::toString(Level level)
     return LogStrings::Unknown;
 }
 
-Level LogLevel::fromString(const QString &value)
+Log::Level Log::levelFromQString(const QString &value)
 {
     if (value == LogStrings::Info)
     {

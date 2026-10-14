@@ -2,9 +2,9 @@
 #define MAINWINDOW_H
 
 #include "Logging/logger.h"
+#include "DataTypes/log.h"
+#include "DataTypes/settings.h"
 #include "Application/settingshandler.h"
-#include "DataTypes/requests.h"
-#include "DataTypes/results.h"
 #include "mainview.h"
 #include "settingsview.h"
 #include "logview.h"
@@ -19,21 +19,25 @@ public:
     explicit MainWindow(Logger &logger, SettingsHandler &handler, QWidget *parent = nullptr);
 
 public slots:
-    void handleLogQueryRequest(const LogQueryRequest &request);
-    void handleLogQueryFinished(const LogQueryResult &result);
+    void handleLogQueryRequest(const Log::QueryRequest &request);
+    void handleLogQueryFinished(const Log::QueryResult &result);
 
-    void handleApplyNewSettingsRequest(const ApplyNewSettingsRequest &request);
-    void handleApplyNewSettingsFinished(const ApplyNewSettingsResult &result);
+    void handleApplyNewSettingsRequest(const Settings::ApplyNewRequest &request);
+    void handleApplyNewSettingsFinished(const Settings::ApplyNewResult &result);
 
-    void handleLoadVocabsRequest(const LoadVocabsRequest &request);
-    void handleLoadVocabDatasFinished(const LoadVocabDatasResult &result);
+    void handleLoadVocabRequest(const Vocab::LoadRequest &request);
+    void handleLoadVocabFinished(const Vocab::LoadResult &result);
+
+    void handleClearVocabRequest(const Vocab::ClearRequest &request);
+    void handleClearVocabFinished(const Vocab::ClearResult &result);
 
     void handleViewTabChanged(int index);
 
 signals:
-    void requestLogQuery(const LogQueryRequest &query);
-    void requestApplyNewSettings(const ApplyNewSettingsRequest &request);
-    void requestLoadVocabs(const LoadVocabsRequest &request);
+    void requestLogQuery(const Log::QueryRequest &query);
+    void requestApplyNewSettings(const Settings::ApplyNewRequest &request);
+    void requestLoadVocab(const Vocab::LoadRequest &request);
+    void requestClearVocab(const Vocab::ClearRequest &request);
 
 private:
     void initializeDialogService();

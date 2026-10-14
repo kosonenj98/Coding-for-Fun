@@ -30,47 +30,47 @@ MainWindow::MainWindow(Logger &logger, SettingsHandler &handler, QWidget *parent
     m_logger.verbose(logTag(), QStringLiteral("Constructing main window done!"));
 }
 
-void MainWindow::handleLogQueryRequest(const LogQueryRequest &request)
+void MainWindow::handleLogQueryRequest(const Log::QueryRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Emitting log query request..."));
     emit requestLogQuery(request);
 }
 
-void MainWindow::handleLogQueryFinished(const LogQueryResult &result)
+void MainWindow::handleLogQueryFinished(const Log::QueryResult &result)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling log query finished..."));
-    if (result.code != ErrorCode::Success)
+    if (result.code != Error::Code::Success)
     {
         m_logger.verbose(logTag(), QStringLiteral("Informing user about failed log query..."));
-        m_dialogService->showError(QStringLiteral("Log Query"), QStringLiteral("Log query failed: (%1)").arg(errorCodeToString(result.code)));
+        m_dialogService->showError(QStringLiteral("Log Query"), QStringLiteral("Log query failed: (%1)").arg(Error::codeToQString(result.code)));
         m_logger.verbose(logTag(), QStringLiteral("Informing user about failed log query done!"));
         return;
     }
-
-    m_logger.verbose(logTag(), QStringLiteral("Updating log view..."));
-    m_logView->updateView(result.entries);
-    m_logger.verbose(logTag(), QStringLiteral("Updating log view done!"));
 
     if (result.failedEntryCount > 0)
     {
         m_dialogService->showWarning(QStringLiteral("Log Query"), QStringLiteral("Skipped %1 faulty entries in selected log file.").arg(QString::number(result.failedEntryCount)));
     }
 
+    m_logger.verbose(logTag(), QStringLiteral("Updating log view..."));
+    m_logView->updateView(result.entries);
+    m_logger.verbose(logTag(), QStringLiteral("Updating log view done!"));
+
     m_logger.verbose(logTag(), QStringLiteral("Handling log query finished done!"));
 }
 
-void MainWindow::handleApplyNewSettingsRequest(const ApplyNewSettingsRequest &request)
+void MainWindow::handleApplyNewSettingsRequest(const Settings::ApplyNewRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Emitting request to apply the new settings..."));
     emit requestApplyNewSettings(request);
 }
 
-void MainWindow::handleApplyNewSettingsFinished(const ApplyNewSettingsResult &result)
+void MainWindow::handleApplyNewSettingsFinished(const Settings::ApplyNewResult &result)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling applying new settings finished..."));
-    if (result.code != ErrorCode::Success)
+    if (result.code != Error::Code::Success)
     {
-        m_dialogService->showError(QStringLiteral("Settings change"), QStringLiteral("Applying new settings failed: (%1)").arg(errorCodeToString(result.code)));
+        m_dialogService->showError(QStringLiteral("Settings change"), QStringLiteral("Applying new settings failed: (%1)").arg(Error::codeToQString(result.code)));
         m_settingsView->updateView(result.settings);
         return;
     }
@@ -79,18 +79,20 @@ void MainWindow::handleApplyNewSettingsFinished(const ApplyNewSettingsResult &re
     m_logger.verbose(logTag(), QStringLiteral("Handling applying new settings finished done!"));
 }
 
-void MainWindow::handleLoadVocabsRequest(const LoadVocabsRequest &request)
+void MainWindow::handleLoadVocabRequest(const Vocab::LoadRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Emitting request to load vocabs..."));
-    emit requestLoadVocabs(request);
+    m_mainView->showLoadingView();
+    emit requestLoadVocab(request);
 }
 
-void MainWindow::handleLoadVocabDatasFinished(const LoadVocabDatasResult &result)
+void MainWindow::handleLoadVocabFinished(const Vocab::LoadResult &result)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling load vocab datas finished..."));
-    if (result.code != ErrorCode::Success)
+    if (result.code != Error::Code::Success)
     {
-        m_dialogService->showError(QStringLiteral("Load vocab"), QStringLiteral("Loading selected vocabs failed: (%1)").arg(errorCodeToString(result.code)));
+        m_dialogService->showError(QStringLiteral("Load vocab"), QStringLiteral("Loading selected vocabs failed: (%1)").arg(Error::codeToQString(result.code)));
+        m_mainView->showErrorView(QStringLiteral("Failed to load the requested vocabs!"));
         return;
     }
 
@@ -99,15 +101,37 @@ void MainWindow::handleLoadVocabDatasFinished(const LoadVocabDatasResult &result
         m_dialogService->showWarning(QStringLiteral("Load vocab"), QStringLiteral("Failed to load %1 vocabs and %2 faulty entries from %3 vocabs.").arg(QString::number(result.failedVocabCount), QString::number(result.failedEntryCount), QString::number(result.partiallySucceededVocabCount)));
     }
 
-    m_mainView->updateVocabTree(result.infos);
+    m_mainView->updateView(result.contentInfos);
+    m_mainView->showTrainingView();
     m_logger.verbose(logTag(), QStringLiteral("Handling load vocab datas finished done!"));
+}
+
+void MainWindow::handleClearVocabRequest(const Vocab::ClearRequest &request)
+{
+    m_logger.debug(logTag(), QStringLiteral("Handling vocab clear request..."));
+    emit requestClearVocab(request);
+}
+
+void MainWindow::handleClearVocabFinished(const Vocab::ClearResult &result)
+{
+    m_logger.debug(logTag(), QStringLiteral("Log clear finished!"));
+
+    if (result.code != Error::Code::Success)
+    {
+        m_logger.error(logTag(), QStringLiteral("Failed to clear log! ErrorCode %1").arg(Error::codeToQString(result.code)));
+        m_dialogService->showError(QStringLiteral("Vocab clear"), QStringLiteral("Failed to clear log (%1).").arg(Error::codeToQString(result.code)));
+        return;
+    }
+
+    m_mainView->updateView({});
+    m_mainView->showLobbyView();
 }
 
 void MainWindow::handleViewTabChanged(int index)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling viewTabChanged..."));
     if (index == m_tabWidget->indexOf(m_logView)) {
-        m_logView->createInitialView();
+        m_logView->updateView();
     }
     m_logger.verbose(logTag(), QStringLiteral("Handling viewTabChanged done!"));
 }
@@ -123,7 +147,8 @@ void MainWindow::initializeMainView()
 {
     m_logger.verbose(logTag(), QStringLiteral("Initializing main view..."));
     m_mainView = new MainView(m_logger, this);
-    connect(m_mainView, &MainView::requestVocabLoad, this, &MainWindow::handleLoadVocabsRequest);
+    connect(m_mainView, &MainView::requestVocabLoad, this, &MainWindow::handleLoadVocabRequest);
+    connect(m_mainView, &MainView::requestVocabClear, this, &MainWindow::handleClearVocabRequest);
     m_logger.verbose(logTag(), QStringLiteral("Initializing main view done!"));
 }
 

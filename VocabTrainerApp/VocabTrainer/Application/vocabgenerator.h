@@ -1,61 +1,28 @@
 #ifndef VOCABGENERATOR_H
 #define VOCABGENERATOR_H
 
-#include "DataTypes/datatypes.h"
-#include "DataTypes/results.h"
 #include "Logging/logger.h"
-
-enum class BracketType
-{
-    Parenthesis,
-    Square,
-    Curly
-};
-
-struct BracketParts
-{
-    QString before;
-    QString inside;
-    QString after;
-};
-
-struct ExtractBracketPartsResult
-{
-    ErrorCode code = ErrorCode::Success;
-    QPair<BracketParts,BracketParts> parts;
-};
-
-struct ExtractBracketPartResult
-{
-    ErrorCode code = ErrorCode::Success;
-    BracketParts parts;
-};
-
-struct HandleBracketsResult
-{
-    ErrorCode code = ErrorCode::Success;
-    QList<VocabFile::Entry> entries;
-};
+#include "DataTypes/vocabgeneration.h"
 
 class VocabGenerator
 {
 public:
     VocabGenerator(Logger &logger);
 
-    const GenerateVocabDataResult generate(const VocabFile::Data& vocabFileData);
+    const VocabGeneration::GenerationResult generate(const VocabFile::Data& vocabFileData);
 
 private:
-    const GenerateVocabEntriesResult handleVocabFileEntries(const QList<VocabFile::Entry> &entries);
-    const GenerateVocabEntryVariantsResult generateVariants(const VocabFile::Entry &vocabFileEntry);
+    const VocabGeneration::GenerateEntriesResult handleVocabFileEntries(const QList<VocabFile::Entry> &entries);
+    const VocabGeneration::GenerateVariantsResult generateVariants(const VocabFile::Entry &vocabFileEntry);
 
-    QPair<QList<VocabFile::Entry>,QList<VocabFile::Entry>> extractEntriesWithVariants(const QList<VocabFile::Entry> &entries);
-    const ExtractBracketPartsResult extractInnermostBracketParts(const VocabFile::Entry &entry, const BracketType &type);
-    const ExtractBracketPartResult extractInnermostBracketPart(const QString &text, const BracketType &type);
-    const QString toString(BracketParts parts, bool inside = true);
+    QPair<QSet<VocabFile::Entry>, QSet<VocabFile::Entry>> extractEntriesWithVariants(const QSet<VocabFile::Entry> &entries);
+    const VocabGeneration::ExtractBracketPartsResult extractInnermostBracketParts(const VocabFile::Entry &entry, const VocabGeneration::BracketType &type);
+    const VocabGeneration::ExtractBracketPartResult extractInnermostBracketPart(const QString &text, const VocabGeneration::BracketType &type);
+    const QString toString(VocabGeneration::BracketParts parts, bool inside = true);
 
-    const HandleBracketsResult handleCurlyBraces(const QPair<BracketParts,BracketParts> &parts);
-    const HandleBracketsResult handleParenthesis(const QPair<BracketParts,BracketParts> &parts);
-    const HandleBracketsResult handleSquareBrackets(const QPair<BracketParts,BracketParts> &parts);
+    const VocabGeneration::HandleBracketsResult handleCurlyBraces(const QPair<VocabGeneration::BracketParts, VocabGeneration::BracketParts> &parts);
+    const VocabGeneration::HandleBracketsResult handleParenthesis(const QPair<VocabGeneration::BracketParts, VocabGeneration::BracketParts> &parts);
+    const VocabGeneration::HandleBracketsResult handleSquareBrackets(const QPair<VocabGeneration::BracketParts, VocabGeneration::BracketParts> &parts);
 
     void uniteEntries(Vocab::Entries &entries, const Vocab::Entries &newEntries);
     void uniteGroups(Vocab::GroupEntries &groupEntries, const Vocab::GroupEntries &newGroupEntries);

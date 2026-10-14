@@ -18,16 +18,14 @@ public slots:
     void writeEntry(const Log::Entry &entry);
     void flush();
     void setFilePath(const QString &newFilePath);
-    void handleGetAllLogEntriesRequest(const GetAllLogEntriesRequest &request);
+    void handleGetAllLogEntriesRequest(const Log::GetAllEntriesRequest &request);
     void shutdown();
 
 signals:
-    void getAllLogEntriesFinished(const GetAllLogEntriesResult &result);
+    void getAllLogEntriesFinished(const Log::GetAllEntriesResult &result);
 
 private:
-    const ReadAllResult readAll(const QString &filePath);
-
-    void logInternally(LogLevel::Level level, const QString &message);
+    void logInternally(Log::Level level, const QString &message);
     void info(const QString &message);
     void warning(const QString &message);
     void error(const QString &message);

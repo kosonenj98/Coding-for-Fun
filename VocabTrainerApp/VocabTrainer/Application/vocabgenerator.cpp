@@ -18,39 +18,47 @@ VocabGenerator::VocabGenerator(Logger &logger)
     m_logger.verbose(logTag(), QStringLiteral("Constructing vocab generator done!"));
 }
 
-const GenerateVocabDataResult VocabGenerator::generate(const VocabFile::Data &vocabFileData)
+const VocabGeneration::GenerationResult VocabGenerator::generate(const VocabFile::Data &vocabFileData)
 {
     m_logger.verbose(logTag(), QStringLiteral("Generating vocab data..."));
 
-    GenerateVocabDataResult result;
-    result.data.title = vocabFileData.info.vocabTitle;
+    VocabGeneration::GenerationResult result;
+    result.data.title = vocabFileData.title;
 
     // Generate entries without group
     m_logger.verbose(logTag(), QStringLiteral("Generating vocab data entries..."));
-    GenerateVocabEntriesResult generateEntriesResult = handleVocabFileEntries(vocabFileData.entries);
-    if (generateEntriesResult.code != ErrorCode::Success)
+    VocabGeneration::GenerateEntriesResult generateEntriesResult = handleVocabFileEntries(vocabFileData.entries);
+    if (generateEntriesResult.code != Error::Code::Success)
     {
-        m_logger.error(logTag(), QStringLiteral("Failed to generate vocab data entries! ErrorCode %1").arg(errorCodeToString(generateEntriesResult.code)));
+        m_logger.error(logTag(), QStringLiteral("Failed to generate vocab data entries! ErrorCode %1").arg(Error::codeToQString(generateEntriesResult.code)));
         result.code = generateEntriesResult.code;
         return result;
     }
 
     if (generateEntriesResult.failedEntryCount > 0)
     {
-        m_logger.warning(logTag(), QStringLiteral("Skipping %1 failed entries in vocab %2").arg(QString::number(generateEntriesResult.failedEntryCount), vocabFileData.info.vocabTitle));
+        m_logger.warning(logTag(), QStringLiteral("Skipping %1 failed entries in vocab %2").arg(QString::number(generateEntriesResult.failedEntryCount), vocabFileData.title));
     }
     result.failedEntryCount += generateEntriesResult.failedEntryCount;
 
     uniteEntries(result.data.entries, generateEntriesResult.entries);
     m_logger.verbose(logTag(), QStringLiteral("Generating vocab data entries done!"));
 
-    m_logger.verbose(logTag(), QStringLiteral("Generating vocab data entries under groups..."));
     // Generate entries under groups
+    m_logger.verbose(logTag(), QStringLiteral("Generating vocab data entries under groups..."));
     for (auto const &group : vocabFileData.groups)
     {
         m_logger.verbose(logTag(), QStringLiteral("Handling group '%1'...").arg(group.title));
-        GenerateVocabEntriesResult generateGroupEntriesResult = handleVocabFileEntries(group.entries);
-        if (generateGroupEntriesResult.code != ErrorCode::Success)
+
+        if (group.entries.isEmpty())
+        {
+            m_logger.warning(logTag(), QStringLiteral("Skipping empty group '%1'...").arg(group.title));
+            result.failedGroupCount++;
+            continue;
+        }
+
+        VocabGeneration::GenerateEntriesResult generateGroupEntriesResult = handleVocabFileEntries(group.entries);
+        if (generateGroupEntriesResult.code != Error::Code::Success)
         {
             m_logger.error(logTag(), QStringLiteral("Failed to generate entries for group '%1'!").arg(group.title));
             result.failedGroupCount++;
@@ -64,9 +72,17 @@ const GenerateVocabDataResult VocabGenerator::generate(const VocabFile::Data &vo
         }
         result.failedEntryCount += generateGroupEntriesResult.failedEntryCount;
 
+        int successCount = vocabFileData.groups.count() - result.failedGroupCount;
+        if (!(successCount > 0))
+        {
+            m_logger.error(logTag(), QStringLiteral("Failed to generate any groups for vocab file '%1'").arg(vocabFileData.title));
+            result.code = Error::Code::NoSucceededGroups;
+            return result;
+        }
+
+        // Save new generated group entries and unite them with previous group entries
         Vocab::GroupEntries newGroupEntries;
         newGroupEntries.insert(group.title, generateGroupEntriesResult.entries);
-
         uniteGroups(result.data.groupEntries, newGroupEntries);
     }
     m_logger.verbose(logTag(), QStringLiteral("Generating vocab data entries under groups done!"));
@@ -76,10 +92,10 @@ const GenerateVocabDataResult VocabGenerator::generate(const VocabFile::Data &vo
     return result;
 }
 
-const GenerateVocabEntriesResult VocabGenerator::handleVocabFileEntries(const QList<VocabFile::Entry> &entries)
+const VocabGeneration::GenerateEntriesResult VocabGenerator::handleVocabFileEntries(const QList<VocabFile::Entry> &entries)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling vocab file entries..."));
-    GenerateVocabEntriesResult result;
+    VocabGeneration::GenerateEntriesResult result;
 
     if (entries.isEmpty())
     {
@@ -89,8 +105,8 @@ const GenerateVocabEntriesResult VocabGenerator::handleVocabFileEntries(const QL
 
     for (const auto &entry : entries)
     {
-        GenerateVocabEntryVariantsResult generateVariantsResult = generateVariants(entry);
-        if (generateVariantsResult.code != ErrorCode::Success)
+        VocabGeneration::GenerateVariantsResult generateVariantsResult = generateVariants(entry);
+        if (generateVariantsResult.code != Error::Code::Success)
         {
             m_logger.error(logTag(), QStringLiteral("Failed to generate entry '%1 = %2'! Skipping...").arg(entry.first, entry.second));
             result.failedEntryCount++;
@@ -103,67 +119,70 @@ const GenerateVocabEntriesResult VocabGenerator::handleVocabFileEntries(const QL
     if (!(successCount > 0))
     {
         m_logger.error(logTag(), QStringLiteral("Failed to generate any entries!"));
-        result.code = ErrorCode::VocabNoEntries;
+        result.code = Error::Code::VocabNoEntries;
     }
 
     m_logger.verbose(logTag(), QStringLiteral("Handling vocab file entries done!"));
     return result;
 }
 
-const GenerateVocabEntryVariantsResult VocabGenerator::generateVariants(const VocabFile::Entry &vocabFileEntry)
+const VocabGeneration::GenerateVariantsResult VocabGenerator::generateVariants(const VocabFile::Entry &vocabFileEntry)
 {
     m_logger.verbose(logTag(), QStringLiteral("Generating variants..."));
-    GenerateVocabEntryVariantsResult result;
-    QList<VocabFile::Entry> generatedVocabFileEntries;
-    QList<VocabFile::Entry> entriesWithVariants;
+    VocabGeneration::GenerateVariantsResult result;
+    QSet<VocabFile::Entry> generatedVocabFileEntries;
+    QSet<VocabFile::Entry> entriesWithVariants;
 
+    // Separate entries to those with and without variants
     auto sepataredEntries = extractEntriesWithVariants({vocabFileEntry});
-    generatedVocabFileEntries.append(sepataredEntries.first);
+    generatedVocabFileEntries.unite(sepataredEntries.first);
     entriesWithVariants = sepataredEntries.second;
     
     m_logger.verbose(logTag(), QStringLiteral("Handling entries with variants..."));
     while(!entriesWithVariants.isEmpty())
     {
-        QList<VocabFile::Entry> newEntries;
-        QList<BracketType> handleBracketOrder = {BracketType::Curly, BracketType::Parenthesis, BracketType::Square};
-        for (const auto &entry : entriesWithVariants)
+        QSet<VocabFile::Entry> newEntries;
+        QList<VocabGeneration::BracketType> handleBracketOrder = {VocabGeneration::BracketType::Curly,
+                                                                  VocabGeneration::BracketType::Parenthesis,
+                                                                  VocabGeneration::BracketType::Square};
+        for (const auto &entry : std::as_const(entriesWithVariants))
         {
             m_logger.verbose(logTag(), QStringLiteral("Generating variants for entry '%1 = %2'...").arg(entry.first, entry.second));
             for (const auto &bracketType : handleBracketOrder)
             {
-                ExtractBracketPartsResult bracketPartsResult = extractInnermostBracketParts(entry, bracketType);
-                if (bracketPartsResult.code != ErrorCode::Success)
+                VocabGeneration::ExtractBracketPartsResult bracketPartsResult = extractInnermostBracketParts(entry, bracketType);
+                if (bracketPartsResult.code != Error::Code::Success)
                 {
-                    m_logger.error(logTag(), QStringLiteral("Failed to extract brackets! ErrorCode %1").arg(errorCodeToString(bracketPartsResult.code)));
+                    m_logger.error(logTag(), QStringLiteral("Failed to extract brackets! ErrorCode %1").arg(Error::codeToQString(bracketPartsResult.code)));
                     result.code = bracketPartsResult.code;
                     return result;
                 }
 
-                HandleBracketsResult handleBracketResult;
+                VocabGeneration::HandleBracketsResult handleBracketResult;
                 switch (bracketType)
                 {
-                case BracketType::Curly:
+                case VocabGeneration::BracketType::Curly:
                     handleBracketResult = handleCurlyBraces(bracketPartsResult.parts);
                     break;
 
-                case BracketType::Parenthesis:
+                case VocabGeneration::BracketType::Parenthesis:
                     handleBracketResult = handleParenthesis(bracketPartsResult.parts);
                     break;
 
-                case BracketType::Square:
+                case VocabGeneration::BracketType::Square:
                     handleBracketResult = handleSquareBrackets(bracketPartsResult.parts);
                     break;
 
                 default:
-                    result.code = ErrorCode::UnsupportedBracket;
+                    result.code = Error::Code::UnsupportedBracket;
                     m_logger.error(logTag(), QStringLiteral("Unsupported bracket type!"));
                     return result;
                     break;
                 }
 
-                if (handleBracketResult.code != ErrorCode::Success)
+                if (handleBracketResult.code != Error::Code::Success)
                 {
-                    m_logger.error(logTag(), QStringLiteral("Failed to handle brackets! ErrorCode %1").arg(errorCodeToString(handleBracketResult.code)));
+                    m_logger.error(logTag(), QStringLiteral("Failed to handle brackets! ErrorCode %1").arg(Error::codeToQString(handleBracketResult.code)));
                     result.code = handleBracketResult.code;
                     return result;
                 }
@@ -172,7 +191,7 @@ const GenerateVocabEntryVariantsResult VocabGenerator::generateVariants(const Vo
                 {
                     // Parse entry only one bracket at a time
                     m_logger.verbose(logTag(), QStringLiteral("Adding newly generated variants..."));
-                    newEntries.append(handleBracketResult.entries);
+                    newEntries.unite(handleBracketResult.entries);
                     break;
                 }
             }
@@ -180,7 +199,7 @@ const GenerateVocabEntryVariantsResult VocabGenerator::generateVariants(const Vo
 
         // Extract entries with variants
         sepataredEntries = extractEntriesWithVariants(newEntries);
-        generatedVocabFileEntries.append(sepataredEntries.first);
+        generatedVocabFileEntries.unite(sepataredEntries.first);
         entriesWithVariants = sepataredEntries.second;
     }
     m_logger.verbose(logTag(), QStringLiteral("Handling entries with variants done!"));
@@ -196,7 +215,7 @@ const GenerateVocabEntryVariantsResult VocabGenerator::generateVariants(const Vo
     return result;
 }
 
-QPair<QList<VocabFile::Entry>, QList<VocabFile::Entry> > VocabGenerator::extractEntriesWithVariants(const QList<VocabFile::Entry> &entries)
+QPair<QSet<VocabFile::Entry>, QSet<VocabFile::Entry>> VocabGenerator::extractEntriesWithVariants(const QSet<VocabFile::Entry> &entries)
 {
     const QStringList variantIndicators = {QStringLiteral("("),
                                            QStringLiteral(")"),
@@ -205,8 +224,8 @@ QPair<QList<VocabFile::Entry>, QList<VocabFile::Entry> > VocabGenerator::extract
                                            QStringLiteral("{"),
                                            QStringLiteral("}")};
 
-    QList<VocabFile::Entry> entriesWithoutVariants;
-    QList<VocabFile::Entry> entriesWithVariants;
+    QSet<VocabFile::Entry> entriesWithoutVariants;
+    QSet<VocabFile::Entry> entriesWithVariants;
     for (const auto &entry : entries)
     {
         bool hasVariant = false;
@@ -214,7 +233,7 @@ QPair<QList<VocabFile::Entry>, QList<VocabFile::Entry> > VocabGenerator::extract
         {
             if (entry.first.contains(indicator) || entry.second.contains(indicator))
             {
-                entriesWithVariants.append(entry);
+                entriesWithVariants.insert(entry);
                 hasVariant = true;
                 break;
             }
@@ -222,28 +241,28 @@ QPair<QList<VocabFile::Entry>, QList<VocabFile::Entry> > VocabGenerator::extract
 
         if (!hasVariant)
         {
-            entriesWithoutVariants.append(entry);
+            entriesWithoutVariants.insert(entry);
         }
     }
 
     return {entriesWithoutVariants, entriesWithVariants};
 }
 
-const ExtractBracketPartsResult VocabGenerator::extractInnermostBracketParts(const VocabFile::Entry &entry, const BracketType &type)
+const VocabGeneration::ExtractBracketPartsResult VocabGenerator::extractInnermostBracketParts(const VocabFile::Entry &entry, const VocabGeneration::BracketType &type)
 {
-    ExtractBracketPartsResult result;
+    VocabGeneration::ExtractBracketPartsResult result;
 
     // Extract brackets from key
-    ExtractBracketPartResult keyResult = extractInnermostBracketPart(entry.first, type);
-    if (keyResult.code != ErrorCode::Success)
+    VocabGeneration::ExtractBracketPartResult keyResult = extractInnermostBracketPart(entry.first, type);
+    if (keyResult.code != Error::Code::Success)
     {
         result.code = keyResult.code;
         return result;
     }
 
     // Extract brackets from value
-    ExtractBracketPartResult valueResult = extractInnermostBracketPart(entry.second, type);
-    if (valueResult.code != ErrorCode::Success)
+    VocabGeneration::ExtractBracketPartResult valueResult = extractInnermostBracketPart(entry.second, type);
+    if (valueResult.code != Error::Code::Success)
     {
         result.code = valueResult.code;
         return result;
@@ -253,31 +272,31 @@ const ExtractBracketPartsResult VocabGenerator::extractInnermostBracketParts(con
     return result;
 }
 
-const ExtractBracketPartResult VocabGenerator::extractInnermostBracketPart(const QString &text, const BracketType &type)
+const VocabGeneration::ExtractBracketPartResult VocabGenerator::extractInnermostBracketPart(const QString &text, const VocabGeneration::BracketType &type)
 {
-    ExtractBracketPartResult result;
+    VocabGeneration::ExtractBracketPartResult result;
 
     QChar openingBracket;
     QChar closingBracket;
     switch (type)
     {
-    case BracketType::Parenthesis:
+    case VocabGeneration::BracketType::Parenthesis:
         openingBracket = '(';
         closingBracket = ')';
         break;
 
-    case BracketType::Square:
+    case VocabGeneration::BracketType::Square:
         openingBracket = '[';
         closingBracket = ']';
         break;
 
-    case BracketType::Curly:
+    case VocabGeneration::BracketType::Curly:
         openingBracket = '{';
         closingBracket = '}';
         break;
 
     default:
-        result.code = ErrorCode::UnsupportedBracket;
+        result.code = Error::Code::UnsupportedBracket;
         return result;
         break;
     }
@@ -305,7 +324,7 @@ const ExtractBracketPartResult VocabGenerator::extractInnermostBracketPart(const
         {
             if (stack.isEmpty())
             {
-                result.code = ErrorCode::MismatchingBrackets;
+                result.code = Error::Code::MismatchingBrackets;
                 return result;
             }
 
@@ -316,7 +335,7 @@ const ExtractBracketPartResult VocabGenerator::extractInnermostBracketPart(const
                                  (opening.bracket == '{' && ch == '}');
             if (!matches)
             {
-                result.code = ErrorCode::MismatchingBrackets;
+                result.code = Error::Code::MismatchingBrackets;
                 return result;
             }
 
@@ -332,7 +351,7 @@ const ExtractBracketPartResult VocabGenerator::extractInnermostBracketPart(const
     // All opening brackets must have a matching closing bracket.
     if (!stack.isEmpty())
     {
-        result.code = ErrorCode::MismatchingBrackets;
+        result.code = Error::Code::MismatchingBrackets;
         return result;
     }
 
@@ -351,7 +370,7 @@ const ExtractBracketPartResult VocabGenerator::extractInnermostBracketPart(const
     return result;
 }
 
-const QString VocabGenerator::toString(BracketParts parts, bool inside)
+const QString VocabGenerator::toString(VocabGeneration::BracketParts parts, bool inside)
 {
     QString result;
     bool spaceAfterFirstPart = true;
@@ -379,13 +398,13 @@ const QString VocabGenerator::toString(BracketParts parts, bool inside)
     return result;
 }
 
-const HandleBracketsResult VocabGenerator::handleCurlyBraces(const QPair<BracketParts, BracketParts> &parts)
+const VocabGeneration::HandleBracketsResult VocabGenerator::handleCurlyBraces(const QPair<VocabGeneration::BracketParts, VocabGeneration::BracketParts> &parts)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling variants with curly braces..."));
-    HandleBracketsResult result;
+    VocabGeneration::HandleBracketsResult result;
 
-    BracketParts keyParts = parts.first;
-    BracketParts valueParts = parts.second;
+    VocabGeneration::BracketParts keyParts = parts.first;
+    VocabGeneration::BracketParts valueParts = parts.second;
 
     if (keyParts.inside.isEmpty() && valueParts.inside.isEmpty())
     {
@@ -395,22 +414,22 @@ const HandleBracketsResult VocabGenerator::handleCurlyBraces(const QPair<Bracket
     }
 
     // Generate cartesian product of entries
-    result.entries.append({{toString(keyParts), toString(valueParts)},
-                       {toString(keyParts), toString(valueParts, false)},
-                       {toString(keyParts, false), toString(valueParts)},
-                       {toString(keyParts, false), toString(valueParts, false)}});
+    result.entries.unite({{toString(keyParts), toString(valueParts)},
+                          {toString(keyParts), toString(valueParts, false)},
+                          {toString(keyParts, false), toString(valueParts)},
+                          {toString(keyParts, false), toString(valueParts, false)}});
 
     m_logger.verbose(logTag(), QStringLiteral("Handling variants with curly braces done!"));
     return result;
 }
 
-const HandleBracketsResult VocabGenerator::handleParenthesis(const QPair<BracketParts, BracketParts> &parts)
+const VocabGeneration::HandleBracketsResult VocabGenerator::handleParenthesis(const QPair<VocabGeneration::BracketParts, VocabGeneration::BracketParts> &parts)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling variants with parenthesis..."));
-    HandleBracketsResult result;
+    VocabGeneration::HandleBracketsResult result;
 
-    BracketParts keyParts = parts.first;
-    BracketParts valueParts = parts.second;
+    VocabGeneration::BracketParts keyParts = parts.first;
+    VocabGeneration::BracketParts valueParts = parts.second;
 
     if (keyParts.inside.isEmpty() && valueParts.inside.isEmpty())
     {
@@ -422,32 +441,32 @@ const HandleBracketsResult VocabGenerator::handleParenthesis(const QPair<Bracket
     // Generate 1:1 mapping
     if (keyParts.inside.isEmpty())
     {
-        result.entries.append({{toString(keyParts), toString(valueParts)},
-                           {toString(keyParts), toString(valueParts, false)}});
+        result.entries.unite({{toString(keyParts), toString(valueParts)},
+                              {toString(keyParts), toString(valueParts, false)}});
     }
     else if (valueParts.inside.isEmpty())
     {
-        result.entries.append({{toString(keyParts), toString(valueParts)},
-                           {toString(keyParts, false), toString(valueParts)}});
+        result.entries.unite({{toString(keyParts), toString(valueParts)},
+                              {toString(keyParts, false), toString(valueParts)}});
     }
     else
     {
-        result.entries.append({{toString(keyParts), toString(valueParts)},
-                           {toString(keyParts, false), toString(valueParts, false)}});
+        result.entries.unite({{toString(keyParts), toString(valueParts)},
+                              {toString(keyParts, false), toString(valueParts, false)}});
     }
 
     m_logger.verbose(logTag(), QStringLiteral("Handling variants with parenthesis done!"));
     return result;
 }
 
-const HandleBracketsResult VocabGenerator::handleSquareBrackets(const QPair<BracketParts, BracketParts> &parts)
+const VocabGeneration::HandleBracketsResult VocabGenerator::handleSquareBrackets(const QPair<VocabGeneration::BracketParts, VocabGeneration::BracketParts> &parts)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling variants with square brackets..."));
 
-    HandleBracketsResult result;
+    VocabGeneration::HandleBracketsResult result;
 
-    BracketParts keyParts = parts.first;
-    BracketParts valueParts = parts.second;
+    VocabGeneration::BracketParts keyParts = parts.first;
+    VocabGeneration::BracketParts valueParts = parts.second;
 
     if (keyParts.inside.isEmpty() && valueParts.inside.isEmpty())
     {
@@ -462,12 +481,12 @@ const HandleBracketsResult VocabGenerator::handleSquareBrackets(const QPair<Brac
         QStringList valueOptions = valueParts.inside.split('/');
         for (auto const &option : valueOptions)
         {
-            BracketParts valueOptionParts;
+            VocabGeneration::BracketParts valueOptionParts;
             valueOptionParts.before = valueParts.before;
             valueOptionParts.inside = option.trimmed();
             valueOptionParts.after = valueParts.after;
 
-            result.entries.append({{toString(keyParts), toString(valueOptionParts)}});
+            result.entries.unite({{toString(keyParts), toString(valueOptionParts)}});
         }
     }
     else if (valueParts.inside.isEmpty())
@@ -475,12 +494,12 @@ const HandleBracketsResult VocabGenerator::handleSquareBrackets(const QPair<Brac
         QStringList keyOptions = keyParts.inside.split('/');
         for (auto const &option : keyOptions)
         {
-            BracketParts keyOptionParts;
+            VocabGeneration::BracketParts keyOptionParts;
             keyOptionParts.before = keyParts.before;
             keyOptionParts.inside = option.trimmed();
             keyOptionParts.after = keyParts.after;
 
-            result.entries.append({{toString(keyOptionParts), toString(valueParts)}});
+            result.entries.unite({{toString(keyOptionParts), toString(valueParts)}});
         }
     }
     else
@@ -490,23 +509,23 @@ const HandleBracketsResult VocabGenerator::handleSquareBrackets(const QPair<Brac
 
         if(keyOptions.size() != valueOptions.size())
         {
-            result.code = ErrorCode::MismatchingOptions;
+            result.code = Error::Code::MismatchingOptions;
             return result;
         }
         int optionsCount = keyOptions.count();
         for (int i = 0; i < optionsCount; i++)
         {
-            BracketParts keyOptionParts;
+            VocabGeneration::BracketParts keyOptionParts;
             keyOptionParts.before = keyParts.before;
             keyOptionParts.inside = keyOptions.at(i).trimmed();
             keyOptionParts.after = keyParts.after;
 
-            BracketParts valueOptionParts;
+            VocabGeneration::BracketParts valueOptionParts;
             valueOptionParts.before = valueParts.before;
             valueOptionParts.inside = valueOptions.at(i).trimmed();
             valueOptionParts.after = valueParts.after;
 
-            result.entries.append({{toString(keyOptionParts), toString(valueOptionParts)}});
+            result.entries.unite({{toString(keyOptionParts), toString(valueOptionParts)}});
         }
     }
 

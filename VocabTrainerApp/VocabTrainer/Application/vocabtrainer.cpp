@@ -40,45 +40,40 @@ void VocabTrainer::initialize()
     m_logger.verbose(logTag(), QStringLiteral("Initializing VocabTrainer done! Running on thread '0x%1' (%2).").arg(threadId, threadName));
 }
 
-void VocabTrainer::handleLogQueryRequest(const LogQueryRequest &request)
+void VocabTrainer::handleLogQueryRequest(const Log::QueryRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling log query request..."));
     m_logService->queryLog(request);
 }
 
-void VocabTrainer::handleLogQueryFinished(const LogQueryResult &result)
+void VocabTrainer::handleLogQueryFinished(const Log::QueryResult &result)
 {
+    m_logger.debug(logTag(), QStringLiteral("Log query finished!"));
     emit logQueryFinished(result);
 }
 
-void VocabTrainer::handleLoadVocabRequest(const LoadVocabRequest &request)
+void VocabTrainer::handleLoadVocabRequest(const Vocab::LoadRequest &request)
 {
+    m_logger.debug(logTag(), QStringLiteral("Handling load vocab request..."));
     m_dataService->loadVocab(request);
 }
 
-void VocabTrainer::handleLoadVocabInfoFinished(const LoadVocabInfoResult &result)
+void VocabTrainer::handleLoadVocabFinished(const Vocab::LoadResult &result)
 {
-    emit loadVocabInfoFinished(result);
+    m_logger.debug(logTag(), QStringLiteral("Load vocab done!"));
+    emit loadVocabFinished(result);
 }
 
-void VocabTrainer::handleLoadVocabDataFinished(const LoadVocabDataResult &result)
+void VocabTrainer::handleClearVocabRequest(const Vocab::ClearRequest &request)
 {
-    emit loadVocabDataFinished(result);
+    m_logger.debug(logTag(), QStringLiteral("Handling vocab clear request..."));
+    m_dataService->clearVocab(request);
 }
 
-void VocabTrainer::handleLoadVocabsRequest(const LoadVocabsRequest &request)
+void VocabTrainer::handleClearVocabFinished(const Vocab::ClearResult &result)
 {
-    m_dataService->loadVocabs(request);
-}
-
-void VocabTrainer::handleLoadVocabInfosFinished(const LoadVocabInfosResult &result)
-{
-    emit loadVocabsInfosFinished(result);
-}
-
-void VocabTrainer::handleLoadVocabDatasFinished(const LoadVocabDatasResult &result)
-{
-    emit loadVocabDatasFinished(result);
+    m_logger.debug(logTag(), QStringLiteral("Vocab clear request done!"));
+    emit clearVocabFinished(result);
 }
 
 void VocabTrainer::shutdown()
@@ -108,18 +103,9 @@ void VocabTrainer::initializeDataService()
 {
     m_logger.verbose(logTag(), QStringLiteral("Initializing data service..."));
     m_dataService = new DataService(m_logger, this);
-
-    // Single load
-    connect(m_dataService, &DataService::readVocabFile, m_vocabFileHandler, &VocabFileHandler::read);
-    connect(m_vocabFileHandler, &VocabFileHandler::readInfoFinished, m_dataService, &DataService::handleVocabFileReadInfoFinished);
-    connect(m_vocabFileHandler, &VocabFileHandler::readDataFinished, m_dataService, &DataService::handleVocabFileReadDataFinished);
-
-    // Multiple load
-    connect(m_dataService, &DataService::readVocabFiles, m_vocabFileHandler, &VocabFileHandler::readMultiple);
-    connect(m_vocabFileHandler, &VocabFileHandler::readInfosFinished, m_dataService, &DataService::handleVocabFileReadInfosFinished);
-    connect(m_vocabFileHandler, &VocabFileHandler::readDatasFinished, m_dataService, &DataService::handleVocabFileReadDatasFinished);
-
-    connect(m_dataService, &DataService::loadVocabDatasFinished, this, &VocabTrainer::handleLoadVocabDatasFinished);
-
+    connect(m_dataService, &DataService::requestVocabFileRead, m_vocabFileHandler, &VocabFileHandler::handleReadRequest);
+    connect(m_vocabFileHandler, &VocabFileHandler::readFinished, m_dataService, &DataService::handleVocabFileReadFinished);
+    connect(m_dataService, &DataService::loadVocabFinished, this, &VocabTrainer::handleLoadVocabFinished);
+    connect(m_dataService, &DataService::clearVocabFinished, this, &VocabTrainer::handleClearVocabFinished);
     m_logger.verbose(logTag(), QStringLiteral("Initializing data service done!"));
 }

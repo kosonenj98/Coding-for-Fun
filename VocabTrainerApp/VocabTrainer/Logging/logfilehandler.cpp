@@ -19,7 +19,7 @@ namespace
 using namespace Log;
 
 LogFileHandler::LogFileHandler(SettingsHandler &handler, QObject *parent)
-    : QObject{parent}, m_settingsHandler(handler), m_logFile(handler.getLogFilePath())
+    : QObject{parent}, m_settingsHandler(handler), m_logFile(handler.settings().logFilePath)
 {
     // Cannot log before initializing is finished!
 }
@@ -55,7 +55,7 @@ void LogFileHandler::writeEntry(const Entry &entry)
     m_entriesSinceFlush++;
 
     // Flush error messaged immediately. Else flush if flush interval is exceeded
-    if (entry.level == LogLevel::Level::Error || m_entriesSinceFlush >= FlushInterval)
+    if (entry.level == Log::Level::Error || m_entriesSinceFlush >= FlushInterval)
     {
         flush();
     }
@@ -116,57 +116,20 @@ void LogFileHandler::setFilePath(const QString &newFilePath)
     verbose(QStringLiteral("Setting new log file path done!"));
 }
 
-void LogFileHandler::handleGetAllLogEntriesRequest(const GetAllLogEntriesRequest &request)
+void LogFileHandler::handleGetAllLogEntriesRequest(const GetAllEntriesRequest &request)
 {
-    GetAllLogEntriesResult result;
-    result.request = request.request;
+    Log::GetAllEntriesResult result;
+    result.query = request.query;
 
-    ReadAllResult readAllResult = readAll(request.request.filePath);
-
-    if (readAllResult.code != ErrorCode::Success)
-    {
-        result.code = readAllResult.code;
-        emit getAllLogEntriesFinished(result);
-        return;
-    }
-
-    if (readAllResult.failedEntryCount > 0)
-    {
-        warning(QStringLiteral("Skipped %1 faulty log entries in log file '%2'").arg(QString::number(readAllResult.failedEntryCount), request.request.filePath));
-    }
-    result.failedEntryCount = readAllResult.failedEntryCount;
-    result.entries = readAllResult.entries;
-
-    emit getAllLogEntriesFinished(result);
-}
-
-void LogFileHandler::shutdown()
-{
-    verbose(QStringLiteral("Shutting down... Goodbye!"));
-    flush();
-
-    if (m_logFile.isOpen())
-    {
-        m_logFile.close();
-    }
-
-    if (m_flushTimer->isActive())
-    {
-        m_flushTimer->stop();
-    }
-}
-
-const ReadAllResult LogFileHandler::readAll(const QString &filePath)
-{
-    ReadAllResult result;
-
+    const QString &filePath = request.query.filePath;
     verbose(QStringLiteral("Opening file '%1'...").arg(filePath));
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         error(QStringLiteral("Failed to open '%1': '%2' (FileError '%3')").arg(filePath, file.errorString(), QString::number(file.error())));
-        result.code = ErrorCode::FileOpenFailed;
-        return result;
+        result.code = Error::Code::FileOpenFailed;
+        emit getAllLogEntriesFinished(result);
+        return;
     }
     verbose(QStringLiteral("Opening file '%1' succeeded!").arg(filePath));
 
@@ -191,10 +154,10 @@ const ReadAllResult LogFileHandler::readAll(const QString &filePath)
         }
 
         Entry entry;
-        const ErrorCode code = LogEntryFormatter::fromJson(document.object(), entry);
-        if (code != ErrorCode::Success)
+        const Error::Code code = LogEntryFormatter::fromJson(document.object(), entry);
+        if (code != Error::Code::Success)
         {
-            error(QStringLiteral("Parsing log entry failed! Line: '%1' (ErrorCode '%2')").arg(QString::fromUtf8(line), QString::number(static_cast<int>(code))));
+            error(QStringLiteral("Parsing log entry failed! Line: '%1' (ErrorCode '%2'). Skipping...").arg(QString::fromUtf8(line), QString::number(static_cast<int>(code))));
             result.failedEntryCount++;
             continue;
         }
@@ -204,10 +167,31 @@ const ReadAllResult LogFileHandler::readAll(const QString &filePath)
 
     file.close();
 
-    return result;
+    if (result.failedEntryCount > 0)
+    {
+        warning(QStringLiteral("Skipped %1 faulty log entries in log file '%2'").arg(QString::number(result.failedEntryCount), filePath));
+    }
+
+    emit getAllLogEntriesFinished(result);
 }
 
-void LogFileHandler::logInternally(LogLevel::Level level, const QString &message)
+void LogFileHandler::shutdown()
+{
+    verbose(QStringLiteral("Shutting down... Goodbye!"));
+    flush();
+
+    if (m_logFile.isOpen())
+    {
+        m_logFile.close();
+    }
+
+    if (m_flushTimer->isActive())
+    {
+        m_flushTimer->stop();
+    }
+}
+
+void LogFileHandler::logInternally(Log::Level level, const QString &message)
 {
     Entry entry;
     entry.threadId = QThread::currentThreadId();
@@ -224,32 +208,33 @@ void LogFileHandler::logInternally(LogLevel::Level level, const QString &message
 
 void LogFileHandler::info(const QString &message)
 {
-    logInternally(LogLevel::Level::Info, message);
+    logInternally(Log::Level::Info, message);
 }
 
 void LogFileHandler::warning(const QString &message)
 {
-    logInternally(LogLevel::Level::Warning, message);
+    logInternally(Log::Level::Warning, message);
 }
 
 void LogFileHandler::error(const QString &message)
 {
-    logInternally(LogLevel::Level::Error, message);
+    logInternally(Log::Level::Error, message);
 }
 
 void LogFileHandler::debug(const QString &message)
 {
-    logInternally(LogLevel::Level::Debug, message);
+    logInternally(Log::Level::Debug, message);
 }
 
 void LogFileHandler::verbose(const QString &message)
 {
-    logInternally(LogLevel::Level::Verbose, message);
+    logInternally(Log::Level::Verbose, message);
 }
 
 bool LogFileHandler::isLoggingEnabled(const Entry &entry)
 {
-    if (!m_settingsHandler.getLogEnabled())
+    const Settings::Settings &settings = m_settingsHandler.settings();
+    if (!settings.logEnabled)
     {
         // Logging is disabled from settings
         return false;
@@ -258,20 +243,20 @@ bool LogFileHandler::isLoggingEnabled(const Entry &entry)
     // Check if entry's log level is enabled
     switch (entry.level)
     {
-    case LogLevel::Level::Info:
-        return m_settingsHandler.getLogInfoEnabled();
+    case Log::Level::Info:
+        return settings.logInfoEnabled;
 
-    case LogLevel::Level::Warning:
-        return m_settingsHandler.getLogWarningEnabled();
+    case Log::Level::Warning:
+        return settings.logWarningEnabled;
 
-    case LogLevel::Level::Error:
-        return m_settingsHandler.getLogErrorEnabled();
+    case Log::Level::Error:
+        return settings.logErrorEnabled;
 
-    case LogLevel::Level::Debug:
-        return m_settingsHandler.getLogDebugEnabled();
+    case Log::Level::Debug:
+        return settings.logDebugEnabled;
 
-    case LogLevel::Level::Verbose:
-        return m_settingsHandler.getLogVerboseEnabled();
+    case Log::Level::Verbose:
+        return settings.logVerboseEnabled;
     }
 
     // TODO: Assert here?

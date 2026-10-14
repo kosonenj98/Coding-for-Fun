@@ -16,148 +16,75 @@ DataService::DataService(Logger &logger, QObject *parent)
     m_logger.verbose(logTag(), QStringLiteral("Initializing data service done!"));
 }
 
-void DataService::loadVocab(const LoadVocabRequest &request)
+void DataService::loadVocab(const Vocab::LoadRequest &request)
 {
-    ReadVocabFileRequest readRequest;
-    readRequest.filePath = request.info.filePath;
-    readRequest.mode = request.mode;
-    emit readVocabFile(readRequest);
+    m_logger.debug(logTag(), QStringLiteral("Handling loading vocabs..."));
+    VocabFile::ReadRequest readRequest;
+    readRequest.filePaths = request.filePaths;
+    readRequest.direction = request.direction;
+    emit requestVocabFileRead(readRequest);
+    m_logger.debug(logTag(), QStringLiteral("Handling loading vocabs done!"));
 }
 
-void DataService::loadVocabs(const LoadVocabsRequest &request)
+void DataService::clearVocab(const Vocab::ClearRequest &request)
 {
-    ReadVocabFilesRequest readMultipleRequest;
-    readMultipleRequest.mode = request.mode;
-    for (const auto &info : request.infos)
-    {
-        readMultipleRequest.filePaths.append(info.filePath);
-    }
-    emit readVocabFiles(readMultipleRequest);
-}
+    Q_UNUSED(request);
+    m_logger.debug(logTag(), QStringLiteral("Clearing vocab..."));
 
-
-void DataService::handleVocabFileReadInfoFinished(const ReadVocabFileInfoResult &result)
-{
-    LoadVocabInfoResult loadVocabInfoResult;
-    if (result.code != ErrorCode::Success)
-    {
-        m_logger.error(logTag(), QStringLiteral("Failed to load vocab file '%1' (%2)").arg(result.info.filePath, errorCodeToString(result.code)));
-        loadVocabInfoResult.code = result.code;
-        emit loadVocabInfoFinished(loadVocabInfoResult);
-        return;
-    }
-
-    loadVocabInfoResult.info = result.info;
-    emit loadVocabInfoFinished(loadVocabInfoResult);
-}
-
-void DataService::handleVocabFileReadInfosFinished(const ReadVocabFileInfosResult &result)
-{
-    LoadVocabInfosResult loadVocabInfosResult;
-    if (result.code != ErrorCode::Success)
-    {
-        m_logger.error(logTag(), QStringLiteral("Failed to load vocab files (%1)").arg(errorCodeToString(result.code)));
-        loadVocabInfosResult.code = result.code;
-        emit loadVocabInfosFinished(loadVocabInfosResult);
-        return;
-    }
-
-    for (const auto &info : result.infos)
-    {
-        loadVocabInfosResult.infos.append(info);
-    }
-
-    emit loadVocabInfosFinished(loadVocabInfosResult);
-}
-
-void DataService::handleVocabFileReadDataFinished(const ReadVocabFileDataResult &result)
-{
-    LoadVocabDataResult loadVocabDataResult;
-    if (result.code != ErrorCode::Success)
-    {
-        m_logger.error(logTag(), QStringLiteral("Failed to load vocab file '%1' (%2)").arg(result.data.info.filePath, errorCodeToString(result.code)));
-        loadVocabDataResult.code = result.code;
-        emit loadVocabDataFinished(loadVocabDataResult);
-        return;
-    }
-
-    if (result.failedEntryCount > 0)
-    {
-        m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty entries in vocab '%2' (%3) during reading").arg(QString::number(result.failedEntryCount), result.data.info.vocabTitle, result.data.info.filePath));
-    }
-    loadVocabDataResult.failedEntryCount = result.failedEntryCount;
-
-    GenerateVocabDataResult createVocabDataResult = createVocabData(result.data);
-
-    if (createVocabDataResult.code != ErrorCode::Success)
-    {
-        m_logger.error(logTag(), QStringLiteral("Failed to create data for vocab '%1' (%2)").arg(result.data.info.vocabTitle, errorCodeToString(createVocabDataResult.code)));
-        loadVocabDataResult.code = createVocabDataResult.code;
-        emit loadVocabDataFinished(loadVocabDataResult);
-        return;
-    }
-
-    if (createVocabDataResult.failedEntryCount > 0)
-    {
-        m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty entries in vocab '%2' (%3) during data generation.").arg(QString::number(result.failedEntryCount), result.data.info.vocabTitle, result.data.info.filePath));
-    }
-    loadVocabDataResult.failedEntryCount += createVocabDataResult.failedEntryCount;
-
-    // Update vocab data
+    Vocab::ClearResult result;
     m_vocabDatas.clear();
-    m_vocabDatas.insert(result.data.info.vocabTitle, createVocabDataResult.data);
 
-    emit loadVocabDataFinished(loadVocabDataResult);
+    m_logger.debug(logTag(), QStringLiteral("Clearing vocab done!"));
+
+    emit clearVocabFinished(result);
 }
 
-void DataService::handleVocabFileReadDatasFinished(const ReadVocabFileDatasResult &result)
+void DataService::handleVocabFileReadFinished(const VocabFile::ReadResult &result)
 {
-    LoadVocabDatasResult loadVocabDatasResult;
-    if (result.code != ErrorCode::Success)
+    Vocab::LoadResult loadVocabsResult;
+    if (result.code != Error::Code::Success)
     {
-        loadVocabDatasResult.code = result.code;
-        emit loadVocabDatasFinished(loadVocabDatasResult);
+        loadVocabsResult.code = result.code;
+        emit loadVocabFinished(loadVocabsResult);
+        return;
     }
 
     if (result.failedVocabCount > 0 || result.partiallySucceededVocabCount > 0 || result.failedEntryCount > 0)
     {
         m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty vocabs and %2 faulty entries in %3 vocabs.").arg(QString::number(result.failedVocabCount), QString::number(result.failedEntryCount), QString::number(result.partiallySucceededVocabCount)));
     }
-    loadVocabDatasResult.failedVocabCount = result.failedVocabCount;
-    loadVocabDatasResult.partiallySucceededVocabCount = result.partiallySucceededVocabCount;
-    loadVocabDatasResult.failedEntryCount = result.failedEntryCount;
+    loadVocabsResult.failedVocabCount = result.failedVocabCount;
+    loadVocabsResult.partiallySucceededVocabCount = result.partiallySucceededVocabCount;
+    loadVocabsResult.failedEntryCount = result.failedEntryCount;
 
-    QMap<QString,Vocab::Data> vocabDatas;
+    QMap<QString, Vocab::Data> vocabDatas;
     for (const auto &data : result.datas)
     {
-        Vocab::Info info;
-        info.title = data.info.vocabTitle;
+        VocabGeneration::GenerationResult generateVocabDataResult = generateVocabData(data);
 
-        GenerateVocabDataResult createVocabDataResult = createVocabData(data);
-
-        if (createVocabDataResult.code != ErrorCode::Success)
+        if (generateVocabDataResult.code != Error::Code::Success)
         {
-            m_logger.error(logTag(), QStringLiteral("Failed to create data for vocab '%1' (%2)").arg(data.info.vocabTitle, errorCodeToString(createVocabDataResult.code)));
-            loadVocabDatasResult.failedVocabCount++;
+            m_logger.error(logTag(), QStringLiteral("Failed to create data for vocab '%1' (%2)").arg(data.title, Error::codeToQString(generateVocabDataResult.code)));
+            loadVocabsResult.failedVocabCount++;
             continue;
         }
 
-        if (createVocabDataResult.failedEntryCount > 0)
+        if (generateVocabDataResult.failedEntryCount > 0)
         {
-            m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty entries in vocab '%2' (%3) during data generation.").arg(QString::number(createVocabDataResult.failedEntryCount), data.info.vocabTitle, data.info.filePath));
-            loadVocabDatasResult.partiallySucceededVocabCount++;
+            m_logger.warning(logTag(), QStringLiteral("Skipped %1 faulty entries in vocab '%2' during data generation.").arg(QString::number(generateVocabDataResult.failedEntryCount), data.title));
+            loadVocabsResult.partiallySucceededVocabCount++;
         }
-        loadVocabDatasResult.failedEntryCount += createVocabDataResult.failedEntryCount;
+        loadVocabsResult.failedEntryCount += generateVocabDataResult.failedEntryCount;
 
-        vocabDatas.insert(data.info.vocabTitle, createVocabDataResult.data);
+        vocabDatas.insert(data.title, generateVocabDataResult.data);
     }
 
-    int successCount = result.datas.count() - loadVocabDatasResult.failedVocabCount;
+    int successCount = result.datas.count() - loadVocabsResult.failedVocabCount;
     if (!(successCount > 0))
     {
-        m_logger.error(logTag(), QStringLiteral("Failed to load all vocabs!"));
-        loadVocabDatasResult.code = ErrorCode::NoSucceededVocabs;
-        emit loadVocabDatasFinished(loadVocabDatasResult);
+        m_logger.error(logTag(), QStringLiteral("Failed to load any vocabs!"));
+        loadVocabsResult.code = Error::Code::NoSucceededVocabs;
+        emit loadVocabFinished(loadVocabsResult);
         return;
     }
 
@@ -169,24 +96,34 @@ void DataService::handleVocabFileReadDatasFinished(const ReadVocabFileDatasResul
     m_vocabDatas.clear();
     m_vocabDatas = vocabDatas;
 
-    for (const auto &data : m_vocabDatas)
+    // Formulate content info for each vocab
+    for (const auto &data : std::as_const(m_vocabDatas))
     {
-        Vocab::Info info;
+        Vocab::ContentInfo info;
         info.title = data.title;
+        info.entryCount = data.entries.count();
+        info.totalEntryCount = info.entryCount;
 
-        for (const auto &groupTitle : data.groupEntries.keys())
+        for (auto it = data.groupEntries.cbegin(); it != data.groupEntries.cend(); ++it)
         {
-            info.groupTitles.append(groupTitle);
+            Vocab::GroupContentInfo groupInfo;
+            groupInfo.title = it.key();
+            groupInfo.entryCount = it.value().count();
+            info.groupInfos.append(groupInfo);
+            info.totalEntryCount += groupInfo.entryCount;
         }
 
-        loadVocabDatasResult.infos.append(info);
+        loadVocabsResult.contentInfos.append(info);
     }
 
-    emit loadVocabDatasFinished(loadVocabDatasResult);
+    emit loadVocabFinished(loadVocabsResult);
 }
 
-const GenerateVocabDataResult DataService::createVocabData(const VocabFile::Data &data)
+
+const VocabGeneration::GenerationResult DataService::generateVocabData(const VocabFile::Data &data)
 {
-    GenerateVocabDataResult result = m_vocabGenerator.generate(data);
+    m_logger.debug(logTag(), QStringLiteral("Handling vocab data generation..."));
+    VocabGeneration::GenerationResult result = m_vocabGenerator.generate(data);
+    m_logger.debug(logTag(), QStringLiteral("Handling vocab data generation done!"));
     return result;
 }

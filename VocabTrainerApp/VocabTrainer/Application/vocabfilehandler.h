@@ -2,8 +2,7 @@
 #define VOCABFILEHANDLER_H
 
 #include "Logging/logger.h"
-#include "DataTypes/requests.h"
-#include "DataTypes/results.h"
+#include "DataTypes/vocabfile.h"
 
 #include <QObject>
 
@@ -14,24 +13,13 @@ public:
     explicit VocabFileHandler(Logger &logger, QObject *parent = nullptr);
 
 public slots:
-    void read(const ReadVocabFileRequest &request);
-    void readMultiple(const ReadVocabFilesRequest &request);
+    void handleReadRequest(const VocabFile::ReadRequest &request);
 
-signals:
-    void readInfoFinished(const ReadVocabFileInfoResult &result);
-    void readInfosFinished(const ReadVocabFileInfosResult &result);
-
-    void readDataFinished(const ReadVocabFileDataResult &result);
-    void readDatasFinished(const ReadVocabFileDatasResult &result);
+signals: 
+    void readFinished(const VocabFile::ReadResult &result);
 
 private:
-    void handleReadData(const QString &filePath);
-    void handleReadInfo(const QString &filePath);
-    void handleReadDatas(const QStringList &filePaths);
-    void handleReadInfos(const QStringList &filePaths);
-
-    const ReadVocabFileInfoResult readInfo(const QString &filePath);
-    const ReadVocabFileDataResult readData(const QString &filePath);
+    const VocabFile::ReadFileResult readFile(const QString &filePath, const Training::Direction direction);
 
     Logger &m_logger;
 };

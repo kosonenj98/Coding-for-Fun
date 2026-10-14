@@ -3,11 +3,10 @@
 
 #include "Logging/logger.h"
 #include "Logging/logfilehandler.h"
-#include "DataTypes/requests.h"
-#include "DataTypes/results.h"
 #include "logservice.h"
 #include "vocabfilehandler.h"
 #include "dataservice.h"
+#include "DataTypes/log.h"
 
 #include <QObject>
 
@@ -22,27 +21,21 @@ public:
 public slots:
     void initialize();
 
-    void handleLogQueryRequest(const LogQueryRequest &request);
-    void handleLogQueryFinished(const LogQueryResult &result);
+    void handleLogQueryRequest(const Log::QueryRequest &request);
+    void handleLogQueryFinished(const Log::QueryResult &result);
 
-    void handleLoadVocabRequest(const LoadVocabRequest &request);
-    void handleLoadVocabInfoFinished(const LoadVocabInfoResult &result);
-    void handleLoadVocabDataFinished(const LoadVocabDataResult &result);
+    void handleLoadVocabRequest(const Vocab::LoadRequest &request);
+    void handleLoadVocabFinished(const Vocab::LoadResult &result);
 
-    void handleLoadVocabsRequest(const LoadVocabsRequest &request);
-    void handleLoadVocabInfosFinished(const LoadVocabInfosResult &result);
-    void handleLoadVocabDatasFinished(const LoadVocabDatasResult &result);
+    void handleClearVocabRequest(const Vocab::ClearRequest &request);
+    void handleClearVocabFinished(const Vocab::ClearResult &result);
 
     void shutdown();
 
 signals:
-    void logQueryFinished(const LogQueryResult &result);
-
-    void loadVocabInfoFinished(const LoadVocabInfoResult &result);
-    void loadVocabDataFinished(const LoadVocabDataResult &result);
-
-    void loadVocabsInfosFinished(const LoadVocabInfosResult &result);
-    void loadVocabDatasFinished(const LoadVocabDatasResult &result);
+    void logQueryFinished(const Log::QueryResult &result);
+    void loadVocabFinished(const Vocab::LoadResult &result);
+    void clearVocabFinished(const Vocab::ClearResult &result);
 
 private:
     void initializeLogService();

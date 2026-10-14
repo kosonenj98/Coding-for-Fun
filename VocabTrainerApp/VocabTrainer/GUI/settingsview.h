@@ -2,7 +2,7 @@
 #define SETTINGSVIEW_H
 
 #include "Logging/logger.h"
-#include "DataTypes/requests.h"
+#include "DataTypes/settings.h"
 
 #include <QWidget>
 #include <QCheckBox>
@@ -13,15 +13,15 @@ class SettingsView : public QWidget
 {
     Q_OBJECT
 public:
-    explicit SettingsView(Logger &logger, const Settings &settings, QWidget *parent = nullptr);
+    explicit SettingsView(Logger &logger, const Settings::Settings &settings, QWidget *parent = nullptr);
 
-    void updateView(const Settings &settings);
+    void updateView(const Settings::Settings &settings);
 
 public slots:
     void handleApplyClicked();
 
 signals:
-    void requestApplyNewSettings(const ApplyNewSettingsRequest &request);
+    void requestApplyNewSettings(const Settings::ApplyNewRequest &request);
 
 private:
     Logger &m_logger;

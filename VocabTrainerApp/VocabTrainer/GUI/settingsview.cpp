@@ -13,7 +13,7 @@ namespace
     }
 }
 
-SettingsView::SettingsView(Logger &logger, const Settings &settings, QWidget *parent)
+SettingsView::SettingsView(Logger &logger, const Settings::Settings &settings, QWidget *parent)
     : QWidget{parent}, m_logger(logger)
 {
     m_logger.verbose(logTag(), QStringLiteral("Constructing settings view..."));
@@ -56,7 +56,7 @@ SettingsView::SettingsView(Logger &logger, const Settings &settings, QWidget *pa
 void SettingsView::handleApplyClicked()
 {
     m_logger.verbose(logTag(), QStringLiteral("Creating request for new settings..."));
-    ApplyNewSettingsRequest request;
+    Settings::ApplyNewRequest request;
     request.settings.logEnabled = m_logCheckBox->isChecked();
     request.settings.logInfoEnabled = m_logInfoCheckBox->isChecked();
     request.settings.logWarningEnabled = m_logWarningCheckBox->isChecked();
@@ -70,7 +70,7 @@ void SettingsView::handleApplyClicked()
     emit requestApplyNewSettings(request);
 }
 
-void SettingsView::updateView(const Settings &settings)
+void SettingsView::updateView(const Settings::Settings &settings)
 {
     m_logger.verbose(logTag(), QStringLiteral("Updating settings view..."));
     m_logCheckBox->setChecked(settings.logEnabled);
