@@ -72,7 +72,7 @@ void VocabFileHandler::handleReadRequest(const VocabFile::ReadRequest &request)
     emit readFinished(result);
 }
 
-const VocabFile::ReadFileResult VocabFileHandler::readFile(const QString &filePath, const Training::Direction direction)
+const VocabFile::ReadFileResult VocabFileHandler::readFile(const QString &filePath, const Vocab::Direction direction)
 {
     m_logger.verbose(logTag(), QStringLiteral("Reading vocab file '%1'...").arg(filePath));
     VocabFile::ReadFileResult result;
@@ -153,11 +153,11 @@ const VocabFile::ReadFileResult VocabFileHandler::readFile(const QString &filePa
         VocabFile::Entry vocabFileEntry;
         switch (direction)
         {
-        case Training::Direction::KeyToValue:
+        case Vocab::Direction::KeyToValue:
             vocabFileEntry = {key, value};
             break;
 
-        case Training::Direction::ValueToKey:
+        case Vocab::Direction::ValueToKey:
             vocabFileEntry = {value, key};
             break;
 

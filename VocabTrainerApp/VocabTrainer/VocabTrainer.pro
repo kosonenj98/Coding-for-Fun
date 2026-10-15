@@ -12,6 +12,7 @@ SOURCES += \
     Application/dataservice.cpp \
     Application/logservice.cpp \
     Application/settingshandler.cpp \
+    Application/traininghandler.cpp \
     Application/vocabfilehandler.cpp \
     Application/vocabgenerator.cpp \
     Application/vocabtrainer.cpp \
@@ -31,6 +32,7 @@ HEADERS += \
     Application/dataservice.h \
     Application/logservice.h \
     Application/settingshandler.h \
+    Application/traininghandler.h \
     Application/vocabfilehandler.h \
     Application/vocabgenerator.h \
     Application/vocabtrainer.h \

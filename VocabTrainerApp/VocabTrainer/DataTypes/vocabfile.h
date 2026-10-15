@@ -27,7 +27,7 @@ namespace VocabFile
     struct ReadRequest
     {
         QStringList filePaths;
-        Training::Direction direction = Training::Direction::KeyToValue;
+        Vocab::Direction direction = Vocab::Direction::KeyToValue;
     };
 
     struct ReadResult

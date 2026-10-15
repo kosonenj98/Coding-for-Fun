@@ -170,7 +170,7 @@ void MainView::updateVocabChildren(QTreeWidgetItem *vocabItem, const Vocab::Cont
     }
 
     // Update existing children and create new ones.
-    for (auto it = newChildrenContentInfo.cbegin(); it != newChildrenContentInfo.cend(); ++it)
+    for (auto it = newChildrenContentInfo.cbegin(); it != newChildrenContentInfo.cend(); it++)
     {
         auto *child = getOrCreateChild(vocabItem, it.key());
 
@@ -254,13 +254,13 @@ void MainView::switchTrainingDirection()
 {
     switch (m_trainingDirection)
     {
-    case Training::Direction::KeyToValue:
-        m_trainingDirection = Training::Direction::ValueToKey;
+    case Vocab::Direction::KeyToValue:
+        m_trainingDirection = Vocab::Direction::ValueToKey;
         m_switchDirectionArrowLabel->setText(QStringLiteral("←"));
         break;
 
-    case Training::Direction::ValueToKey:
-        m_trainingDirection = Training::Direction::KeyToValue;
+    case Vocab::Direction::ValueToKey:
+        m_trainingDirection = Vocab::Direction::KeyToValue;
         m_switchDirectionArrowLabel->setText(QStringLiteral("→"));
         break;
     }
@@ -945,7 +945,7 @@ void MainView::updateParentCheckState(QTreeWidgetItem *parent)
 
 QTreeWidgetItem *MainView::findChildById(QTreeWidgetItem *parent, const QString &id)
 {
-    for (int i = 0; i < parent->childCount(); ++i)
+    for (int i = 0; i < parent->childCount(); i++)
     {
         auto *child = parent->child(i);
 

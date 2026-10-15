@@ -535,7 +535,7 @@ const VocabGeneration::HandleBracketsResult VocabGenerator::handleSquareBrackets
 
 void VocabGenerator::uniteEntries(Vocab::Entries &entries, const Vocab::Entries &newEntries)
 {
-    for (auto it = newEntries.cbegin(); it != newEntries.cend(); ++it)
+    for (auto it = newEntries.cbegin(); it != newEntries.cend(); it++)
     {
         // Insert new key if needed and combine new values with existing values
         // it.key() is entry key
@@ -546,7 +546,7 @@ void VocabGenerator::uniteEntries(Vocab::Entries &entries, const Vocab::Entries 
 
 void VocabGenerator::uniteGroups(Vocab::GroupEntries &groupEntries, const Vocab::GroupEntries &newGroupEntries)
 {
-    for (auto it = newGroupEntries.cbegin(); it != newGroupEntries.cend(); ++it)
+    for (auto it = newGroupEntries.cbegin(); it != newGroupEntries.cend(); it++)
     {
         // Insert new group if needed and combine new group values with existing values
         // it.key() is title of group

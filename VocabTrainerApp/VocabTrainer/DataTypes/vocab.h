@@ -2,7 +2,6 @@
 #define VOCAB_H
 
 #include "error.h"
-#include "training.h"
 
 #include <QMap>
 #include <QString>
@@ -34,10 +33,16 @@ namespace Vocab
         GroupEntries groupEntries;
     };
 
+    enum class Direction
+    {
+        KeyToValue,
+        ValueToKey
+    };
+
     struct LoadRequest
     {
         QStringList filePaths;
-        Training::Direction direction;
+        Direction direction;
     };
 
     struct LoadResult
@@ -56,6 +61,25 @@ namespace Vocab
     struct ClearResult
     {
         Error::Code code = Error::Code::Success;
+    };
+
+    struct Filter
+    {
+        QString title;
+        bool includeEntriesWithoutGroup;
+        QStringList groupTitles;
+    };
+
+    struct GetRequest
+    {
+        QList<Filter> filters;
+    };
+
+    struct GetResult
+    {
+        Error::Code code = Error::Code::Success;
+        int totalEntryCount;
+        QList<Vocab::Data> datas;
     };
 
 

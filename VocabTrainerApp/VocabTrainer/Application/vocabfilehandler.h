@@ -19,7 +19,7 @@ signals:
     void readFinished(const VocabFile::ReadResult &result);
 
 private:
-    const VocabFile::ReadFileResult readFile(const QString &filePath, const Training::Direction direction);
+    const VocabFile::ReadFileResult readFile(const QString &filePath, const Vocab::Direction direction);
 
     Logger &m_logger;
 };

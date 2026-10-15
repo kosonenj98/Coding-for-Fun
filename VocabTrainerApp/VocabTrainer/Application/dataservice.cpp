@@ -104,7 +104,7 @@ void DataService::handleVocabFileReadFinished(const VocabFile::ReadResult &resul
         info.entryCount = data.entries.count();
         info.totalEntryCount = info.entryCount;
 
-        for (auto it = data.groupEntries.cbegin(); it != data.groupEntries.cend(); ++it)
+        for (auto it = data.groupEntries.cbegin(); it != data.groupEntries.cend(); it++)
         {
             Vocab::GroupContentInfo groupInfo;
             groupInfo.title = it.key();

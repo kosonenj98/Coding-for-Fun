@@ -59,7 +59,7 @@ private:
     Logger &m_logger;
     QStringList m_selectedSourcePaths;
     QStringList m_vocabSourcePaths;
-    Training::Direction m_trainingDirection = Training::Direction::KeyToValue;
+    Vocab::Direction m_trainingDirection = Vocab::Direction::KeyToValue;
     bool m_updatingVocabTree = false;
 
     /*-----------------------------------------------------*/

@@ -22,6 +22,8 @@ namespace Error
         UnsupportedBracket,
         MismatchingBrackets,
         MismatchingOptions,
+        OutOfBoundsStart,
+        OutOfBoundsEnd,
         Unknown
     };
 
