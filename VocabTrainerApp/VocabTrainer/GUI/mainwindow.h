@@ -4,6 +4,7 @@
 #include "Logging/logger.h"
 #include "DataTypes/log.h"
 #include "DataTypes/settings.h"
+#include "DataTypes/training.h"
 #include "Application/settingshandler.h"
 #include "mainview.h"
 #include "settingsview.h"
@@ -31,13 +32,25 @@ public slots:
     void handleClearVocabRequest(const Vocab::ClearRequest &request);
     void handleClearVocabFinished(const Vocab::ClearResult &result);
 
-    void handleViewTabChanged(int index);
+    void handleStartTrainingRequest(const Training::StartRequest &request);
+    void handleQuestion(const Training::Question &question);
+    void handleAnswer(const Training::Answer &answer);
+    void handleChangeQuestionRequest(const Training::ChangeQuestionRequest &request);
+    void handleChangeQuestionFinished(const Training::ChangeQuestionResult &result);
+    void handleNextQuestionAvailable(bool available);
+    void handleTrainingFinished(const Training::Result &result);
 
 signals:
     void requestLogQuery(const Log::QueryRequest &query);
     void requestApplyNewSettings(const Settings::ApplyNewRequest &request);
     void requestLoadVocab(const Vocab::LoadRequest &request);
     void requestClearVocab(const Vocab::ClearRequest &request);
+    void requestStartTraining(const Training::StartRequest &request);
+    void answer(const Training::Answer &answer);
+    void requestChangeQuestion(const Training::ChangeQuestionRequest &request);
+
+private slots:
+    void handleViewTabChanged(int index);
 
 private:
     void initializeDialogService();

@@ -20,11 +20,10 @@ namespace Training
         Error::Code code = Error::Code::Success;
     };
 
-    struct Context
+    struct VocabContext
     {
-        int round;
-        int totalEntryCount;
-        int correctAnswerCount;
+        QString vocabTitle;
+        QString groupTitle;
     };
 
     enum class QuestionState
@@ -33,38 +32,77 @@ namespace Training
         Answered
     };
 
-    struct QuestionData
+    struct RoundContext
     {
-        Context context;
-        int number;
+        int roundNumber;
+        int questionNumber;
+        int roundEntryCount;
         QuestionState state;
-        QString question;
         QString answer;
-        QSet<QString> correctAnswer;
         bool isCorrect;
     };
 
-    struct QuestionWithVocabContext
+    struct QuestionData
     {
-        QuestionData questionData;
-        QString vocabTitle;
-        QString groupTitle;
+        int index;
+        VocabContext vocabContext;
+        QList<RoundContext> roundContexts;
+        QString question;
+        QSet<QString> correctAnswer;
+        int wrongCount;
+        int correctCount;
     };
 
-    enum class QuestionChange
+    struct TrainingContext
+    {
+        int totalEntryCount;
+        int correctAnswerCount;
+    };
+
+    struct Question
+    {
+        int index;
+        TrainingContext trainingContext;
+        RoundContext roundContext;
+        QString question;
+        QSet<QString> correctAnswer;
+    };
+
+    struct Answer
+    {
+        QuestionState state;
+        QString answer;
+    };
+
+    enum class ChangeQuestion
     {
         Next,
-        Previous
+        Previous,
+        New
     };
 
-    struct QuestionChangeRequest
+    enum class QuestionOrder
     {
-        QuestionChange change;
+        First,
+        Middle,
+        Last
     };
 
-    struct QuestionChangeResult
+    struct ChangeQuestionRequest
+    {
+        ChangeQuestion change;
+    };
+
+    struct ChangeQuestionResult
     {
         Error::Code code = Error::Code::Success;
+        QuestionOrder order;
+    };
+
+    struct HistoryInfo
+    {
+        int questionIndex;
+        int roundIndex;
     };
 }
 

@@ -119,6 +119,44 @@ void DataService::handleVocabFileReadFinished(const VocabFile::ReadResult &resul
     emit loadVocabFinished(loadVocabsResult);
 }
 
+void DataService::handleGetDataRequest(const Vocab::GetDataRequest &request)
+{
+    Vocab::GetDataResult result;
+
+    for (const auto &filter : request.filters)
+    {
+        if (!m_vocabDatas.contains(filter.title))
+        {
+            continue;
+        }
+
+        Vocab::Data &referenceData = m_vocabDatas[filter.title];
+
+        Vocab::Data data;
+        data.title = referenceData.title;
+
+        if (filter.includeEntriesWithoutGroup)
+        {
+            result.totalEntryCount += referenceData.entries.count();
+            data.entries = referenceData.entries;
+        }
+
+        for (const auto &groupTitle : filter.groupTitles)
+        {
+            if (!referenceData.groupEntries.contains(groupTitle))
+            {
+                continue;
+            }
+
+            result.totalEntryCount += referenceData.groupEntries[groupTitle].count();
+            data.groupEntries[groupTitle] = referenceData.groupEntries[groupTitle];
+        }
+
+        result.datas.append(data);
+    }
+
+    emit getDataFinished(result);
+}
 
 const VocabGeneration::GenerationResult DataService::generateVocabData(const VocabFile::Data &data)
 {

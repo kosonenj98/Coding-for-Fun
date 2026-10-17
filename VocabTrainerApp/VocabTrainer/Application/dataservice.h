@@ -19,11 +19,13 @@ public:
 
 public slots:
     void handleVocabFileReadFinished(const VocabFile::ReadResult &result);
+    void handleGetDataRequest(const Vocab::GetDataRequest &request);
 
 signals:
     void requestVocabFileRead(const VocabFile::ReadRequest &request);
     void loadVocabFinished(const Vocab::LoadResult &result);
     void clearVocabFinished(const Vocab::ClearResult &result);
+    void getDataFinished(const Vocab::GetDataResult &result);
 
 private:
     const VocabGeneration::GenerationResult generateVocabData(const VocabFile::Data &data);

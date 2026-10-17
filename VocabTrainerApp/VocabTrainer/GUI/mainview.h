@@ -3,6 +3,7 @@
 
 #include "Logging/logger.h"
 #include "DataTypes/vocab.h"
+#include "DataTypes/training.h"
 
 #include <QWidget>
 #include <QGroupBox>
@@ -14,6 +15,7 @@
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QListWidget>
+#include <QVBoxLayout>
 
 class MainView : public QWidget
 {
@@ -27,18 +29,29 @@ public:
     void showTrainingView();
 
     void updateView(const QList<Vocab::ContentInfo> &contentInfos);
+    void updateView(const Training::Question &question);
+    void updateView(const Training::QuestionOrder &questionOrder);
+    void updateView(bool nextQuestionAvailable);
 
 public slots:
 
 signals:
     void requestVocabLoad(const Vocab::LoadRequest &request);
     void requestVocabClear(const Vocab::ClearRequest &request);
+    void requestStartTraining(const Training::StartRequest &request);
+    void answer(const Training::Answer &answer);
+    void requestChangeQuestion(const Training::ChangeQuestionRequest &request);
 
 private slots:
-    void browseVocabFiles();
-    void browseVocabFolder();
-    void switchTrainingDirection();
+    void handleBrowseVocabFiles();
+    void handleBrowseVocabFolder();
+    void handleSwitchTrainingDirection();
     void handleVocabTreeItemChanged(QTreeWidgetItem *item, int column);
+    void handleStartTrainingPressed();
+    void handleEnterPressed();
+    void handleShowAnswerDetailsPressed(bool checked);
+    void handlePreviousQuestionPressed();
+    void handleNextQuestionPressed();
 
 private:
     void initializeVocabChange();
@@ -55,6 +68,8 @@ private:
     void setSubtreeCheckState(QTreeWidgetItem *item, Qt::CheckState state);
     void updateParentCheckState(QTreeWidgetItem *parent);
     QTreeWidgetItem *findChildById(QTreeWidgetItem *parent, const QString &id);
+    void setFeedback(bool isCorrect, const QString &answer, const QSet<QString> &correctAnswers);
+    void handleChangeQuestion(const Training::ChangeQuestion change);
 
     Logger &m_logger;
     QStringList m_selectedSourcePaths;
@@ -148,6 +163,9 @@ private:
     QLabel *m_questionLabel;
     QLineEdit *m_answerLineEdit;
     QLabel *m_answerStatusLabel;
+    QPushButton *m_answerDetailsButton;
+    QWidget *m_answerDetailsWidget;
+    QVBoxLayout *m_answerDetailsLayout;
     QWidget *m_answerResult;
     QLabel *m_feedbackLabel;
 

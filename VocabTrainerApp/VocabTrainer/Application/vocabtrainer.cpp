@@ -32,6 +32,7 @@ void VocabTrainer::initialize()
     initializeLogService();
     initializeVocabFileHandler();
     initializeDataService();
+    initializeTrainingHandler();
 
     m_logger.verbose(logTag(), QStringLiteral("Initializing main application done!"));
 
@@ -76,6 +77,41 @@ void VocabTrainer::handleClearVocabFinished(const Vocab::ClearResult &result)
     emit clearVocabFinished(result);
 }
 
+void VocabTrainer::handleStartTraining(const Training::StartRequest &request)
+{
+    m_trainingHandler->startTraining(request);
+}
+
+void VocabTrainer::handleQuestion(const Training::Question &question)
+{
+    emit VocabTrainer::question(question);
+}
+
+void VocabTrainer::handleAnswer(const Training::Answer &answerData)
+{
+    m_trainingHandler->handleAnswer(answerData);
+}
+
+void VocabTrainer::handleChangeQuestion(const Training::ChangeQuestionRequest &request)
+{
+    m_trainingHandler->changeQuestion(request);
+}
+
+void VocabTrainer::handleChangeQuestionFinished(const Training::ChangeQuestionResult &result)
+{
+    emit changeQuestionFinished(result);
+}
+
+void VocabTrainer::handleNextQuestionAvailable(bool available)
+{
+    emit nextQuestionAvailable(available);
+}
+
+void VocabTrainer::handleTrainingFinished(const Training::Result &result)
+{
+    emit trainingFinished(result);
+}
+
 void VocabTrainer::shutdown()
 {
     m_logger.verbose(logTag(), QStringLiteral("Shutting down main application..."));
@@ -108,4 +144,17 @@ void VocabTrainer::initializeDataService()
     connect(m_dataService, &DataService::loadVocabFinished, this, &VocabTrainer::handleLoadVocabFinished);
     connect(m_dataService, &DataService::clearVocabFinished, this, &VocabTrainer::handleClearVocabFinished);
     m_logger.verbose(logTag(), QStringLiteral("Initializing data service done!"));
+}
+
+void VocabTrainer::initializeTrainingHandler()
+{
+    m_logger.verbose(logTag(), QStringLiteral("Initializing training handler..."));
+    m_trainingHandler = new TrainingHandler(m_logger, this);
+    connect(m_trainingHandler, &TrainingHandler::requestGetData, m_dataService, &DataService::handleGetDataRequest);
+    connect(m_dataService, &DataService::getDataFinished, m_trainingHandler, &TrainingHandler::handleGetDataFinished);
+    connect(m_trainingHandler, &TrainingHandler::question, this, &VocabTrainer::handleQuestion);
+    connect(m_trainingHandler, &TrainingHandler::changeQuestionFinished, this, &VocabTrainer::handleChangeQuestionFinished);
+    connect(m_trainingHandler, &TrainingHandler::nextQuestionAvailable, this, &VocabTrainer::handleNextQuestionAvailable);
+    connect(m_trainingHandler, &TrainingHandler::trainingFinished, this, &VocabTrainer::handleTrainingFinished);
+    m_logger.verbose(logTag(), QStringLiteral("Initializing training handler done!"));
 }

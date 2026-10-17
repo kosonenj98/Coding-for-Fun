@@ -102,7 +102,7 @@ void MainWindow::handleLoadVocabFinished(const Vocab::LoadResult &result)
     }
 
     m_mainView->updateView(result.contentInfos);
-    m_mainView->showTrainingView();
+    m_mainView->showLobbyView();
     m_logger.verbose(logTag(), QStringLiteral("Handling load vocab datas finished done!"));
 }
 
@@ -123,7 +123,50 @@ void MainWindow::handleClearVocabFinished(const Vocab::ClearResult &result)
         return;
     }
 
-    m_mainView->updateView({});
+    m_mainView->updateView(QList<Vocab::ContentInfo>{});
+    m_mainView->showLobbyView();
+}
+
+void MainWindow::handleStartTrainingRequest(const Training::StartRequest &request)
+{
+    m_mainView->showTrainingView();
+    emit requestStartTraining(request);
+}
+
+void MainWindow::handleQuestion(const Training::Question &question)
+{
+    m_mainView->updateView(question);
+}
+
+void MainWindow::handleAnswer(const Training::Answer &answer)
+{
+    emit MainWindow::answer(answer);
+}
+
+void MainWindow::handleChangeQuestionRequest(const Training::ChangeQuestionRequest &request)
+{
+    emit requestChangeQuestion(request);
+}
+
+void MainWindow::handleChangeQuestionFinished(const Training::ChangeQuestionResult &result)
+{
+    if (result.code != Error::Code::Success)
+    {
+        m_logger.error(logTag(), QStringLiteral("Failed to change question! ErrorCode %1").arg(Error::codeToQString(result.code)));
+        m_dialogService->showError(QStringLiteral("Change Question"), QStringLiteral("Failed to change question: %1").arg(Error::codeToQString(result.code)));
+        return;
+    }
+    m_mainView->updateView(result.order);
+}
+
+void MainWindow::handleNextQuestionAvailable(bool available)
+{
+    m_mainView->updateView(available);
+}
+
+void MainWindow::handleTrainingFinished(const Training::Result &result)
+{
+    // TODO: Handle training finished
     m_mainView->showLobbyView();
 }
 
@@ -149,6 +192,9 @@ void MainWindow::initializeMainView()
     m_mainView = new MainView(m_logger, this);
     connect(m_mainView, &MainView::requestVocabLoad, this, &MainWindow::handleLoadVocabRequest);
     connect(m_mainView, &MainView::requestVocabClear, this, &MainWindow::handleClearVocabRequest);
+    connect(m_mainView, &MainView::requestStartTraining, this, &MainWindow::handleStartTrainingRequest);
+    connect(m_mainView, &MainView::answer, this, &MainWindow::handleAnswer);
+    connect(m_mainView, &MainView::requestChangeQuestion, this, &MainWindow::handleChangeQuestionRequest);
     m_logger.verbose(logTag(), QStringLiteral("Initializing main view done!"));
 }
 

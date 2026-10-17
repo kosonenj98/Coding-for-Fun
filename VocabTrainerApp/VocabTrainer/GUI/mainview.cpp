@@ -5,6 +5,7 @@
 #include <QFileDialog>
 #include <QFileIconProvider>
 #include <QDirIterator>
+#include <QShortcut>
 
 namespace
 {
@@ -59,6 +60,10 @@ MainView::MainView(Logger &logger, QWidget *parent)
     // Create GUI component connections
     createConnections();
 
+    // Create shortcut for enter
+    auto *enterShortcut = new QShortcut(QKeySequence(Qt::Key_Return), this);
+    connect(enterShortcut, &QShortcut::activated, this, &MainView::handleEnterPressed);
+
     m_logger.verbose(logTag(), QStringLiteral("Constructing main view done!"));
 }
 
@@ -86,6 +91,46 @@ void MainView::showTrainingView()
 void MainView::updateView(const QList<Vocab::ContentInfo> &contentInfos)
 {
     updateVocabTree(contentInfos);
+}
+
+void MainView::updateView(const Training::Question &question)
+{
+    m_roundLabel->setText(QStringLiteral("Round %1").arg(QString::number(question.roundContext.roundNumber)));
+    m_cardCounterLabel->setText(QStringLiteral("%1/%2").arg(QString::number(question.roundContext.questionNumber), QString::number(question.trainingContext.totalEntryCount)));
+    m_questionLabel->setText(question.question);
+    m_answerLineEdit->setText(question.roundContext.answer);
+
+    switch (question.roundContext.state)
+    {
+    case Training::QuestionState::Unanswered:
+        m_answerLineEdit->setEnabled(true);
+        m_answerLineEdit->setFocus();
+        m_answerResult->hide();
+        break;
+
+    case Training::QuestionState::Answered:
+        m_answerLineEdit->setEnabled(false);
+        m_answerResult->show();
+        m_answerStatusLabel->setText(question.roundContext.isCorrect ? QStringLiteral("✓") : QStringLiteral("✗"));
+        setFeedback(question.roundContext.isCorrect, question.roundContext.answer, question.correctAnswer);
+        break;
+    }
+
+    m_progressBar->setRange(0, question.trainingContext.totalEntryCount);
+    m_progressBar->setValue(question.trainingContext.correctAnswerCount);
+    m_progressBar->setTextVisible(true);
+    m_progressBar->setFormat(QStringLiteral("%v / %m (%p %)"));
+}
+
+void MainView::updateView(const Training::QuestionOrder &questionOrder)
+{
+    m_previousButton->setDisabled(questionOrder == Training::QuestionOrder::First);
+    m_nextButton->setDisabled(questionOrder == Training::QuestionOrder::Last);
+}
+
+void MainView::updateView(bool nextQuestionAvailable)
+{
+    m_nextButton->setEnabled(nextQuestionAvailable);
 }
 
 void MainView::updateVocabTree(const QList<Vocab::ContentInfo> &contentInfos)
@@ -213,7 +258,7 @@ QTreeWidgetItem *MainView::getOrCreateChild(QTreeWidgetItem *parent, const QStri
 }
 
 
-void MainView::browseVocabFiles()
+void MainView::handleBrowseVocabFiles()
 {
     m_logger.verbose(logTag(), QStringLiteral("Browsing vocabulary files..."));
 
@@ -233,7 +278,7 @@ void MainView::browseVocabFiles()
     m_logger.verbose(logTag(), QStringLiteral("Browsing vocabulary files done!"));
 }
 
-void MainView::browseVocabFolder()
+void MainView::handleBrowseVocabFolder()
 {
     m_logger.verbose(logTag(), QStringLiteral("Browsing vocabulary folder..."));
 
@@ -250,7 +295,7 @@ void MainView::browseVocabFolder()
     m_logger.verbose(logTag(), QStringLiteral("Browsing vocabulary folder done!"));
 }
 
-void MainView::switchTrainingDirection()
+void MainView::handleSwitchTrainingDirection()
 {
     switch (m_trainingDirection)
     {
@@ -279,8 +324,7 @@ void MainView::handleVocabTreeItemChanged(QTreeWidgetItem *item, int column)
     m_updatingVocabTree = true;
 
     // A parent selection applies to its entire subtree.
-    if (item->childCount() > 0 &&
-        item->checkState(0) != Qt::PartiallyChecked)
+    if (item->childCount() > 0 && item->checkState(0) != Qt::PartiallyChecked)
     {
         setSubtreeCheckState(item, item->checkState(0));
     }
@@ -295,6 +339,78 @@ void MainView::handleVocabTreeItemChanged(QTreeWidgetItem *item, int column)
     }
 
     m_updatingVocabTree = false;
+}
+
+void MainView::handleStartTrainingPressed()
+{
+    Training::StartRequest request;
+    auto *vocabTreeRoot = m_vocabTree->invisibleRootItem();
+
+    for (int i = 0; i < vocabTreeRoot->childCount(); i++)
+    {
+        auto *vocabItem = vocabTreeRoot->child(i);
+        if (vocabItem->checkState(0) == Qt::CheckState::Unchecked)
+        {
+            continue;
+        }
+
+        const QString &vocabTitle = vocabItem->data(0, Qt::UserRole).toString();
+        Vocab::Filter vocabFilter;
+        vocabFilter.title = vocabTitle;
+
+        // Check children check status
+        for (int j = 0; j < vocabItem->childCount(); j++)
+        {
+            auto *child = vocabItem->child(j);
+            if (child->checkState(0) != Qt::CheckState::Checked)
+            {
+                continue;
+            }
+
+            if (child->data(0, Qt::UserRole).toString() == vocabTitle)
+            {
+                // Entries without group
+                vocabFilter.includeEntriesWithoutGroup = true;
+                continue;
+            }
+
+            vocabFilter.groupTitles.append(child->data(0, Qt::UserRole).toString());
+        }
+
+        request.vocabFilters.append(vocabFilter);
+    }
+
+    emit requestStartTraining(request);
+}
+
+void MainView::handleEnterPressed()
+{
+    if (m_trainingStack->currentWidget() != m_trainingView)
+    {
+        // Only training view may use enter
+        return;
+    }
+
+    Training::Answer answerData;
+    answerData.state = m_answerLineEdit->isEnabled() ? Training::QuestionState::Unanswered : Training::QuestionState::Answered;
+    answerData.answer = m_answerLineEdit->text();
+    emit answer(answerData);
+}
+
+void MainView::handleShowAnswerDetailsPressed(bool checked)
+{
+    m_answerDetailsButton->setText(checked ? QStringLiteral("▲   Hide correct answers") : QStringLiteral("▼   Show correct answers"));
+    m_answerDetailsWidget->setVisible(checked);
+}
+
+void MainView::handlePreviousQuestionPressed()
+{
+    handleChangeQuestion(Training::ChangeQuestion::Previous);
+}
+
+void MainView::handleNextQuestionPressed()
+{
+    handleChangeQuestion(Training::ChangeQuestion::Next);
 }
 
 void MainView::initializeVocabChange()
@@ -520,7 +636,7 @@ QWidget *MainView::createWelcomeView(QWidget *parent)
 {
     auto *view = new QWidget(parent);
 
-    auto *label = new QLabel(QStringLiteral("Select vocab and start"), view);
+    auto *label = new QLabel(QStringLiteral("Select vocabulary contents and start"), view);
     label->setAlignment(Qt::AlignCenter);
 
     QFont font = label->font();
@@ -593,6 +709,7 @@ QWidget *MainView::createTrainingView(QWidget *parent)
 
     m_questionLabel = createQuestionLabel(cardFrame);
     m_answerLineEdit = createAnswerInput(cardFrame);
+    m_answerResult = createAnswerResult(cardFrame);
 
     auto *cardLayout = new QVBoxLayout(cardFrame);
     cardLayout->setContentsMargins(
@@ -603,21 +720,11 @@ QWidget *MainView::createTrainingView(QWidget *parent)
     cardLayout->setSpacing(CARD_CONTENT_SPACING);
     cardLayout->addWidget(m_questionLabel);
     cardLayout->addWidget(m_answerLineEdit);
+    cardLayout->addWidget(m_answerResult, 1);
 
     // Center the question card
     auto *cardRow = new QHBoxLayout();
-    cardRow->addStretch();
-    cardRow->addWidget(cardFrame);
-    cardRow->addStretch();
-
-    // Create feedback outside the card
-    m_answerResult = createAnswerResult(panel);
-    m_answerResult->setMinimumWidth(CARD_MIN_WIDTH);
-
-    auto *resultRow = new QHBoxLayout();
-    resultRow->addStretch();
-    resultRow->addWidget(m_answerResult);
-    resultRow->addStretch();
+    cardRow->addWidget(cardFrame, 1);
 
     // Create progress bar
     m_progressBar = createProgressBar(panel);
@@ -633,10 +740,9 @@ QWidget *MainView::createTrainingView(QWidget *parent)
 
     layout->addWidget(navigationBar);
     layout->addWidget(separator);
-    layout->addStretch(1);
+    layout->addStretch();
     layout->addLayout(cardRow);
-    layout->addLayout(resultRow);
-    layout->addStretch(1);
+    layout->addStretch();
     layout->addWidget(m_progressBar);
 
     m_logger.verbose(logTag(), "Creating training panel done!");
@@ -665,6 +771,9 @@ QWidget *MainView::createNavigationBar(QWidget *parent)
 
     m_previousButton->setToolTip(QStringLiteral("Previous card"));
     m_nextButton->setToolTip(QStringLiteral("Next card"));
+
+    m_previousButton->setDisabled(true);
+    m_nextButton->setDisabled(true);
 
     m_cardCounterLabel->setAlignment(Qt::AlignCenter);
     m_roundLabel->setAlignment(Qt::AlignCenter);
@@ -724,27 +833,30 @@ QWidget *MainView::createAnswerResult(QWidget *parent)
 {
     auto *result = new QWidget(parent);
 
-    auto *layout = new QVBoxLayout(result);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(FEEDBACK_SPACING);
-
     m_answerStatusLabel = new QLabel(result);
     m_answerStatusLabel->setAlignment(Qt::AlignCenter);
-
     QFont iconFont = m_answerStatusLabel->font();
     iconFont.setPointSize(STATUS_FONT_SIZE);
     m_answerStatusLabel->setFont(iconFont);
 
-    m_feedbackLabel = new QLabel(result);
-    m_feedbackLabel->setAlignment(Qt::AlignCenter);
-    m_feedbackLabel->setWordWrap(true);
+    m_answerDetailsButton = new QPushButton(result);
+    QFont detailsFont = m_answerDetailsButton->font();
+    detailsFont.setPointSize(FEEDBACK_FONT_SIZE);
+    m_answerDetailsButton->setFont(detailsFont);
+    m_answerDetailsButton->setCheckable(true);
+    m_answerDetailsButton->setChecked(false);
+    m_answerDetailsButton->setText(QStringLiteral("▼   Show correct answers"));
 
-    QFont feedbackFont = m_feedbackLabel->font();
-    feedbackFont.setPointSize(FEEDBACK_FONT_SIZE);
-    m_feedbackLabel->setFont(feedbackFont);
+    m_answerDetailsWidget = new QWidget(result);
+    m_answerDetailsWidget->setFont(detailsFont);
+    m_answerDetailsLayout = new QVBoxLayout(m_answerDetailsWidget);
+    m_answerDetailsLayout->setContentsMargins(0, 0, 0, 0);
 
+    auto *layout = new QVBoxLayout(result);
+    layout->setSpacing(FEEDBACK_SPACING);
     layout->addWidget(m_answerStatusLabel);
-    layout->addWidget(m_feedbackLabel);
+    layout->addWidget(m_answerDetailsButton, 0, Qt::AlignHCenter);
+    layout->addWidget(m_answerDetailsWidget);
 
     return result;
 }
@@ -764,11 +876,15 @@ void MainView::createConnections()
     m_logger.verbose(logTag(), "Creating GUI component connections...");
 
     // Push button connections
-    connect(m_addFilesButton, &QPushButton::clicked, this, &MainView::browseVocabFiles);
-    connect(m_addFoldersButton, &QPushButton::clicked, this, &MainView::browseVocabFolder);
+    connect(m_addFilesButton, &QPushButton::clicked, this, &MainView::handleBrowseVocabFiles);
+    connect(m_addFoldersButton, &QPushButton::clicked, this, &MainView::handleBrowseVocabFolder);
     connect(m_removeSourceButton, &QPushButton::clicked, this, &MainView::removeSelectedVocabSource);
-    connect(m_switchDirectionButton, &QPushButton::clicked, this,&MainView::switchTrainingDirection);
+    connect(m_switchDirectionButton, &QPushButton::clicked, this,&MainView::handleSwitchTrainingDirection);
     connect(m_vocabTree, &QTreeWidget::itemChanged, this, &MainView::handleVocabTreeItemChanged);
+    connect(m_startButton, &QPushButton::clicked, this, &MainView::handleStartTrainingPressed);
+    connect(m_previousButton, &QPushButton::clicked, this, &MainView::handlePreviousQuestionPressed);
+    connect(m_nextButton, &QPushButton::clicked, this, &MainView::handleNextQuestionPressed);
+    connect(m_answerDetailsButton, &QPushButton::toggled, this, &MainView::handleShowAnswerDetailsPressed);
 
     m_logger.verbose(logTag(), "Creating GUI component connections done!");
 }
@@ -956,4 +1072,61 @@ QTreeWidgetItem *MainView::findChildById(QTreeWidgetItem *parent, const QString 
     }
 
     return nullptr;
+}
+
+void MainView::setFeedback(bool isCorrect, const QString &answer, const QSet<QString> &correctAnswers)
+{
+    // Clear any previous feedback
+    while (auto *item = m_answerDetailsLayout->takeAt(0))
+    {
+        if (auto *widget = item->widget())
+        {
+            widget->deleteLater();
+        }
+
+        delete item;
+    }
+
+    // Construct list of possible answers
+    QStringList answers;
+    for (const QString &correctAnswer : correctAnswers)
+    {
+        if (correctAnswer.compare(answer, Qt::CaseInsensitive) != 0)
+        {
+            answers.append(correctAnswer);
+        }
+    }
+
+    if (answers.isEmpty())
+    {
+        // No other correct answers
+        m_answerDetailsButton->hide();
+        m_answerDetailsWidget->hide();
+        return;
+    }
+
+    // Other possible answers exist
+    answers.sort(Qt::CaseInsensitive);
+    m_answerDetailsButton->show();
+    QFont detailsFont;
+    detailsFont.setPointSize(FEEDBACK_FONT_SIZE);
+    for (const QString &correctAnswer : answers)
+    {
+        auto *label = new QLabel(correctAnswer, m_answerDetailsWidget);
+        label->setAlignment(Qt::AlignCenter);
+        label->setWordWrap(true);
+        label->setFont(detailsFont);
+        m_answerDetailsLayout->addWidget(label);
+    }
+
+    // Show correct answers automatically if guess was wrong
+    m_answerDetailsButton->setChecked(!isCorrect);
+    m_answerDetailsWidget->setVisible(!isCorrect);
+}
+
+void MainView::handleChangeQuestion(const Training::ChangeQuestion change)
+{
+    Training::ChangeQuestionRequest request;
+    request.change = change;
+    emit requestChangeQuestion(request);
 }

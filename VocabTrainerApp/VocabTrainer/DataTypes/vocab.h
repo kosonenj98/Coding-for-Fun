@@ -66,19 +66,19 @@ namespace Vocab
     struct Filter
     {
         QString title;
-        bool includeEntriesWithoutGroup;
+        bool includeEntriesWithoutGroup = false;
         QStringList groupTitles;
     };
 
-    struct GetRequest
+    struct GetDataRequest
     {
         QList<Filter> filters;
     };
 
-    struct GetResult
+    struct GetDataResult
     {
         Error::Code code = Error::Code::Success;
-        int totalEntryCount;
+        int totalEntryCount = 0;
         QList<Vocab::Data> datas;
     };
 

@@ -69,6 +69,15 @@ int main(int argc, char *argv[])
     QObject::connect(&mainWindow, &MainWindow::requestClearVocab, vocabTrainer, &VocabTrainer::handleClearVocabRequest, Qt::QueuedConnection);
     QObject::connect(vocabTrainer, &VocabTrainer::clearVocabFinished, &mainWindow, &MainWindow::handleClearVocabFinished, Qt::QueuedConnection);
 
+    // Connect training events
+    QObject::connect(&mainWindow, &MainWindow::requestStartTraining, vocabTrainer, &VocabTrainer::handleStartTraining, Qt::QueuedConnection);
+    QObject::connect(vocabTrainer, &VocabTrainer::question, &mainWindow, &MainWindow::handleQuestion, Qt::QueuedConnection);
+    QObject::connect(&mainWindow, &MainWindow::answer, vocabTrainer, &VocabTrainer::handleAnswer, Qt::QueuedConnection);
+    QObject::connect(&mainWindow, &MainWindow::requestChangeQuestion, vocabTrainer, &VocabTrainer::handleChangeQuestion, Qt::QueuedConnection);
+    QObject::connect(vocabTrainer, &VocabTrainer::changeQuestionFinished, &mainWindow, &MainWindow::handleChangeQuestionFinished, Qt::QueuedConnection);
+    QObject::connect(vocabTrainer, &VocabTrainer::nextQuestionAvailable, &mainWindow, &MainWindow::handleNextQuestionAvailable, Qt::QueuedConnection);
+    QObject::connect(vocabTrainer, &VocabTrainer::trainingFinished, &mainWindow, &MainWindow::handleTrainingFinished, Qt::QueuedConnection);
+
     {
         QString threadId = QString::number(reinterpret_cast<quintptr>(QThread::currentThread()->currentThreadId()), 16);
         QString threadName = QThread::currentThread()->objectName();
