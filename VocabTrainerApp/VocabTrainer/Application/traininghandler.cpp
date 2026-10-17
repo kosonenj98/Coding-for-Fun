@@ -10,7 +10,7 @@ namespace
 }
 
 TrainingHandler::TrainingHandler(Logger &logger, QObject *parent)
-    : QObject{parent}, m_logger(logger)
+    : QObject{parent}, m_logger(logger), m_checker(logger)
 {
     m_logger.verbose(logTag(), QStringLiteral("Initializing TrainingHandler..."));
     m_logger.verbose(logTag(), QStringLiteral("Initializing TrainingHandler done!"));
@@ -57,20 +57,11 @@ void TrainingHandler::handleAnswer(const Training::Answer &answerData)
     switch (answerData.state)
     {
     case Training::QuestionState::Unanswered:
-    {
-        int questionIndex = m_trainingHistory.at(m_currentQuestionIndex).questionIndex;
-        Training::QuestionData &questionData = m_questionDatas[questionIndex];
-        questionData.roundContexts.last().state = Training::QuestionState::Answered;
-        questionData.roundContexts.last().answer = answerData.answer;
-        questionData.roundContexts.last().isCorrect = true; // TODO: check answer
-        handleTraining();
-        emit nextQuestionAvailable(!m_trainingFinished);
+        handleUnansweredQuestion(answerData.answer);
         break;
-    }
 
-    // Pressing enter again with answered question yields latest question
     case Training::QuestionState::Answered:
-        newQuestion();
+        handleAnsweredQuestion();
         break;
     }
 }
@@ -294,4 +285,26 @@ const QList<int> TrainingHandler::getQuestionIndicesForWrongAnswers()
     }
 
     return result;
+}
+
+void TrainingHandler::handleUnansweredQuestion(const QString &answer)
+{
+    int questionIndex = m_trainingHistory.at(m_currentQuestionIndex).questionIndex;
+    Training::QuestionData &questionData = m_questionDatas[questionIndex];
+    questionData.roundContexts.last().state = Training::QuestionState::Answered;
+    questionData.roundContexts.last().answer = answer;
+
+    bool isCorrect = m_checker.checkAnswer(answer, questionData.correctAnswer);
+    questionData.roundContexts.last().isCorrect = isCorrect;
+    isCorrect ? questionData.correctCount++ : questionData.wrongCount++;
+
+    handleTraining();
+
+    emit nextQuestionAvailable(!m_trainingFinished);
+}
+
+void TrainingHandler::handleAnsweredQuestion()
+{
+    // Pressing enter again with answered question yields latest question
+    newQuestion();
 }

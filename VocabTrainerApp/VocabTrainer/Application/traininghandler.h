@@ -2,6 +2,7 @@
 #define TRAININGHANDLER_H
 
 #include "Logging/logger.h"
+#include "answerchecker.h"
 #include "DataTypes/training.h"
 #include "DataTypes/vocab.h"
 
@@ -38,8 +39,11 @@ private:
     bool allAnswered();
     int getCorrectAnswerCount();
     const QList<int> getQuestionIndicesForWrongAnswers();
+    void handleUnansweredQuestion(const QString &answer);
+    void handleAnsweredQuestion();
 
     Logger &m_logger;
+    AnswerChecker m_checker;
 
     int m_totalEntryCount;
     QList<Training::QuestionData> m_questionDatas;

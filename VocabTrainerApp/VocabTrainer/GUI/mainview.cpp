@@ -96,7 +96,7 @@ void MainView::updateView(const QList<Vocab::ContentInfo> &contentInfos)
 void MainView::updateView(const Training::Question &question)
 {
     m_roundLabel->setText(QStringLiteral("Round %1").arg(QString::number(question.roundContext.roundNumber)));
-    m_cardCounterLabel->setText(QStringLiteral("%1/%2").arg(QString::number(question.roundContext.questionNumber), QString::number(question.trainingContext.totalEntryCount)));
+    m_cardCounterLabel->setText(QStringLiteral("%1/%2").arg(QString::number(question.roundContext.questionNumber), QString::number(question.roundContext.roundEntryCount)));
     m_questionLabel->setText(formatMarkedText(question.question));
     m_answerLineEdit->setText(question.roundContext.answer);
 
@@ -1102,7 +1102,7 @@ void MainView::setFeedback(bool isCorrect, const QString &answer, const QSet<QSt
     QStringList answers;
     for (const QString &correctAnswer : correctAnswers)
     {
-        if (correctAnswer.compare(answer, Qt::CaseInsensitive) != 0)
+        if (answer != correctAnswer)
         {
             answers.append(correctAnswer);
         }
@@ -1145,9 +1145,18 @@ void MainView::handleChangeQuestion(const Training::ChangeQuestion change)
 
 QString MainView::formatMarkedText(const QString &text)
 {
-    static const QRegularExpression regex(R"(\*(.*?)\*)");
-    QString result = text.toHtmlEscaped();
-    result.replace(regex, "<u>\\1</u>");
+    static const QRegularExpression contextRegex(R"(<([^<>]*)>)");
+    static const QRegularExpression underlineRegex(R"(\*(.*?)\*)");
+
+    QString result = text;
+
+    // Display context-only sections in parentheses
+    result.replace(contextRegex, "(\\1)");
+
+    result = result.toHtmlEscaped();
+
+    // Underline text marked with asterisks
+    result.replace(underlineRegex, "<u>\\1</u>");
 
     return result;
 }
