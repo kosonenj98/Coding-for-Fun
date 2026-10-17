@@ -13,6 +13,8 @@ public:
     void showWarning(const QString& title, const QString& message);
     void showError(const QString& title, const QString& message);
 
+    bool askOkOrCancel(const QString &title, const QString &prompt);
+
 public slots:
 
 signals:

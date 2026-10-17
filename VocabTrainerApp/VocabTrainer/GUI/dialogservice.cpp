@@ -21,3 +21,9 @@ void DialogService::showError(const QString &title, const QString &message)
 {
     QMessageBox::critical(m_parent, title, message);
 }
+
+bool DialogService::askOkOrCancel(const QString &title, const QString &prompt)
+{
+    const auto result = QMessageBox::question(m_parent, title, prompt, QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Cancel);
+    return result == QMessageBox::Ok;
+}

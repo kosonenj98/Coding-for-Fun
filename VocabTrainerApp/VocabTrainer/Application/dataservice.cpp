@@ -155,6 +155,11 @@ void DataService::handleGetDataRequest(const Vocab::GetDataRequest &request)
         result.datas.append(data);
     }
 
+    if (!(result.totalEntryCount > 0))
+    {
+        result.code = Error::Code::VocabNoEntries;
+    }
+
     emit getDataFinished(result);
 }
 

@@ -166,8 +166,19 @@ void MainWindow::handleNextQuestionAvailable(bool available)
 
 void MainWindow::handleTrainingFinished(const Training::Result &result)
 {
-    // TODO: Handle training finished
-    m_mainView->showLobbyView();
+    if (result.code != Error::Code::Success)
+    {
+        m_logger.error(logTag(), QStringLiteral("Failure in training! ErrorCode %1").arg(Error::codeToQString(result.code)));
+        m_mainView->showErrorView(QStringLiteral("Failure in training! ErrorCode %1").arg(Error::codeToQString(result.code)));
+        m_dialogService->showError(QStringLiteral("Training"), QStringLiteral("Failure in training! ErrorCode %1").arg(Error::codeToQString(result.code)));
+        return;
+    }
+
+    bool continueTraining = m_dialogService->askOkOrCancel(QStringLiteral("Training"), QStringLiteral("Training finished!\n"
+                                                                                                      "Continue training?"));
+
+    continueTraining ? m_mainView->showTrainingView() : m_mainView->showLobbyView();
+    // TODO: Emit to continue training
 }
 
 void MainWindow::handleViewTabChanged(int index)

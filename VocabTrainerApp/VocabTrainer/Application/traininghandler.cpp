@@ -135,9 +135,9 @@ void TrainingHandler::changeQuestion(const Training::ChangeQuestionRequest &requ
             {
                 m_newQuestionIndex++;
             }
-            m_currentQuestionIndex = m_newQuestionIndex;
-            result.order = Training::QuestionOrder::Last;
         }
+        m_currentQuestionIndex = m_newQuestionIndex;
+        result.order = Training::QuestionOrder::Last;
 
         break;
     }

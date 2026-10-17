@@ -70,6 +70,7 @@ private:
     QTreeWidgetItem *findChildById(QTreeWidgetItem *parent, const QString &id);
     void setFeedback(bool isCorrect, const QString &answer, const QSet<QString> &correctAnswers);
     void handleChangeQuestion(const Training::ChangeQuestion change);
+    QString formatMarkedText(const QString &text);
 
     Logger &m_logger;
     QStringList m_selectedSourcePaths;

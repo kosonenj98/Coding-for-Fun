@@ -97,7 +97,7 @@ void MainView::updateView(const Training::Question &question)
 {
     m_roundLabel->setText(QStringLiteral("Round %1").arg(QString::number(question.roundContext.roundNumber)));
     m_cardCounterLabel->setText(QStringLiteral("%1/%2").arg(QString::number(question.roundContext.questionNumber), QString::number(question.trainingContext.totalEntryCount)));
-    m_questionLabel->setText(question.question);
+    m_questionLabel->setText(formatMarkedText(question.question));
     m_answerLineEdit->setText(question.roundContext.answer);
 
     switch (question.roundContext.state)
@@ -144,6 +144,12 @@ void MainView::updateVocabTree(const QList<Vocab::ContentInfo> &contentInfos)
         updateVocabItem(info);
     }
 
+    // With single vocabs expand tree automatically
+    if (contentInfos.count() == 1)
+    {
+        m_vocabTree->expandAll();
+    }
+
     updateVocabTreeLabel(totalEntryCount);
 }
 
@@ -181,25 +187,25 @@ void MainView::updateVocabItem(const Vocab::ContentInfo &info)
         vocabItem->setData(column, Qt::UserRole, info.title);
         vocabItem->setFlags(vocabItem->flags() | Qt::ItemIsUserCheckable);
         vocabItem->setCheckState(0, Qt::Checked);
-        vocabItem->setExpanded(m_vocabTree->topLevelItemCount() == 1);
     }
 
+    vocabItem->setExpanded(false);
     vocabItem->setText(column, QStringLiteral("%1 (%2)").arg(info.title, QString::number(info.totalEntryCount)));
     updateVocabChildren(vocabItem, info);
 }
 
 void MainView::updateVocabChildren(QTreeWidgetItem *vocabItem, const Vocab::ContentInfo &info)
 {
-    QHash<QString, int> newChildrenContentInfo;
+    QList<QPair<QString, int>> newChildrenContentInfo;
 
     if (info.entryCount > 0)
     {
-        newChildrenContentInfo.insert(info.title, info.entryCount);
+        newChildrenContentInfo.append({info.title, info.entryCount});
     }
 
     for (const auto &groupInfo : info.groupInfos)
     {
-        newChildrenContentInfo.insert(groupInfo.title, groupInfo.entryCount);
+        newChildrenContentInfo.append({groupInfo.title, groupInfo.entryCount});
     }
 
     // Remove obsolete children.
@@ -207,25 +213,29 @@ void MainView::updateVocabChildren(QTreeWidgetItem *vocabItem, const Vocab::Cont
     {
         auto *child = vocabItem->child(i);
         const QString id = child->data(0, Qt::UserRole).toString();
+        bool keepChild = std::any_of(newChildrenContentInfo.cbegin(), newChildrenContentInfo.cend(),
+                            [&id](const QPair<QString, int> &info)
+                            {
+                                return info.first == id;
+                            });
 
-        if (!newChildrenContentInfo.contains(id))
+        if (!keepChild)
         {
             delete vocabItem->takeChild(i);
         }
     }
 
     // Update existing children and create new ones.
-    for (auto it = newChildrenContentInfo.cbegin(); it != newChildrenContentInfo.cend(); it++)
+    for (const auto &contentInfo : newChildrenContentInfo)
     {
-        auto *child = getOrCreateChild(vocabItem, it.key());
-
-        if (it.key() == info.title)
+        auto *child = getOrCreateChild(vocabItem, contentInfo.first);
+        if (contentInfo.first == info.title)
         {
-            child->setText(0, QStringLiteral("Groupless (%1)").arg(it.value()));
+            child->setText(0, QStringLiteral("Groupless (%1)").arg(contentInfo.second));
         }
         else
         {
-            child->setText(0, QStringLiteral("%1 (%2)").arg(it.key()).arg(it.value()));
+            child->setText(0, QStringLiteral("%1 (%2)").arg(contentInfo.first).arg(contentInfo.second));
         }
     }
 }
@@ -805,6 +815,7 @@ QLabel *MainView::createQuestionLabel(QWidget *parent)
     label->setAlignment(Qt::AlignCenter);
     label->setWordWrap(true);
     label->setMinimumHeight(QUESTION_MIN_HEIGHT);
+    label->setTextFormat(Qt::RichText);
 
     QFont font = label->font();
     font.setPointSize(QUESTION_FONT_SIZE);
@@ -1112,10 +1123,11 @@ void MainView::setFeedback(bool isCorrect, const QString &answer, const QSet<QSt
     detailsFont.setPointSize(FEEDBACK_FONT_SIZE);
     for (const QString &correctAnswer : answers)
     {
-        auto *label = new QLabel(correctAnswer, m_answerDetailsWidget);
+        auto *label = new QLabel(formatMarkedText(correctAnswer), m_answerDetailsWidget);
         label->setAlignment(Qt::AlignCenter);
         label->setWordWrap(true);
         label->setFont(detailsFont);
+        label->setTextFormat(Qt::RichText);
         m_answerDetailsLayout->addWidget(label);
     }
 
@@ -1129,4 +1141,13 @@ void MainView::handleChangeQuestion(const Training::ChangeQuestion change)
     Training::ChangeQuestionRequest request;
     request.change = change;
     emit requestChangeQuestion(request);
+}
+
+QString MainView::formatMarkedText(const QString &text)
+{
+    static const QRegularExpression regex(R"(\*(.*?)\*)");
+    QString result = text.toHtmlEscaped();
+    result.replace(regex, "<u>\\1</u>");
+
+    return result;
 }
