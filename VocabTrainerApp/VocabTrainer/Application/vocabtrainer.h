@@ -3,11 +3,12 @@
 
 #include "Logging/logger.h"
 #include "Logging/logfilehandler.h"
+#include "DataTypes/log.h"
 #include "logservice.h"
 #include "vocabfilehandler.h"
 #include "dataservice.h"
 #include "traininghandler.h"
-#include "DataTypes/log.h"
+#include "statisticsservice.h"
 
 #include <QObject>
 
@@ -31,13 +32,16 @@ public slots:
     void handleClearVocabRequest(const Vocab::ClearRequest &request);
     void handleClearVocabFinished(const Vocab::ClearResult &result);
 
-    void handleStartTraining(const Training::StartRequest &request);
+    void handleStartTrainingRequest(const Training::StartRequest &request);
     void handleQuestion(const Training::Question &question);
     void handleAnswer(const Training::Answer &answerData);
-    void handleChangeQuestion(const Training::ChangeQuestionRequest &request);
+    void handleChangeQuestionRequest(const Training::ChangeQuestionRequest &request);
     void handleChangeQuestionFinished(const Training::ChangeQuestionResult &result);
     void handleNextQuestionAvailable(bool available);
-    void handleTrainingFinished(const Training::Result &result);
+    void handleTrainingFinished(const Training::FinishedResult &result);
+    void handleContinueTrainingRequest(const Training::ContinueRequest &request);
+    void handleStopTrainingRequest(const Training::StopRequest &request);
+    void handleStopTrainingFinished(const Training::StopResult &result);
 
     void shutdown();
 
@@ -48,13 +52,15 @@ signals:
     void question(const Training::Question &question);
     void changeQuestionFinished(const Training::ChangeQuestionResult &result);
     void nextQuestionAvailable(bool available);
-    void trainingFinished(const Training::Result &result);
+    void trainingFinished(const Training::FinishedResult &result);
+    void stopTrainingFinished(const Training::StopResult &result);
 
 private:
     void initializeLogService();
     void initializeVocabFileHandler();
     void initializeDataService();
     void initializeTrainingHandler();
+    void initializeStatisticsService();
 
     Logger &m_logger;
     LogFileHandler &m_logFileHandler;
@@ -64,5 +70,6 @@ private:
     VocabFileHandler *m_vocabFileHandler = nullptr;
     DataService *m_dataService = nullptr;
     TrainingHandler *m_trainingHandler = nullptr;
+    StatisticsService *m_statisticsService = nullptr;
 };
 #endif // VOCABTRAINER_H

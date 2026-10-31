@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 
+#include <QCloseEvent>
+
 namespace
 {
     const QString &logTag()
@@ -27,18 +29,26 @@ MainWindow::MainWindow(Logger &logger, SettingsHandler &handler, QWidget *parent
     // Initialize tab widget
     initializeTabWidget();
 
+    // Set initial view
+    m_mainView->showIdleView();
+    m_tabWidget->setCurrentWidget(m_mainView);
+    m_trainingState = ApplicationState::Idle;
+
     m_logger.verbose(logTag(), QStringLiteral("Constructing main window done!"));
 }
 
 void MainWindow::handleLogQueryRequest(const Log::QueryRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Emitting log query request..."));
+    m_trainingState = ApplicationState::QueryingLog;
     emit requestLogQuery(request);
 }
 
 void MainWindow::handleLogQueryFinished(const Log::QueryResult &result)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling log query finished..."));
+    m_trainingState = ApplicationState::Idle;
+
     if (result.code != Error::Code::Success)
     {
         m_logger.verbose(logTag(), QStringLiteral("Informing user about failed log query..."));
@@ -62,12 +72,15 @@ void MainWindow::handleLogQueryFinished(const Log::QueryResult &result)
 void MainWindow::handleApplyNewSettingsRequest(const Settings::ApplyNewRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Emitting request to apply the new settings..."));
+    m_trainingState = ApplicationState::ApplyingNewSettings;
     emit requestApplyNewSettings(request);
 }
 
 void MainWindow::handleApplyNewSettingsFinished(const Settings::ApplyNewResult &result)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling applying new settings finished..."));
+    m_trainingState = ApplicationState::Idle;
+
     if (result.code != Error::Code::Success)
     {
         m_dialogService->showError(QStringLiteral("Settings change"), QStringLiteral("Applying new settings failed: (%1)").arg(Error::codeToQString(result.code)));
@@ -82,6 +95,7 @@ void MainWindow::handleApplyNewSettingsFinished(const Settings::ApplyNewResult &
 void MainWindow::handleLoadVocabRequest(const Vocab::LoadRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Emitting request to load vocabs..."));
+    m_trainingState = ApplicationState::LoadingVocabs;
     m_mainView->showLoadingView();
     emit requestLoadVocab(request);
 }
@@ -89,10 +103,12 @@ void MainWindow::handleLoadVocabRequest(const Vocab::LoadRequest &request)
 void MainWindow::handleLoadVocabFinished(const Vocab::LoadResult &result)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling load vocab datas finished..."));
+    m_trainingState = ApplicationState::Idle;
+
     if (result.code != Error::Code::Success)
     {
+        m_mainView->showErrorView(QStringLiteral("Failed to load the requested vocabs! ErrorCode %1").arg(Error::codeToQString(result.code)));
         m_dialogService->showError(QStringLiteral("Load vocab"), QStringLiteral("Loading selected vocabs failed: (%1)").arg(Error::codeToQString(result.code)));
-        m_mainView->showErrorView(QStringLiteral("Failed to load the requested vocabs!"));
         return;
     }
 
@@ -102,19 +118,21 @@ void MainWindow::handleLoadVocabFinished(const Vocab::LoadResult &result)
     }
 
     m_mainView->updateView(result.contentInfos);
-    m_mainView->showLobbyView();
+    m_mainView->showIdleView();
     m_logger.verbose(logTag(), QStringLiteral("Handling load vocab datas finished done!"));
 }
 
 void MainWindow::handleClearVocabRequest(const Vocab::ClearRequest &request)
 {
     m_logger.debug(logTag(), QStringLiteral("Handling vocab clear request..."));
+    m_trainingState = ApplicationState::ClearingVocabs;
     emit requestClearVocab(request);
 }
 
 void MainWindow::handleClearVocabFinished(const Vocab::ClearResult &result)
 {
     m_logger.debug(logTag(), QStringLiteral("Log clear finished!"));
+    m_trainingState = ApplicationState::Idle;
 
     if (result.code != Error::Code::Success)
     {
@@ -124,11 +142,12 @@ void MainWindow::handleClearVocabFinished(const Vocab::ClearResult &result)
     }
 
     m_mainView->updateView(QList<Vocab::ContentInfo>{});
-    m_mainView->showLobbyView();
+    m_mainView->showIdleView();
 }
 
 void MainWindow::handleStartTrainingRequest(const Training::StartRequest &request)
 {
+    m_trainingState = ApplicationState::Training;
     m_mainView->showTrainingView();
     emit requestStartTraining(request);
 }
@@ -164,21 +183,197 @@ void MainWindow::handleNextQuestionAvailable(bool available)
     m_mainView->updateView(available);
 }
 
-void MainWindow::handleTrainingFinished(const Training::Result &result)
+void MainWindow::handleTrainingFinished(const Training::FinishedResult &result)
 {
     if (result.code != Error::Code::Success)
     {
         m_logger.error(logTag(), QStringLiteral("Failure in training! ErrorCode %1").arg(Error::codeToQString(result.code)));
         m_mainView->showErrorView(QStringLiteral("Failure in training! ErrorCode %1").arg(Error::codeToQString(result.code)));
         m_dialogService->showError(QStringLiteral("Training"), QStringLiteral("Failure in training! ErrorCode %1").arg(Error::codeToQString(result.code)));
+        m_mainView->showTrainingView();
         return;
     }
 
-    bool continueTraining = m_dialogService->askOkOrCancel(QStringLiteral("Training"), QStringLiteral("Training finished!\n"
-                                                                                                      "Continue training?"));
+    bool continueTraining = m_dialogService->askYesOrNo(QStringLiteral("Training"), QStringLiteral("Training finished!\nContinue training?"));
 
-    continueTraining ? m_mainView->showTrainingView() : m_mainView->showLobbyView();
-    // TODO: Emit to continue training
+    if (continueTraining)
+    {
+        Training::ContinueRequest request;
+        emit requestContinueTraining(request);
+    }
+    else
+    {
+        Training::StopRequest request;
+        emit requestStopTraining(request);
+    }
+}
+
+void MainWindow::handleStopTrainingRequested(const Training::StopRequest &request)
+{
+    if (m_trainingState == ApplicationState::StoppingTraining)
+    {
+        return;
+    }
+
+    m_trainingState = ApplicationState::StoppingTraining;
+    emit requestStopTraining(request);
+}
+
+void MainWindow::handleStopTrainingFinished(const Training::StopResult &result)
+{
+    if (result.code != Error::Code::Success)
+    {
+        switch (result.reason)
+        {
+        case Training::StopFailureReason::None:
+        {
+            m_logger.error(logTag(), QStringLiteral("Failed to stop training without evident reason! ErrorCode %1").arg(Error::codeToQString(result.code)));
+            const auto userStopResult = m_dialogService->askYesOrNoOrCancel(QStringLiteral("Training"), QStringLiteral("Stopping training failed unexpectedly. ReasonCode %1.\nDo you want to retry?").arg(Error::codeToQString(result.code)), QMessageBox::Critical);
+
+            if (userStopResult == QMessageBox::Cancel)
+            {
+                m_trainingState = ApplicationState::Training;
+                return;
+            }
+
+            if (userStopResult == QMessageBox::Yes)
+            {
+                Training::StopRequest request;
+                request.command = Training::StopCommand::Stop;
+                emit requestStopTraining(request);
+                return;
+            }
+
+            if (userStopResult == QMessageBox::No)
+            {
+                Training::StopRequest request;
+                request.command = Training::StopCommand::ForcedStop;
+                emit requestStopTraining(request);
+                return;
+            }
+
+            break;
+        }
+
+        case Training::StopFailureReason::UnsavedData:
+        {
+            const auto userStopResult = m_dialogService->askYesOrNoOrCancel(QStringLiteral("Training"), QStringLiteral("You have unsaved training data.\nDo you want to save and stop?"), QMessageBox::Warning);
+
+            if (userStopResult == QMessageBox::Cancel)
+            {
+                m_trainingState = ApplicationState::Training;
+                return;
+            }
+
+            if (userStopResult == QMessageBox::Yes)
+            {
+                Training::StopRequest request;
+                request.command = Training::StopCommand::SaveAndStop;
+                emit requestStopTraining(request);
+                return;
+            }
+
+            if (userStopResult == QMessageBox::No)
+            {
+                Training::StopRequest request;
+                request.command = Training::StopCommand::OnlyStop;
+                emit requestStopTraining(request);
+                return;
+            }
+
+            break;
+        }
+
+        case Training::StopFailureReason::SaveFailed:
+        {
+            const auto userStopResult = m_dialogService->askYesOrNoOrCancel(QStringLiteral("Training"), QStringLiteral("Failed to save training data. ErrorCode %1.\nDo you want to retry?").arg(Error::codeToQString(result.code)), QMessageBox::Critical);
+
+            if (userStopResult == QMessageBox::Cancel)
+            {
+                m_trainingState = ApplicationState::Training;
+                return;
+            }
+
+            if (userStopResult == QMessageBox::Yes)
+            {
+                Training::StopRequest request;
+                request.command = Training::StopCommand::SaveAndStop;
+                emit requestStopTraining(request);
+                return;
+            }
+
+            if (userStopResult == QMessageBox::No)
+            {
+                Training::StopRequest request;
+                request.command = Training::StopCommand::OnlyStop;
+                emit requestStopTraining(request);
+                return;
+            }
+
+            break;
+        }
+
+        case Training::StopFailureReason::StopFailed:
+        {
+            const auto userStopResult = m_dialogService->askYesOrNoOrCancel(QStringLiteral("Training"), QStringLiteral("Failed to stop training. ErrorCode %1.\nDo you want to retry?").arg(Error::codeToQString(result.code)), QMessageBox::Critical);
+
+            if (userStopResult == QMessageBox::Cancel)
+            {
+                m_trainingState = ApplicationState::Training;
+                return;
+            }
+
+            if (userStopResult == QMessageBox::Yes)
+            {
+                Training::StopRequest request;
+                request.command = Training::StopCommand::Stop;
+                emit requestStopTraining(request);
+                return;
+            }
+
+            if (userStopResult == QMessageBox::No)
+            {
+                Training::StopRequest request;
+                request.command = Training::StopCommand::ForcedStop;
+                emit requestStopTraining(request);
+                return;
+            }
+
+            break;
+        }
+        }
+
+        return;
+    }
+
+    m_dialogService->showInformation(QStringLiteral("Training"), QStringLiteral("Training stopped successfully!"));
+
+    if (m_trainingState != ApplicationState::StoppingTrainingForClose)
+    {
+        m_trainingState = ApplicationState::Idle;
+    }
+    else
+    {
+        close();
+        return;
+    }
+
+    m_mainView->updateView(result.sessionData);
+    m_mainView->showTrainingSummaryView();
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (m_trainingState != ApplicationState::Training) {
+        event->accept();
+        return;
+    }
+
+    event->ignore();
+    m_trainingState = ApplicationState::StoppingTrainingForClose;
+
+    Training::StopRequest request;
+    emit requestStopTraining(request);
 }
 
 void MainWindow::handleViewTabChanged(int index)
@@ -206,6 +401,7 @@ void MainWindow::initializeMainView()
     connect(m_mainView, &MainView::requestStartTraining, this, &MainWindow::handleStartTrainingRequest);
     connect(m_mainView, &MainView::answer, this, &MainWindow::handleAnswer);
     connect(m_mainView, &MainView::requestChangeQuestion, this, &MainWindow::handleChangeQuestionRequest);
+    connect(m_mainView, &MainView::requestStopTraining, this, &MainWindow::handleStopTrainingRequested);
     m_logger.verbose(logTag(), QStringLiteral("Initializing main view done!"));
 }
 

@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui concurrent charts
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -13,6 +13,8 @@ SOURCES += \
     Application/dataservice.cpp \
     Application/logservice.cpp \
     Application/settingshandler.cpp \
+    Application/statisticsanalyzer.cpp \
+    Application/statisticsservice.cpp \
     Application/traininghandler.cpp \
     Application/vocabfilehandler.cpp \
     Application/vocabgenerator.cpp \
@@ -34,6 +36,8 @@ HEADERS += \
     Application/dataservice.h \
     Application/logservice.h \
     Application/settingshandler.h \
+    Application/statisticsanalyzer.h \
+    Application/statisticsservice.h \
     Application/traininghandler.h \
     Application/vocabfilehandler.h \
     Application/vocabgenerator.h \
@@ -41,6 +45,7 @@ HEADERS += \
     DataTypes/error.h \
     DataTypes/log.h \
     DataTypes/settings.h \
+    DataTypes/statistics.h \
     DataTypes/training.h \
     DataTypes/vocab.h \
     DataTypes/vocabfile.h \

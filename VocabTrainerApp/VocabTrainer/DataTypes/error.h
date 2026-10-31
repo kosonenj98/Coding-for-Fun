@@ -24,6 +24,7 @@ namespace Error
         MismatchingOptions,
         OutOfBoundsStart,
         OutOfBoundsEnd,
+        CannotStopTraining,
         Unknown
     };
 

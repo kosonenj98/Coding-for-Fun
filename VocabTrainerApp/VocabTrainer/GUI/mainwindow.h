@@ -38,7 +38,9 @@ public slots:
     void handleChangeQuestionRequest(const Training::ChangeQuestionRequest &request);
     void handleChangeQuestionFinished(const Training::ChangeQuestionResult &result);
     void handleNextQuestionAvailable(bool available);
-    void handleTrainingFinished(const Training::Result &result);
+    void handleTrainingFinished(const Training::FinishedResult &result);
+    void handleStopTrainingRequested(const Training::StopRequest &request);
+    void handleStopTrainingFinished(const Training::StopResult &result);
 
 signals:
     void requestLogQuery(const Log::QueryRequest &query);
@@ -48,6 +50,11 @@ signals:
     void requestStartTraining(const Training::StartRequest &request);
     void answer(const Training::Answer &answer);
     void requestChangeQuestion(const Training::ChangeQuestionRequest &request);
+    void requestContinueTraining(const Training::ContinueRequest &request);
+    void requestStopTraining(const Training::StopRequest &request);
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void handleViewTabChanged(int index);
@@ -59,9 +66,22 @@ private:
     void initializeLogView();
     void initializeTabWidget();
 
+    enum class ApplicationState
+    {
+        Idle,
+        LoadingVocabs,
+        ClearingVocabs,
+        Training,
+        StoppingTraining,
+        StoppingTrainingForClose,
+        QueryingLog,
+        ApplyingNewSettings
+    };
+
     Logger &m_logger;
     SettingsHandler &m_settingsHandler;
     DialogService* m_dialogService = nullptr;
+    ApplicationState m_trainingState;
 
     // Views
     MainView *m_mainView = nullptr;

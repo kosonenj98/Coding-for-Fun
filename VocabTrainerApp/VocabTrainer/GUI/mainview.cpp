@@ -6,6 +6,14 @@
 #include <QFileIconProvider>
 #include <QDirIterator>
 #include <QShortcut>
+#include <QScrollArea>
+#include <QFormLayout>
+#include <QTableWidget>
+#include <QHeaderView>
+#include <QChart>
+#include <QChartView>
+#include <QPieSeries>
+#include <QPainter>
 
 namespace
 {
@@ -31,6 +39,12 @@ namespace
     constexpr int FEEDBACK_FONT_SIZE = 20;
     constexpr int FEEDBACK_SPACING = 8;
     constexpr int PROGRESS_BAR_MIN_HEIGHT = 24;
+
+    constexpr int TRAINING_SUMMARY_TITLE_FONT_SIZE = 22;
+    constexpr int TRAINING_SUMMARY_SUBTITLE_FONT_SIZE = 16;
+    constexpr int CHART_VIEW_MIN_SIZE = 250;
+    constexpr int PIE_SERIES_LEGEND_SPACING = 6;
+    constexpr int PIE_SERIES_LEGEND_MARK_SIZE = 10;
 
     const QString &logTag()
     {
@@ -67,25 +81,37 @@ MainView::MainView(Logger &logger, QWidget *parent)
     m_logger.verbose(logTag(), QStringLiteral("Constructing main view done!"));
 }
 
-void MainView::showLobbyView()
+void MainView::showIdleView()
 {
-    m_trainingStack->setCurrentWidget(m_lobbyView);
+    m_trainingSettingsGroupBox->setEnabled(true);
+    m_startOrStopTrainingButton->setText("Start training");
+    m_trainingStack->setCurrentWidget(m_idleView);
 }
 
 void MainView::showLoadingView()
 {
+    m_trainingSettingsGroupBox->setEnabled(false);
     m_trainingStack->setCurrentWidget(m_loadingView);
 }
 
 void MainView::showErrorView(const QString &message)
 {
+    m_trainingSettingsGroupBox->setEnabled(true);
     m_errorLabel->setText(message);
     m_trainingStack->setCurrentWidget(m_errorView);
 }
 
 void MainView::showTrainingView()
 {
+    m_trainingSettingsGroupBox->setEnabled(false);
+    m_startOrStopTrainingButton->setText("Stop training");
     m_trainingStack->setCurrentWidget(m_trainingView);
+}
+
+void MainView::showTrainingSummaryView()
+{
+    m_trainingSettingsGroupBox->setEnabled(true);
+    m_trainingStack->setCurrentWidget(m_trainingSummaryView);
 }
 
 void MainView::updateView(const QList<Vocab::ContentInfo> &contentInfos)
@@ -108,11 +134,12 @@ void MainView::updateView(const Training::Question &question)
         m_answerResult->hide();
         break;
 
-    case Training::QuestionState::Answered:
+    default:
         m_answerLineEdit->setEnabled(false);
         m_answerResult->show();
-        m_answerStatusLabel->setText(question.roundContext.isCorrect ? QStringLiteral("✓") : QStringLiteral("✗"));
-        setFeedback(question.roundContext.isCorrect, question.roundContext.answer, question.correctAnswer);
+        bool isCorrect = question.roundContext.state == Training::QuestionState::Correct;
+        m_answerStatusLabel->setText(isCorrect ? QStringLiteral("✓") : QStringLiteral("✗"));
+        setFeedback(isCorrect, question.roundContext.answer, question.correctAnswer);
         break;
     }
 
@@ -131,6 +158,51 @@ void MainView::updateView(const Training::QuestionOrder &questionOrder)
 void MainView::updateView(bool nextQuestionAvailable)
 {
     m_nextButton->setEnabled(nextQuestionAvailable);
+}
+
+void MainView::updateView(const Training::SessionData &data)
+{
+    auto *layout = qobject_cast<QGridLayout *>(m_trainingSummaryWidget->layout());
+
+    if (!layout)
+    {
+        return;
+    }
+
+    while (QLayoutItem *item = layout->takeAt(0))
+    {
+        if (QWidget *widget = item->widget())
+        {
+            delete widget;
+        }
+
+        delete item;
+    }
+
+    auto *titleLabel = new QLabel(tr("Training Summary"), m_trainingSummaryWidget);
+    auto *sessionOverview = createSessionOverview(m_trainingSummaryWidget, data);
+    auto *vocabularyOverview = createVocabularyOverview(m_trainingSummaryWidget, data);
+    auto *answerDistributionOverview = createAnswerDistributionOverview(m_trainingSummaryWidget, data);
+    auto *answerOverview = createAnswerOverview(m_trainingSummaryWidget, data);
+    auto *topBestOverview = createTopBestOverview(m_trainingSummaryWidget, data);
+    auto *topWorstOverview = createTopWorstOverview(m_trainingSummaryWidget, data);
+
+    QFont font = titleLabel->font();
+    font.setPointSize(TRAINING_SUMMARY_TITLE_FONT_SIZE);
+    font.setBold(true);
+    titleLabel->setFont(font);
+    vocabularyOverview->setFixedHeight(sessionOverview->minimumSizeHint().height());
+
+    layout->setColumnStretch(0, 1);
+    layout->setColumnStretch(1, 1);
+
+    layout->addWidget(titleLabel, 0, 0, 1, 2, Qt::AlignCenter);
+    layout->addWidget(sessionOverview, 1, 0);
+    layout->addWidget(vocabularyOverview, 1, 1);
+    layout->addWidget(answerDistributionOverview, 2, 0);
+    layout->addWidget(answerOverview, 2, 1);
+    layout->addWidget(topBestOverview, 3, 0, 1, 2);
+    layout->addWidget(topWorstOverview, 4, 0, 1, 2);
 }
 
 void MainView::updateVocabTree(const QList<Vocab::ContentInfo> &contentInfos)
@@ -351,8 +423,16 @@ void MainView::handleVocabTreeItemChanged(QTreeWidgetItem *item, int column)
     m_updatingVocabTree = false;
 }
 
-void MainView::handleStartTrainingPressed()
+void MainView::handleStartOrStopTrainingPressed()
 {
+    if (m_trainingStack->currentWidget() == m_trainingView)
+    {
+        Training::StopRequest request;
+        request.command = Training::StopCommand::Stop;
+        emit requestStopTraining(request);
+        return;
+    }
+
     Training::StartRequest request;
     auto *vocabTreeRoot = m_vocabTree->invisibleRootItem();
 
@@ -452,12 +532,12 @@ QWidget *MainView::createTrainingSettingsPanel()
 
     auto *panel = new QWidget(this);
 
-    auto *trainingSettingsGroup = createTrainingSettingsGroup(panel);
-    m_startButton = new QPushButton(QStringLiteral("Start"), panel);
+    m_trainingSettingsGroupBox = createTrainingSettingsGroup(panel);
+    m_startOrStopTrainingButton = new QPushButton(panel);
 
     auto *layout = new QVBoxLayout(panel);
-    layout->addWidget(trainingSettingsGroup);
-    layout->addWidget(m_startButton);
+    layout->addWidget(m_trainingSettingsGroupBox);
+    layout->addWidget(m_startOrStopTrainingButton);
 
     m_logger.verbose(logTag(), "Creating training settings panel done!");
 
@@ -474,16 +554,18 @@ QWidget *MainView::createTrainingPanel()
     m_trainingStack = new QStackedWidget(panel);
 
     // Create the individual views
-    m_lobbyView = createWelcomeView(m_trainingStack);
+    m_idleView = createIdleView(m_trainingStack);
     m_loadingView = createLoadingView(m_trainingStack);
     m_errorView = createErrorView(m_trainingStack);
     m_trainingView = createTrainingView(m_trainingStack);
+    m_trainingSummaryView = createTrainingSummaryView(m_trainingStack);
 
     // Add views to the stack
-    m_trainingStack->addWidget(m_lobbyView);
+    m_trainingStack->addWidget(m_idleView);
     m_trainingStack->addWidget(m_loadingView);
     m_trainingStack->addWidget(m_errorView);
     m_trainingStack->addWidget(m_trainingView);
+    m_trainingStack->addWidget(m_trainingSummaryView);
 
     // Construct the layout
     auto *layout = new QVBoxLayout(panel);
@@ -642,7 +724,7 @@ QTreeWidget *MainView::createVocabularyTree(QWidget *parent)
     return tree;
 }
 
-QWidget *MainView::createWelcomeView(QWidget *parent)
+QWidget *MainView::createIdleView(QWidget *parent)
 {
     auto *view = new QWidget(parent);
 
@@ -755,9 +837,69 @@ QWidget *MainView::createTrainingView(QWidget *parent)
     layout->addStretch();
     layout->addWidget(m_progressBar);
 
-    m_logger.verbose(logTag(), "Creating training panel done!");
+    m_logger.verbose(logTag(), "Creating training view done!");
 
     return panel;
+}
+
+QWidget *MainView::createTrainingSummaryView(QWidget *parent)
+{
+    auto *scrollArea = new QScrollArea(parent);
+    m_trainingSummaryWidget = new QWidget();
+    new QGridLayout(m_trainingSummaryWidget);
+
+    scrollArea->setWidget(m_trainingSummaryWidget);
+    scrollArea->setWidgetResizable(true);
+
+    return scrollArea;
+}
+
+QWidget *MainView::createRankingCard(QWidget *parent, const QString &title, const QList<Training::VocabEntryStat> &entries)
+{
+    auto *card = new QFrame(parent);
+    auto *titleLabel = new QLabel(title, card);
+    auto *table = new QTableWidget(entries.size(), 2, card);
+
+    card->setFrameShape(QFrame::NoFrame);
+    titleLabel->setAlignment(Qt::AlignCenter);
+
+    QFont font = titleLabel->font();
+    font.setBold(true);
+    titleLabel->setFont(font);
+
+    table->setHorizontalHeaderLabels({QStringLiteral("Word"), QStringLiteral("Accuracy")});
+    table->verticalHeader()->setVisible(false);
+    table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    table->setSelectionMode(QAbstractItemView::NoSelection);
+    table->setFocusPolicy(Qt::NoFocus);
+    table->setShowGrid(false);
+    table->setAlternatingRowColors(true);
+    table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    table->verticalHeader()->setStretchLastSection(false);
+
+    for (int i = 0; i < entries.size(); ++i)
+    {
+        const auto &stat = entries.at(i);
+        auto *label = new QLabel(table);
+        label->setTextFormat(Qt::RichText);
+        label->setText(formatMarkedText(stat.entry.entry));
+
+        table->setCellWidget(i, 0, label);
+        QString accuracyText = QStringLiteral("-");
+        if (stat.answerCount > 0)
+        {
+            const double percentage = 100.0 * stat.correctAnswerCount / stat.answerCount;
+            accuracyText = QStringLiteral("%1/%2 (%3 %)").arg(QString::number(stat.correctAnswerCount), QString::number(stat.answerCount), QLocale().toString(percentage, 'f', 1));
+        }
+        table->setItem(i, 1, new QTableWidgetItem(accuracyText));
+    }
+
+    auto *cardLayout = new QVBoxLayout(card);
+    cardLayout->addWidget(titleLabel);
+    cardLayout->addWidget(table);
+
+    return card;
 }
 
 QWidget *MainView::createNavigationBar(QWidget *parent)
@@ -882,6 +1024,339 @@ QProgressBar *MainView::createProgressBar(QWidget *parent)
     return progressBar;
 }
 
+QWidget *MainView::createSessionOverview(QWidget *parent, const Training::SessionData &data)
+{
+    auto *frame = new QFrame(parent);
+    frame->setFrameShape(QFrame::StyledPanel);
+    frame->setFrameShadow(QFrame::Raised);
+
+    auto *contentWidget = new QWidget();
+
+    auto *titleLabel = new QLabel(tr("General info"), frame);
+    auto *startedAtLabel = new QLabel(QStringLiteral("Started at: %1").arg(data.startedAt.toString("dd.MM.yyyy HH:mm")), contentWidget);
+    QString durationText;
+    const qint64 totalSeconds = data.durationMs / 1000;
+    const qint64 hours = totalSeconds / (60 * 60);
+    const qint64 minutes = (totalSeconds % (60 * 60)) / 60;
+    const qint64 seconds = totalSeconds % 60;
+    QStringList durationTextParts;
+    if (hours > 0)
+    {
+        durationTextParts.append(QStringLiteral("%1 h").arg(QString::number(hours)));
+    }
+    if (minutes > 0)
+    {
+        durationTextParts.append(QStringLiteral("%1 min").arg(QString::number(minutes)));
+    }
+    if (seconds > 0)
+    {
+        durationTextParts.append(QStringLiteral("%1 s").arg(QString::number(seconds)));
+    }
+    if (durationTextParts.isEmpty())
+    {
+        durationText = QStringLiteral("0 s");
+    }
+    else
+    {
+        durationText = durationTextParts.join(' ');
+    }
+    auto *durationLabel = new QLabel(QStringLiteral("Duration: %1").arg(durationText), contentWidget);
+    auto *roundCountLabel = new QLabel(QStringLiteral("Rounds: %1").arg(QString::number(data.roundCount)), contentWidget);
+    QString secondsPerQuestionText = data.questionCount > 0 ? QStringLiteral("%1 seconds per question").arg(static_cast<double>(totalSeconds)/data.questionCount, 0, 'f', 1) : QString();
+    auto *questionCountLabel = new QLabel(contentWidget);
+    if (!secondsPerQuestionText.isEmpty())
+    {
+        questionCountLabel->setText(QStringLiteral("Questions: %1 (%2)").arg(QString::number(data.questionCount), secondsPerQuestionText));
+    }
+    else
+    {
+        questionCountLabel->setText(QStringLiteral("Questions: %1").arg(QString::number(data.questionCount)));
+    }
+    auto *entryCountLabel = new QLabel(QStringLiteral("Vocab entries: %1").arg(QString::number(data.totalEntryCount)), contentWidget);
+
+    QFont font = titleLabel->font();
+    font.setPointSize(TRAINING_SUMMARY_SUBTITLE_FONT_SIZE);
+    font.setBold(true);
+    titleLabel->setFont(font);
+
+    auto *contentLayout = new QVBoxLayout(contentWidget);
+    contentLayout->addWidget(startedAtLabel);
+    contentLayout->addWidget(durationLabel);
+    contentLayout->addWidget(roundCountLabel);
+    contentLayout->addWidget(questionCountLabel);
+    contentLayout->addWidget(entryCountLabel);
+
+    auto *layout = new QVBoxLayout(frame);
+    layout->addWidget(titleLabel);
+    layout->addWidget(contentWidget);
+    layout->addStretch();
+
+    return frame;
+}
+
+QWidget *MainView::createVocabularyOverview(QWidget *parent, const Training::SessionData &data)
+{
+    auto *frame = new QFrame(parent);
+    frame->setFrameShape(QFrame::StyledPanel);
+    frame->setFrameShadow(QFrame::Raised);
+
+    auto *titleLabel = new QLabel(tr("Vocabularies"), frame);
+    auto* scrollArea = new QScrollArea(frame);
+    auto *contentWidget = new QWidget();
+
+    scrollArea->setWidget(contentWidget);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::StyledPanel);
+    scrollArea->setFrameShadow(QFrame::Sunken);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+    auto *contentLayout = new QVBoxLayout(contentWidget);
+    for (auto it = data.vocabs.cbegin(); it != data.vocabs.cend(); ++it)
+    {
+        auto *vocabTitle = new QLabel(it.key(), contentWidget);
+        QFont vocabFont = vocabTitle->font();
+        vocabFont.setBold(true);
+        vocabTitle->setFont(vocabFont);
+
+        QStringList groups = it.value().values();
+        groups.sort(Qt::CaseInsensitive);
+        auto *groupsLabel = new QLabel(groups.join(QStringLiteral(", ")), contentWidget);
+        groupsLabel->setWordWrap(true);
+
+        if (std::next(it) != data.vocabs.cend())
+        {
+            groupsLabel->setText(groupsLabel->text() + "\n");
+        }
+
+        contentLayout->addWidget(vocabTitle);
+        contentLayout->addWidget(groupsLabel);
+    }
+
+    contentLayout->addStretch();
+
+    QFont font = titleLabel->font();
+    font.setPointSize(TRAINING_SUMMARY_SUBTITLE_FONT_SIZE);
+    font.setBold(true);
+    titleLabel->setFont(font);
+
+    auto* layout = new QVBoxLayout(frame);
+    layout->addWidget(titleLabel);
+    layout->addWidget(scrollArea, 1);
+
+    return frame;
+}
+
+QWidget *MainView::createAnswerDistributionOverview(QWidget *parent, const Training::SessionData &data)
+{
+    auto *frame = new QFrame(parent);
+    frame->setFrameShape(QFrame::StyledPanel);
+    frame->setFrameShadow(QFrame::Raised);
+
+    auto *titleLabel = new QLabel(tr("Answer Distribution"), frame);
+
+    const int correctAnswerCount = data.correctAnswerCount;
+    const int wrongAnswerCount = data.wrongAnswerCount;
+    const int unansweredCount = qMax(0, data.questionCount - data.answerCount);
+    const int totalAnswerCount = data.questionCount;
+
+    auto *series = new QPieSeries();
+    series->append(QStringLiteral("Correct"), correctAnswerCount);
+    series->append(QStringLiteral("Wrong"), wrongAnswerCount);
+    series->append(QStringLiteral("Unanswered"), unansweredCount);
+
+    const QColor correctColor(76, 175, 80); // Green
+    const QColor wrongColor(229, 115, 115); // Red
+    const QColor unansweredColor(150, 150, 150); // Gray
+    series->slices().at(0)->setColor(correctColor);
+    series->slices().at(1)->setColor(wrongColor);
+    series->slices().at(2)->setColor(unansweredColor);
+
+    auto *chart = new QChart();
+    chart->addSeries(series);
+    chart->legend()->hide();
+
+    auto *chartView = new QChartView(chart, frame);
+    chartView->setRenderHint(QPainter::Antialiasing);
+    chartView->setMinimumSize(CHART_VIEW_MIN_SIZE, CHART_VIEW_MIN_SIZE);
+
+    auto *legendLayout = new QVBoxLayout();
+    legendLayout->setContentsMargins(0, 0, 0, 0);
+
+    const QStringList legendTexts = {
+        QStringLiteral("Correct: %1 (%2 %)").arg(correctAnswerCount).arg("100.0"),
+        QStringLiteral("Wrong: %1 (%2 %)").arg(wrongAnswerCount).arg("100.0"),
+        QStringLiteral("Unanswered: %1 (%2 %)").arg(unansweredCount).arg("100.0")
+    };
+
+    int maxTextWidth = 0;
+
+    QFont f;
+    QFontMetrics metrics(f);
+    for (const QString &text : legendTexts)
+    {
+        maxTextWidth = qMax(maxTextWidth, metrics.horizontalAdvance(text));
+    }
+
+    const int rowWidth = PIE_SERIES_LEGEND_MARK_SIZE + PIE_SERIES_LEGEND_SPACING + maxTextWidth;
+
+    legendLayout->setAlignment(Qt::AlignHCenter);
+
+    auto addLegendRow = [&](const QString &text, const QColor &color, const int value)
+    {
+        auto *row = new QWidget(frame);
+        row->setFixedWidth(rowWidth);
+        auto *rowLayout = new QHBoxLayout(row);
+        rowLayout->setContentsMargins(0, 0, 0, 0);
+        rowLayout->setSpacing(PIE_SERIES_LEGEND_SPACING);
+
+        auto *colorMark = new QLabel(row);
+        colorMark->setFixedSize(PIE_SERIES_LEGEND_MARK_SIZE, PIE_SERIES_LEGEND_MARK_SIZE);
+        colorMark->setStyleSheet(QStringLiteral("background-color: %1;").arg(color.name()));
+
+        auto *label = new QLabel(row);
+        const double percentage = totalAnswerCount > 0 ? 100.0 * value / totalAnswerCount : 0.0;
+        label->setText(text.arg(QString::number(value), QLocale().toString(percentage, 'f', 1)));
+
+        rowLayout->addWidget(colorMark);
+        rowLayout->addWidget(label);
+        rowLayout->addStretch();
+
+        legendLayout->addWidget(row, 0, Qt::AlignHCenter);
+    };
+    addLegendRow(QStringLiteral("Correct: %1 (%2 %)"), correctColor, correctAnswerCount);
+    addLegendRow(QStringLiteral("Wrong: %1 (%2 %)"), wrongColor, wrongAnswerCount);
+    addLegendRow(QStringLiteral("Unanswered: %1 (%2 %)"), unansweredColor, unansweredCount);
+
+    QFont font = titleLabel->font();
+    font.setPointSize(TRAINING_SUMMARY_SUBTITLE_FONT_SIZE);
+    font.setBold(true);
+    titleLabel->setFont(font);
+
+    auto *layout = new QVBoxLayout(frame);
+    layout->addWidget(titleLabel);
+    layout->addWidget(chartView, 1);
+    layout->addLayout(legendLayout);
+
+    return frame;
+}
+
+QWidget *MainView::createAnswerOverview(QWidget *parent, const Training::SessionData &data)
+{
+    auto *frame = new QFrame(parent);
+    frame->setFrameShape(QFrame::StyledPanel);
+    frame->setFrameShadow(QFrame::Raised);
+
+    auto *titleLabel = new QLabel(tr("Answer Statistics"), frame);
+    auto *contentWidget = new QWidget(frame);
+    auto *contentLayout = new QVBoxLayout(contentWidget);
+
+    auto *longestCorrectStreakLabel = new QLabel(QStringLiteral("Longest correct streak: %1").arg(QString::number(data.longestCorrectStreak)), contentWidget);
+    longestCorrectStreakLabel->setWordWrap(true);
+    contentLayout->addWidget(longestCorrectStreakLabel);
+
+    auto addStatistic = [&](const QString &text, const int &value, const int &total)
+    {
+        const double percentage = total > 0 ? 100.0 * value / total : 0.0;
+        auto *label = new QLabel(text.arg(QString::number(value), QString::number(total), QLocale().toString(percentage, 'f', 1)), contentWidget);
+        label->setWordWrap(true);
+        contentLayout->addWidget(label);
+    };
+
+    int correctOnFirst =  0;
+    int correctOnSecond = 0;
+    int correctOnThirdOrLater = 0;
+    for (int i = 0; i < data.correctAnswerCountPerRound.size(); i++)
+    {
+        int count = data.correctAnswerCountPerRound.at(i);
+        switch (i)
+        {
+        case 0:
+            correctOnFirst = count;
+            break;
+
+        case 1:
+            correctOnSecond = count;
+            break;
+
+        default:
+            correctOnThirdOrLater += count;
+            break;
+        }
+    }
+
+    addStatistic(QStringLiteral("Correct on 1st attempt: %1/%2 (%3 %)"), correctOnFirst, data.correctAnswerCount);
+    addStatistic(QStringLiteral("Correct on 2nd attempt: %1/%2 (%3 %)"), correctOnSecond, data.correctAnswerCount);
+    addStatistic(QStringLiteral("Correct on 3rd attempt or later: %1/%2 (%3 %)"), correctOnThirdOrLater, data.correctAnswerCount);
+    addStatistic(QStringLiteral("Remains wrong or unanswered: %1/%2 (%3 %)"), data.remainsWrongOrUnansweredCount, data.totalEntryCount);
+    contentLayout->addStretch();
+
+    QFont font = titleLabel->font();
+    font.setPointSize(TRAINING_SUMMARY_SUBTITLE_FONT_SIZE);
+    font.setBold(true);
+    titleLabel->setFont(font);
+
+    auto *layout = new QVBoxLayout(frame);
+    layout->addWidget(titleLabel);
+    layout->addWidget(contentWidget);
+
+    return frame;
+}
+
+QWidget *MainView::createTopBestOverview(QWidget *parent, const Training::SessionData &data)
+{
+    auto *frame = new QFrame(parent);
+    frame->setFrameShape(QFrame::StyledPanel);
+    frame->setFrameShadow(QFrame::Raised);
+
+    auto *titleLabel = new QLabel(QStringLiteral("TOP %1 best known words").arg(QString::number(data.rankingInfo.topBest.count())), frame);
+
+    auto *topBestThisTraining = createRankingCard(frame, QStringLiteral("This training"), data.rankingInfo.topBest);
+    auto *topBestAllTime = createRankingCard(frame, QStringLiteral("All trainings"), data.rankingInfo.topBestAllTime);
+
+    QFont font = titleLabel->font();
+    font.setPointSize(TRAINING_SUMMARY_SUBTITLE_FONT_SIZE);
+    font.setBold(true);
+    titleLabel->setFont(font);
+
+    auto *cardsLayout = new QHBoxLayout();
+    cardsLayout->addWidget(topBestThisTraining, 1);
+    cardsLayout->addWidget(topBestAllTime, 1);
+
+    auto *layout = new QVBoxLayout(frame);
+    layout->addWidget(titleLabel);
+    layout->addLayout(cardsLayout);
+
+    return frame;
+}
+
+QWidget *MainView::createTopWorstOverview(QWidget *parent, const Training::SessionData &data)
+{
+    auto *frame = new QFrame(parent);
+    frame->setFrameShape(QFrame::StyledPanel);
+    frame->setFrameShadow(QFrame::Raised);
+
+    auto *titleLabel = new QLabel(QStringLiteral("TOP %1 worst known words").arg(QString::number(data.rankingInfo.topWorst.count())), frame);
+
+    auto *topWorstThisTraining = createRankingCard(frame, QStringLiteral("This training"), data.rankingInfo.topWorst);
+    auto *topWorstAllTime = createRankingCard(frame, QStringLiteral("All trainings"), data.rankingInfo.topWorstAllTime);
+
+    QFont font = titleLabel->font();
+    font.setPointSize(TRAINING_SUMMARY_SUBTITLE_FONT_SIZE);
+    font.setBold(true);
+    titleLabel->setFont(font);
+
+    auto *cardsLayout = new QHBoxLayout();
+    cardsLayout->addWidget(topWorstThisTraining, 1);
+    cardsLayout->addWidget(topWorstAllTime, 1);
+
+    auto *layout = new QVBoxLayout(frame);
+    layout->addWidget(titleLabel);
+    layout->addLayout(cardsLayout);
+
+    return frame;
+}
+
 void MainView::createConnections()
 {
     m_logger.verbose(logTag(), "Creating GUI component connections...");
@@ -892,7 +1367,7 @@ void MainView::createConnections()
     connect(m_removeSourceButton, &QPushButton::clicked, this, &MainView::removeSelectedVocabSource);
     connect(m_switchDirectionButton, &QPushButton::clicked, this,&MainView::handleSwitchTrainingDirection);
     connect(m_vocabTree, &QTreeWidget::itemChanged, this, &MainView::handleVocabTreeItemChanged);
-    connect(m_startButton, &QPushButton::clicked, this, &MainView::handleStartTrainingPressed);
+    connect(m_startOrStopTrainingButton, &QPushButton::clicked, this, &MainView::handleStartOrStopTrainingPressed);
     connect(m_previousButton, &QPushButton::clicked, this, &MainView::handlePreviousQuestionPressed);
     connect(m_nextButton, &QPushButton::clicked, this, &MainView::handleNextQuestionPressed);
     connect(m_answerDetailsButton, &QPushButton::toggled, this, &MainView::handleShowAnswerDetailsPressed);

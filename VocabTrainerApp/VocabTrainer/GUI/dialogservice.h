@@ -2,6 +2,7 @@
 #define DIALOGSERVICE_H
 
 #include <QObject>
+#include <QMessageBox>
 
 class DialogService : public QObject
 {
@@ -13,7 +14,9 @@ public:
     void showWarning(const QString& title, const QString& message);
     void showError(const QString& title, const QString& message);
 
-    bool askOkOrCancel(const QString &title, const QString &prompt);
+    bool askYesOrNo(const QString &title, const QString &prompt, QMessageBox::Icon icon = QMessageBox::Question, QMessageBox::StandardButton defaultButton = QMessageBox::StandardButton::No);
+
+    QMessageBox::StandardButton askYesOrNoOrCancel(const QString &title, const QString &prompt, QMessageBox::Icon icon = QMessageBox::Question, QMessageBox::StandardButton defaultButton = QMessageBox::StandardButton::Cancel);
 
 public slots:
 

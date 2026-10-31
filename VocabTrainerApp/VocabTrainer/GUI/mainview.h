@@ -23,15 +23,17 @@ class MainView : public QWidget
 public:
     explicit MainView(Logger &logger, QWidget *parent = nullptr);
 
-    void showLobbyView();
+    void showIdleView();
     void showLoadingView();
     void showErrorView(const QString &message);
     void showTrainingView();
+    void showTrainingSummaryView();
 
     void updateView(const QList<Vocab::ContentInfo> &contentInfos);
     void updateView(const Training::Question &question);
     void updateView(const Training::QuestionOrder &questionOrder);
     void updateView(bool nextQuestionAvailable);
+    void updateView(const Training::SessionData &data);
 
 public slots:
 
@@ -41,13 +43,14 @@ signals:
     void requestStartTraining(const Training::StartRequest &request);
     void answer(const Training::Answer &answer);
     void requestChangeQuestion(const Training::ChangeQuestionRequest &request);
+    void requestStopTraining(const Training::StopRequest &request);
 
 private slots:
     void handleBrowseVocabFiles();
     void handleBrowseVocabFolder();
     void handleSwitchTrainingDirection();
     void handleVocabTreeItemChanged(QTreeWidgetItem *item, int column);
-    void handleStartTrainingPressed();
+    void handleStartOrStopTrainingPressed();
     void handleEnterPressed();
     void handleShowAnswerDetailsPressed(bool checked);
     void handlePreviousQuestionPressed();
@@ -104,11 +107,23 @@ private:
 
     /*-----------------------------------------------------*/
 
+    // Training summary
+    QWidget *createSessionOverview(QWidget *parent, const Training::SessionData &data);
+    QWidget *createVocabularyOverview(QWidget *parent, const Training::SessionData &data);
+    QWidget *createAnswerDistributionOverview(QWidget *parent, const Training::SessionData &data);
+    QWidget *createAnswerOverview(QWidget *parent, const Training::SessionData &data);
+    QWidget *createTopBestOverview(QWidget *parent, const Training::SessionData &data);
+    QWidget *createTopWorstOverview(QWidget *parent, const Training::SessionData &data);
+
+    /*-----------------------------------------------------*/
+
     // Views
-    QWidget *createWelcomeView(QWidget *parent);
+    QWidget *createIdleView(QWidget *parent);
     QWidget *createLoadingView(QWidget *parent);
     QWidget *createErrorView(QWidget *parent);
     QWidget *createTrainingView(QWidget *parent);
+    QWidget *createTrainingSummaryView(QWidget *parent);
+    QWidget *createRankingCard(QWidget *parent, const QString &title, const QList<Training::VocabEntryStat> &entries);
 
     /*-----------------------------------------------------*/
 
@@ -119,15 +134,18 @@ private:
 
     // Stacked view for different situations
     QStackedWidget *m_trainingStack;
-    QWidget *m_lobbyView;
+    QWidget *m_idleView;
     QWidget *m_loadingView;
     QWidget *m_errorView;
     QLabel *m_errorLabel;
     QWidget *m_trainingView;
+    QWidget *m_trainingSummaryView;
 
     /*-----------------------------------------------------*/
 
     // Training settings attributes
+
+    QGroupBox *m_trainingSettingsGroupBox;
 
     // Vocab file selection
     QLabel *m_vocabSourcesLabel;
@@ -147,8 +165,8 @@ private:
     QLabel *m_vocabTreeLabel;
     QTreeWidget *m_vocabTree;
 
-    // Start training
-    QPushButton *m_startButton;
+    // Start/stop training
+    QPushButton *m_startOrStopTrainingButton;
 
     /*-----------------------------------------------------*/
 
@@ -172,6 +190,11 @@ private:
 
     // Progress bar
     QProgressBar *m_progressBar;
+
+    /*-----------------------------------------------------*/
+
+    // Training summary attributes
+    QWidget *m_trainingSummaryWidget;
 };
 
 #endif // MAINVIEW_H

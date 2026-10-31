@@ -1,5 +1,7 @@
 #include "traininghandler.h"
 
+#include <QRandomGenerator>
+
 namespace
 {
     const QString &logTag()
@@ -10,7 +12,7 @@ namespace
 }
 
 TrainingHandler::TrainingHandler(Logger &logger, QObject *parent)
-    : QObject{parent}, m_logger(logger), m_checker(logger)
+    : QObject{parent}, m_logger(logger), m_answerChecker(logger)
 {
     m_logger.verbose(logTag(), QStringLiteral("Initializing TrainingHandler..."));
     m_logger.verbose(logTag(), QStringLiteral("Initializing TrainingHandler done!"));
@@ -18,6 +20,18 @@ TrainingHandler::TrainingHandler(Logger &logger, QObject *parent)
 
 void TrainingHandler::startTraining(const Training::StartRequest &request)
 {
+    m_startedAt = QDateTime::currentDateTime();
+    m_trainingTimer.start();
+    m_questionDatas.clear();
+    m_trainingHistory.clear();
+    m_totalEntryCount = 0;
+    m_round = 1;
+    m_newQuestionIndex = 0;
+    m_currentQuestionIndex = m_newQuestionIndex;
+    m_longestCorrectStreak = 0;
+    m_currentCorrectStreak = 0;
+    m_trainingFinished = false;
+
     Vocab::GetDataRequest getTrainingDataRequest;
     getTrainingDataRequest.filters = request.vocabFilters;
     emit requestGetData(getTrainingDataRequest);
@@ -28,18 +42,15 @@ void TrainingHandler::handleGetDataFinished(const Vocab::GetDataResult &result)
     if (result.code != Error::Code::Success)
     {
         m_logger.error(logTag(), QStringLiteral("Failed to get training data! ErrorCode %1").arg(Error::codeToQString(result.code)));
-        Training::Result trainingResult;
+        m_trainingFinished = true;
+        Training::FinishedResult trainingResult;
         trainingResult.code = result.code;
         emit trainingFinished(trainingResult);
         return;
     }
 
-    m_questionDatas.clear();
-    m_trainingHistory.clear();
     m_totalEntryCount = result.totalEntryCount;
     m_questionDatas.reserve(m_totalEntryCount);
-    m_newQuestionIndex = 0;
-    m_currentQuestionIndex = m_newQuestionIndex;
     createQuestionDatas(result.datas);
     for (const auto &questionData : m_questionDatas)
     {
@@ -52,6 +63,22 @@ void TrainingHandler::handleGetDataFinished(const Vocab::GetDataResult &result)
     handleTraining();
 }
 
+void TrainingHandler::handleAnalyzeTrainingFinished(const Statistics::AnalyzeTrainingResult &result)
+{
+    Training::StopResult stopResult;
+    if (result.code != Error::Code::Success)
+    {
+        m_logger.error(logTag(), QStringLiteral("Failed to analyze training! ErrorCode %1").arg(Error::codeToQString(result.code)));
+        stopResult.code = result.code;
+        stopResult.reason = Training::StopFailureReason::StopFailed; // TODO: See error code from result!
+        emit stopTrainingFinished(stopResult);
+        return;
+    }
+
+    stopResult.sessionData = result.trainingSessionData;
+    emit stopTrainingFinished(stopResult);
+}
+
 void TrainingHandler::handleAnswer(const Training::Answer &answerData)
 {
     switch (answerData.state)
@@ -60,7 +87,7 @@ void TrainingHandler::handleAnswer(const Training::Answer &answerData)
         handleUnansweredQuestion(answerData.answer);
         break;
 
-    case Training::QuestionState::Answered:
+    default:
         handleAnsweredQuestion();
         break;
     }
@@ -122,7 +149,7 @@ void TrainingHandler::changeQuestion(const Training::ChangeQuestionRequest &requ
         {
             // Do not skip unanswered questions
             Training::HistoryInfo info = m_trainingHistory.at(m_newQuestionIndex);
-            if (m_questionDatas.at(info.questionIndex).roundContexts.at(info.roundIndex).state == Training::QuestionState::Answered)
+            if (m_questionDatas.at(info.questionIndex).roundContexts.at(info.roundIndex).state != Training::QuestionState::Unanswered)
             {
                 m_newQuestionIndex++;
             }
@@ -137,13 +164,57 @@ void TrainingHandler::changeQuestion(const Training::ChangeQuestionRequest &requ
     handleQuestion();
 }
 
+void TrainingHandler::continueTraining(const Training::ContinueRequest &request)
+{
+    // TODO: Use heurestics?
+    QList<int> newQuestionIndices;
+    for (const auto &questionData : m_questionDatas)
+    {
+        newQuestionIndices.append(questionData.index);
+    }
+
+    // Shuffle questions to random order for now
+    for (qsizetype i = newQuestionIndices.size() - 1; i > 0; i--)
+    {
+        const qsizetype j = QRandomGenerator::global()->bounded(i + 1);
+        newQuestionIndices.swapItemsAt(i, j);
+    }
+
+    handleNewRound(newQuestionIndices);
+    newQuestion();
+}
+
+void TrainingHandler::stopTraining(const Training::StopRequest &request)
+{
+    m_logger.debug(logTag(), QStringLiteral("Handling stop training..."));
+    switch (request.command)
+    {
+    case Training::StopCommand::Stop:
+        handleStop();
+        break;
+
+    case Training::StopCommand::SaveAndStop:
+        handleSaveAndStop();
+        break;
+
+    case Training::StopCommand::OnlyStop:
+        handleOnlyStop();
+        break;
+
+    case Training::StopCommand::ForcedStop:
+        handleForcedStop();
+        break;
+    }
+    m_logger.debug(logTag(), QStringLiteral("Handling stop training done!"));
+}
+
 void TrainingHandler::createQuestionDatas(const QList<Vocab::Data> &datas)
 {
     for (const auto &vocabData : datas)
     {
         for (auto it = vocabData.entries.cbegin(); it != vocabData.entries.cend(); it++)
         {
-            m_questionDatas.append(createQuestionData(vocabData.title, QString(), it.key(), it.value()));
+            m_questionDatas.append(createQuestionData(vocabData.title, vocabData.title, it.key(), it.value()));
         }
 
         for (auto groupIt = vocabData.groupEntries.cbegin(); groupIt != vocabData.groupEntries.cend(); groupIt++)
@@ -167,7 +238,6 @@ Training::QuestionData TrainingHandler::createQuestionData(const QString &vocabT
     roundContext.questionNumber = m_questionDatas.count() + 1;
     roundContext.roundEntryCount = m_totalEntryCount;
     roundContext.state = Training::QuestionState::Unanswered;
-    roundContext.isCorrect = false;
 
     Training::QuestionData questionData;
     questionData.index = m_questionDatas.count();
@@ -203,13 +273,12 @@ void TrainingHandler::handleTraining()
     if (m_trainingFinished)
     {
         // All questions answered correctly
-        Training::Result result;
-        emit trainingFinished(result); // TODO: User may want to continue training
+        handleTrainingFinished();
     }
     else if (allAnswered())
     {
         // Add questions with wrong answers to next round
-        handleNextRound(getQuestionIndicesForWrongAnswers());
+        handleNewRound(getQuestionIndicesForWrongAnswers());
     }
 
     handleQuestion();
@@ -229,8 +298,9 @@ void TrainingHandler::newQuestion()
     changeQuestion(request);
 }
 
-void TrainingHandler::handleNextRound(const QList<int> &questionDataIndices)
+void TrainingHandler::handleNewRound(const QList<int> &questionDataIndices)
 {
+    m_round++;
     int questionNumber = 0;
     for (const auto &index : questionDataIndices)
     {
@@ -241,11 +311,10 @@ void TrainingHandler::handleNextRound(const QList<int> &questionDataIndices)
         historyInfo.roundIndex = questionData.roundContexts.count();
 
         Training::RoundContext newRoundContext;
-        newRoundContext.roundNumber = questionData.roundContexts.last().roundNumber + 1;
+        newRoundContext.roundNumber = m_round;
         newRoundContext.questionNumber = ++questionNumber;
         newRoundContext.roundEntryCount = questionDataIndices.count();
         newRoundContext.state = Training::QuestionState::Unanswered;
-        newRoundContext.isCorrect = false;
 
         questionData.roundContexts.append(newRoundContext);
         m_trainingHistory.append(historyInfo);
@@ -268,7 +337,7 @@ int TrainingHandler::getCorrectAnswerCount()
     return std::count_if(m_questionDatas.cbegin(), m_questionDatas.cend(),
         [](const Training::QuestionData &questionData)
         {
-            return questionData.roundContexts.last().isCorrect;
+            return questionData.roundContexts.last().state == Training::QuestionState::Correct;
         }
     );
 }
@@ -278,7 +347,7 @@ const QList<int> TrainingHandler::getQuestionIndicesForWrongAnswers()
     QList<int> result;
     for (const auto &questionData : m_questionDatas)
     {
-        if (!questionData.roundContexts.last().isCorrect)
+        if (questionData.roundContexts.last().state == Training::QuestionState::Wrong)
         {
             result.append(questionData.index);
         }
@@ -291,12 +360,21 @@ void TrainingHandler::handleUnansweredQuestion(const QString &answer)
 {
     int questionIndex = m_trainingHistory.at(m_currentQuestionIndex).questionIndex;
     Training::QuestionData &questionData = m_questionDatas[questionIndex];
-    questionData.roundContexts.last().state = Training::QuestionState::Answered;
     questionData.roundContexts.last().answer = answer;
 
-    bool isCorrect = m_checker.checkAnswer(answer, questionData.correctAnswer);
-    questionData.roundContexts.last().isCorrect = isCorrect;
-    isCorrect ? questionData.correctCount++ : questionData.wrongCount++;
+    bool isCorrect = m_answerChecker.checkAnswer(answer, questionData.correctAnswer);
+    questionData.roundContexts.last().state = isCorrect ? Training::QuestionState::Correct : Training::QuestionState::Wrong;
+    if (isCorrect)
+    {
+        questionData.correctCount++;
+        m_currentCorrectStreak++;
+        m_longestCorrectStreak = qMax(m_longestCorrectStreak, m_currentCorrectStreak);
+    }
+    else
+    {
+        m_currentCorrectStreak = 0;
+        questionData.wrongCount++;
+    }
 
     handleTraining();
 
@@ -307,4 +385,56 @@ void TrainingHandler::handleAnsweredQuestion()
 {
     // Pressing enter again with answered question yields latest question
     newQuestion();
+}
+
+void TrainingHandler::handleTrainingFinished()
+{
+    m_logger.debug(logTag(), QStringLiteral("Handling training finished..."));
+    Training::FinishedResult result;
+    emit trainingFinished(result);
+}
+
+void TrainingHandler::handleStop()
+{
+    Training::StopResult result;
+    if (!m_trainingFinished)
+    {
+        result.code = Error::Code::CannotStopTraining;
+        result.reason = Training::StopFailureReason::UnsavedData;
+        emit stopTrainingFinished(result);
+        return;
+    }
+
+    bool saveResults = true;
+    handleAnalyzeTraining(saveResults);
+}
+
+void TrainingHandler::handleSaveAndStop()
+{
+    bool saveResults = true;
+    handleAnalyzeTraining(saveResults);
+}
+
+void TrainingHandler::handleOnlyStop()
+{
+    bool saveResults = false;
+    handleAnalyzeTraining(saveResults);
+}
+
+void TrainingHandler::handleForcedStop()
+{
+    Training::StopResult result;
+    emit stopTrainingFinished(result);
+}
+
+void TrainingHandler::handleAnalyzeTraining(bool saveResults)
+{
+    Statistics::AnalyzeTrainingRequest request;
+    request.startedAt = m_startedAt;
+    request.durationMs = m_trainingTimer.elapsed();
+    request.longestCorrectStreak = m_longestCorrectStreak;
+    request.data = m_questionDatas;
+    request.save = saveResults;
+
+    emit requestAnalyzeTraining(request);
 }

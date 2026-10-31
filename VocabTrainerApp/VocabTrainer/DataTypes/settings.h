@@ -11,8 +11,8 @@ namespace Settings
         bool logInfoEnabled = true;
         bool logWarningEnabled = true;
         bool logErrorEnabled = true;
-        bool logDebugEnabled = true;
-        bool logVerboseEnabled = true;
+        bool logDebugEnabled = false;
+        bool logVerboseEnabled = false;
         QString logFilePath;
     };
 

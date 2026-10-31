@@ -7,17 +7,95 @@
 #include <QString>
 #include <QList>
 #include <QSet>
+#include <QDateTime>
 
 namespace Training
 {
+    struct VocabEntry
+    {
+        QString vocabTitle;
+        QString groupTitle;
+        QString entry;
+    };
+
+    struct VocabEntryStat
+    {
+        VocabEntry entry;
+        int correctAnswerCount = 0;
+        int answerCount = 0;
+    };
+
+    struct RankingInfo
+    {
+        QList<VocabEntryStat> topBest;
+        QList<VocabEntryStat> topWorst;
+        QList<VocabEntryStat> topBestAllTime;
+        QList<VocabEntryStat> topWorstAllTime;
+    };
+
+    struct SessionData
+    {
+        QDateTime startedAt;
+        qint64 durationMs = 0;
+        int roundCount = 0;
+        int questionCount = 0;
+        int totalEntryCount = 0;
+
+        QMap<QString, QSet<QString>> vocabs;
+
+        int answerCount = 0;
+        int correctAnswerCount = 0;
+        int wrongAnswerCount = 0;
+
+        int longestCorrectStreak = 0;
+        QList<int> correctAnswerCountPerRound;
+        int remainsWrongOrUnansweredCount = 0;
+
+        RankingInfo rankingInfo;
+    };
+
     struct StartRequest
     {
         QList<Vocab::Filter> vocabFilters;
+        // TODO: Heurestics settings?
     };
 
-    struct Result
+    struct FinishedResult
     {
         Error::Code code = Error::Code::Success;
+    };
+
+    struct ContinueRequest
+    {
+        // TODO: Heurestics settings?
+    };
+
+    enum class StopCommand
+    {
+        Stop,
+        SaveAndStop,
+        OnlyStop,
+        ForcedStop
+    };
+
+    struct StopRequest
+    {
+        StopCommand command = StopCommand::Stop;
+    };
+
+    enum class StopFailureReason
+    {
+        None,
+        UnsavedData,
+        SaveFailed,
+        StopFailed
+    };
+
+    struct StopResult
+    {
+        Error::Code code = Error::Code::Success;
+        StopFailureReason reason = StopFailureReason::None;
+        SessionData sessionData;
     };
 
     struct VocabContext
@@ -29,7 +107,9 @@ namespace Training
     enum class QuestionState
     {
         Unanswered,
-        Answered
+        Answered,
+        Correct,
+        Wrong
     };
 
     struct RoundContext
@@ -39,7 +119,6 @@ namespace Training
         int roundEntryCount;
         QuestionState state;
         QString answer;
-        bool isCorrect;
     };
 
     struct QuestionData
