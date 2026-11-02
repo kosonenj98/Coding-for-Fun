@@ -1,6 +1,7 @@
 #include "vocabtrainer.h"
 
 #include <QThread>
+#include <QStandardPaths>
 
 namespace
 {
@@ -180,6 +181,9 @@ void VocabTrainer::initializeStatisticsService()
 {
     m_logger.verbose(logTag(), QStringLiteral("Initializing statistics service..."));
     m_statisticsService = new StatisticsService(m_logger, this);
+    Statistics::InitializeDatabaseRequest request;
+    request.path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/statistics.db"; // TODO: Setting?
+    m_statisticsService->handleInitializeStatisticsDatabaseRequest(request);
     connect(m_trainingHandler, &TrainingHandler::requestAnalyzeTraining, m_statisticsService, &StatisticsService::handleAnalyzeTrainingRequest);
     connect(m_statisticsService, &StatisticsService::analyzeTrainingFinished, m_trainingHandler, &TrainingHandler::handleAnalyzeTrainingFinished);
     m_logger.verbose(logTag(), QStringLiteral("Initializing statistics service done!"));

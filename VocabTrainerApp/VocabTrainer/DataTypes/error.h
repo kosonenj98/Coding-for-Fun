@@ -25,6 +25,16 @@ namespace Error
         OutOfBoundsStart,
         OutOfBoundsEnd,
         CannotStopTraining,
+        EmptyDBPath,
+        CannotMakeDBDir,
+        CannotOpenDB,
+        DBAlreadyInitialized,
+        CannotEnableForeignDBKeys,
+        CannotBeginTransaction,
+        CannotCreateDBTables,
+        CannotCommitDBTransaction,
+        CannotSaveToDB,
+        DBSaveFailed,
         Unknown
     };
 

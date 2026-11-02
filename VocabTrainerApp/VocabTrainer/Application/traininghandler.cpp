@@ -70,7 +70,7 @@ void TrainingHandler::handleAnalyzeTrainingFinished(const Statistics::AnalyzeTra
     {
         m_logger.error(logTag(), QStringLiteral("Failed to analyze training! ErrorCode %1").arg(Error::codeToQString(result.code)));
         stopResult.code = result.code;
-        stopResult.reason = Training::StopFailureReason::StopFailed; // TODO: See error code from result!
+        stopResult.reason = stopResult.code == Error::Code::DBSaveFailed ? Training::StopFailureReason::SaveFailed : Training::StopFailureReason::StopFailed;
         emit stopTrainingFinished(stopResult);
         return;
     }

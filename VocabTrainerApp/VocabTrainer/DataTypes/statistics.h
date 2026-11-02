@@ -22,6 +22,28 @@ namespace Statistics
         Error::Code code = Error::Code::Success;
         Training::SessionData trainingSessionData;
     };
+
+    struct InitializeDatabaseRequest
+    {
+        QString path;
+    };
+
+    struct InitializeDatabaseResult
+    {
+        Error::Code code = Error::Code::Success;
+        QString path;
+    };
+
+    struct SaveTrainingRequest
+    {
+        QList<Training::QuestionData> questionDatas;
+        Training::SessionData sessionData;
+    };
+
+    struct SaveTrainingResult
+    {
+        Error::Code code = Error::Code::Success;
+    };
 }
 
 #endif // STATISTICS_H

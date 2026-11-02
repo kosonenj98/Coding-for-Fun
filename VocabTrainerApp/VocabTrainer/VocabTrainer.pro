@@ -1,4 +1,4 @@
-QT       += core gui concurrent charts
+QT       += core gui concurrent charts sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -14,6 +14,7 @@ SOURCES += \
     Application/logservice.cpp \
     Application/settingshandler.cpp \
     Application/statisticsanalyzer.cpp \
+    Application/statisticsdbhandler.cpp \
     Application/statisticsservice.cpp \
     Application/traininghandler.cpp \
     Application/vocabfilehandler.cpp \
@@ -37,6 +38,7 @@ HEADERS += \
     Application/logservice.h \
     Application/settingshandler.h \
     Application/statisticsanalyzer.h \
+    Application/statisticsdbhandler.h \
     Application/statisticsservice.h \
     Application/traininghandler.h \
     Application/vocabfilehandler.h \

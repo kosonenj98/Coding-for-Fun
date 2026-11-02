@@ -13,10 +13,22 @@ namespace
 }
 
 StatisticsService::StatisticsService(Logger &logger, QObject *parent)
-    : QObject{parent}, m_logger(logger), m_analyzer(logger)
+    : QObject{parent}, m_logger(logger), m_analyzer(logger), m_dbHandler(logger)
 {
     m_logger.debug(logTag(), QStringLiteral("Initializing statistics service..."));
     m_logger.debug(logTag(), QStringLiteral("Initializing statistics service done!"));
+}
+
+void StatisticsService::handleInitializeStatisticsDatabaseRequest(const Statistics::InitializeDatabaseRequest &request)
+{
+    m_logger.debug(logTag(), QStringLiteral("Initializing statistics database..."));
+    Statistics::InitializeDatabaseResult result = m_dbHandler.initializeDatabase(request);
+    if (result.code != Error::Code::Success)
+    {
+        m_logger.error(logTag(), QStringLiteral("Failed to initialize statistics database! ErrorCode %1").arg(Error::codeToQString(result.code)));
+    }
+    m_logger.debug(logTag(), QStringLiteral("Initializing statistics database done!"));
+    emit initializeDatabaseFinished(result); // TODO: Connect and handle this
 }
 
 void StatisticsService::handleAnalyzeTrainingRequest(const Statistics::AnalyzeTrainingRequest &request)
@@ -42,7 +54,6 @@ void StatisticsService::handleAnalyzeTrainingRequest(const Statistics::AnalyzeTr
     Training::RankingInfo info;
     info.topBest = topBestFuture.result();
     info.topWorst = topWorstFuture.result();
-    // TODO: Construct all time top best and top worst
 
     Training::SessionData data;
     data.startedAt = request.startedAt;
@@ -57,6 +68,24 @@ void StatisticsService::handleAnalyzeTrainingRequest(const Statistics::AnalyzeTr
     data.longestCorrectStreak = request.longestCorrectStreak;
     data.correctAnswerCountPerRound = correctAnswerCountPerRoundFuture.result();
     data.remainsWrongOrUnansweredCount = remainsWrongOrUnansweredCountFuture.result();
+
+    if (request.save)
+    {
+        Statistics::SaveTrainingRequest saveRequest;
+        saveRequest.questionDatas = request.data;
+        saveRequest.sessionData = data;
+        Statistics::SaveTrainingResult saveResult = m_dbHandler.saveTraining(saveRequest);
+        if (saveResult.code != Error::Code::Success)
+        {
+            m_logger.error(logTag(), QStringLiteral("Failed to save training session to database! ErrorCode %1").arg(Error::codeToQString(saveResult.code)));
+            result.code = saveResult.code;
+            emit analyzeTrainingFinished(result);
+            return;
+        }
+    }
+
+    info.topBestAllTime = m_dbHandler.getTopBestAllTime(top);
+    info.topWorstAllTime = m_dbHandler.getTopWorstAllTime(top);
 
     data.rankingInfo = info;
 
