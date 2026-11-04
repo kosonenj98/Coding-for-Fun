@@ -43,6 +43,12 @@ void VocabTrainer::initialize()
     m_logger.verbose(logTag(), QStringLiteral("Initializing VocabTrainer done! Running on thread '0x%1' (%2).").arg(threadId, threadName));
 }
 
+void VocabTrainer::handleInitializeStatisticsDatabaseFinished(const Statistics::InitializeDatabaseResult &result)
+{
+    m_logger.debug(logTag(), QStringLiteral("Handling initialize statistics database finished..."));
+    emit initializeStatisticsDatabaseFinished(result);
+}
+
 void VocabTrainer::handleLogQueryRequest(const Log::QueryRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Handling log query request..."));
@@ -181,10 +187,13 @@ void VocabTrainer::initializeStatisticsService()
 {
     m_logger.verbose(logTag(), QStringLiteral("Initializing statistics service..."));
     m_statisticsService = new StatisticsService(m_logger, this);
+    connect(m_statisticsService, &StatisticsService::initializeDatabaseFinished, this, &VocabTrainer::handleInitializeStatisticsDatabaseFinished);
+    connect(m_trainingHandler, &TrainingHandler::requestAnalyzeTraining, m_statisticsService, &StatisticsService::handleAnalyzeTrainingRequest);
+    connect(m_statisticsService, &StatisticsService::analyzeTrainingFinished, m_trainingHandler, &TrainingHandler::handleAnalyzeTrainingFinished);
+
+    // Initialize statistics database
     Statistics::InitializeDatabaseRequest request;
     request.path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/statistics.db"; // TODO: Setting?
     m_statisticsService->handleInitializeStatisticsDatabaseRequest(request);
-    connect(m_trainingHandler, &TrainingHandler::requestAnalyzeTraining, m_statisticsService, &StatisticsService::handleAnalyzeTrainingRequest);
-    connect(m_statisticsService, &StatisticsService::analyzeTrainingFinished, m_trainingHandler, &TrainingHandler::handleAnalyzeTrainingFinished);
     m_logger.verbose(logTag(), QStringLiteral("Initializing statistics service done!"));
 }

@@ -37,6 +37,19 @@ MainWindow::MainWindow(Logger &logger, SettingsHandler &handler, QWidget *parent
     m_logger.verbose(logTag(), QStringLiteral("Constructing main window done!"));
 }
 
+void MainWindow::handleInitializeStatisticsDatabaseFinished(const Statistics::InitializeDatabaseResult &result)
+{
+    m_logger.debug(logTag(), QStringLiteral("Handling statistics database finished..."));
+    if (result.code != Error::Code::Success)
+    {
+        m_logger.error(logTag(), QStringLiteral("Failed to initialize statistics database! ErrorCode %1").arg(Error::codeToQString(result.code)));
+        m_dialogService->showError(QStringLiteral("Statistics database"), QStringLiteral("Failed to initialize statistics database! ErrorCode %1").arg(Error::codeToQString(result.code)));
+        // TODO: Retry or something else?
+        return;
+    }
+    m_logger.debug(logTag(), QStringLiteral("Handling statistics database finished done!"));
+}
+
 void MainWindow::handleLogQueryRequest(const Log::QueryRequest &request)
 {
     m_logger.verbose(logTag(), QStringLiteral("Emitting log query request..."));

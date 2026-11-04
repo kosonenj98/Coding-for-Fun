@@ -37,6 +37,7 @@ namespace Training
     {
         QDateTime startedAt;
         qint64 durationMs = 0;
+        int trainingNumber = -1;
         int roundCount = 0;
         int questionCount = 0;
         int totalEntryCount = 0;
@@ -48,7 +49,9 @@ namespace Training
         int wrongAnswerCount = 0;
 
         int longestCorrectStreak = 0;
+        QList<int> correctAnswerCountPerAttempt;
         QList<int> correctAnswerCountPerRound;
+        QList<int> answerCountPerRound;
         int remainsWrongOrUnansweredCount = 0;
 
         RankingInfo rankingInfo;

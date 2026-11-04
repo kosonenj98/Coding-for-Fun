@@ -28,7 +28,7 @@ void StatisticsService::handleInitializeStatisticsDatabaseRequest(const Statisti
         m_logger.error(logTag(), QStringLiteral("Failed to initialize statistics database! ErrorCode %1").arg(Error::codeToQString(result.code)));
     }
     m_logger.debug(logTag(), QStringLiteral("Initializing statistics database done!"));
-    emit initializeDatabaseFinished(result); // TODO: Connect and handle this
+    emit initializeDatabaseFinished(result);
 }
 
 void StatisticsService::handleAnalyzeTrainingRequest(const Statistics::AnalyzeTrainingRequest &request)
@@ -46,8 +46,10 @@ void StatisticsService::handleAnalyzeTrainingRequest(const Statistics::AnalyzeTr
     auto answerCountFuture = QtConcurrent::run([this, &request]() { return m_analyzer.getAnswerCount(request.data); });
     auto correctAnswerCountFuture = QtConcurrent::run([this, &request]() { return m_analyzer.getCorrectAnswerCount(request.data); });
     auto wrongAnswerCountFuture = QtConcurrent::run([this, &request]() { return m_analyzer.getWrongAnswerCount(request.data); });
-    auto correctAnswerCountPerRoundFuture = QtConcurrent::run([this, &request]() { return m_analyzer.getCorrectAnswerCountPerRound(request.data); });
+    auto correctAnswerCountPerAttemptFuture = QtConcurrent::run([this, &request]() { return m_analyzer.getCorrectAnswerCountPerAttempt(request.data); });
     auto remainsWrongOrUnansweredCountFuture = QtConcurrent::run([this, &request]() { return m_analyzer.getRemainsWrongOrUnansweredCount(request.data); });
+    auto correctAnswerCountPerRoundFuture = QtConcurrent::run([this, &request]() { return m_analyzer.getCorrectAnswerCountPerRound(request.data); });
+    auto answerCountPerRoundFuture = QtConcurrent::run([this, &request]() { return m_analyzer.getAnswerCountPerRound(request.data); });
     auto topBestFuture = QtConcurrent::run([this, &request, &top]() { return m_analyzer.getTopBest(request.data, top); });
     auto topWorstFuture = QtConcurrent::run([this, &request, &top]() { return m_analyzer.getTopWorst(request.data, top); });
 
@@ -66,8 +68,11 @@ void StatisticsService::handleAnalyzeTrainingRequest(const Statistics::AnalyzeTr
     data.correctAnswerCount = correctAnswerCountFuture.result();
     data.wrongAnswerCount = wrongAnswerCountFuture.result();
     data.longestCorrectStreak = request.longestCorrectStreak;
-    data.correctAnswerCountPerRound = correctAnswerCountPerRoundFuture.result();
+    data.correctAnswerCountPerAttempt = correctAnswerCountPerAttemptFuture.result();
     data.remainsWrongOrUnansweredCount = remainsWrongOrUnansweredCountFuture.result();
+    data.correctAnswerCountPerRound = correctAnswerCountPerRoundFuture.result();
+    data.answerCountPerRound = answerCountPerRoundFuture.result();
+    data.rankingInfo = info;
 
     if (request.save)
     {
@@ -82,12 +87,11 @@ void StatisticsService::handleAnalyzeTrainingRequest(const Statistics::AnalyzeTr
             emit analyzeTrainingFinished(result);
             return;
         }
+        data.trainingNumber = saveResult.trainingNumber;
     }
 
-    info.topBestAllTime = m_dbHandler.getTopBestAllTime(top);
-    info.topWorstAllTime = m_dbHandler.getTopWorstAllTime(top);
-
-    data.rankingInfo = info;
+    data.rankingInfo.topBestAllTime = m_dbHandler.getTopBestAllTime(top);
+    data.rankingInfo.topWorstAllTime = m_dbHandler.getTopWorstAllTime(top);
 
     result.trainingSessionData = data;
 

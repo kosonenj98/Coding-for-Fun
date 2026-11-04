@@ -883,7 +883,7 @@ QWidget *MainView::createRankingCard(QWidget *parent, const QString &title, cons
         const auto &stat = entries.at(i);
         auto *label = new QLabel(table);
         label->setTextFormat(Qt::RichText);
-        label->setText(formatMarkedText(stat.entry.entry));
+        label->setText(QStringLiteral("%1   (%2: %3)").arg(formatMarkedText(stat.entry.entry), stat.entry.vocabTitle, stat.entry.groupTitle));
 
         table->setCellWidget(i, 0, label);
         QString accuracyText = QStringLiteral("-");
@@ -1033,6 +1033,7 @@ QWidget *MainView::createSessionOverview(QWidget *parent, const Training::Sessio
     auto *contentWidget = new QWidget();
 
     auto *titleLabel = new QLabel(tr("General info"), frame);
+    auto *trainingNumberLabel = new QLabel(QStringLiteral("Training number: %1").arg(QString::number(data.trainingNumber)), contentWidget);
     auto *startedAtLabel = new QLabel(QStringLiteral("Started at: %1").arg(data.startedAt.toString("dd.MM.yyyy HH:mm")), contentWidget);
     QString durationText;
     const qint64 totalSeconds = data.durationMs / 1000;
@@ -1080,6 +1081,7 @@ QWidget *MainView::createSessionOverview(QWidget *parent, const Training::Sessio
     titleLabel->setFont(font);
 
     auto *contentLayout = new QVBoxLayout(contentWidget);
+    contentLayout->addWidget(trainingNumberLabel);
     contentLayout->addWidget(startedAtLabel);
     contentLayout->addWidget(durationLabel);
     contentLayout->addWidget(roundCountLabel);
@@ -1251,9 +1253,13 @@ QWidget *MainView::createAnswerOverview(QWidget *parent, const Training::Session
     auto *contentWidget = new QWidget(frame);
     auto *contentLayout = new QVBoxLayout(contentWidget);
 
-    auto *longestCorrectStreakLabel = new QLabel(QStringLiteral("Longest correct streak: %1").arg(QString::number(data.longestCorrectStreak)), contentWidget);
-    longestCorrectStreakLabel->setWordWrap(true);
-    contentLayout->addWidget(longestCorrectStreakLabel);
+    auto addSeparator = [&]()
+    {
+        auto *separator = new QFrame(contentWidget);
+        separator->setFrameShape(QFrame::HLine);
+        separator->setFrameShadow(QFrame::Sunken);
+        contentLayout->addWidget(separator);
+    };
 
     auto addStatistic = [&](const QString &text, const int &value, const int &total)
     {
@@ -1263,12 +1269,18 @@ QWidget *MainView::createAnswerOverview(QWidget *parent, const Training::Session
         contentLayout->addWidget(label);
     };
 
+    auto *longestCorrectStreakLabel = new QLabel(QStringLiteral("Longest correct streak: %1").arg(QString::number(data.longestCorrectStreak)), contentWidget);
+    longestCorrectStreakLabel->setWordWrap(true);
+    contentLayout->addWidget(longestCorrectStreakLabel);
+
+    addSeparator();
+
     int correctOnFirst =  0;
     int correctOnSecond = 0;
     int correctOnThirdOrLater = 0;
-    for (int i = 0; i < data.correctAnswerCountPerRound.size(); i++)
+    for (int i = 0; i < data.correctAnswerCountPerAttempt.size(); i++)
     {
-        int count = data.correctAnswerCountPerRound.at(i);
+        int count = data.correctAnswerCountPerAttempt.at(i);
         switch (i)
         {
         case 0:
@@ -1284,11 +1296,22 @@ QWidget *MainView::createAnswerOverview(QWidget *parent, const Training::Session
             break;
         }
     }
-
     addStatistic(QStringLiteral("Correct on 1st attempt: %1/%2 (%3 %)"), correctOnFirst, data.correctAnswerCount);
     addStatistic(QStringLiteral("Correct on 2nd attempt: %1/%2 (%3 %)"), correctOnSecond, data.correctAnswerCount);
     addStatistic(QStringLiteral("Correct on 3rd attempt or later: %1/%2 (%3 %)"), correctOnThirdOrLater, data.correctAnswerCount);
+
+    addSeparator();
+
     addStatistic(QStringLiteral("Remains wrong or unanswered: %1/%2 (%3 %)"), data.remainsWrongOrUnansweredCount, data.totalEntryCount);
+
+    addSeparator();
+
+    for (int i = 0; i < data.correctAnswerCountPerRound.size(); i++)
+    {
+        QString text = QStringLiteral("Correct answers on round %1: ").arg(QString::number(i + 1));
+        addStatistic(text.append(QStringLiteral("%1/%2 (%3 %)")), data.correctAnswerCountPerRound.at(i), data.answerCountPerRound.at(i));
+    }
+
     contentLayout->addStretch();
 
     QFont font = titleLabel->font();

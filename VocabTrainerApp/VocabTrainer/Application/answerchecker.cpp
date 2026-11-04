@@ -45,7 +45,7 @@ QString AnswerChecker::normalizeAnswer(const QString &answer)
     QChar typographicApostrophe(0x2019);
     QChar straightApostrophe('\'');
     preprocessedAnswer.replace(typographicApostrophe, straightApostrophe);
-    preprocessedAnswer = preprocessedAnswer.toLower().simplified();
+    preprocessedAnswer = preprocessedAnswer.toLower();
 
     QString result;
     result.reserve(answer.size());
@@ -58,5 +58,5 @@ QString AnswerChecker::normalizeAnswer(const QString &answer)
         }
     }
 
-    return result;
+    return result.simplified();
 }

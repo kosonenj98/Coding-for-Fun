@@ -43,6 +43,7 @@ namespace Statistics
     struct SaveTrainingResult
     {
         Error::Code code = Error::Code::Success;
+        qint64 trainingNumber;
     };
 }
 

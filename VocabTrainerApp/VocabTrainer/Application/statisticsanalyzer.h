@@ -16,8 +16,10 @@ public:
     int getAnswerCount(const QList<Training::QuestionData> &data);
     int getCorrectAnswerCount(const QList<Training::QuestionData> &data);
     int getWrongAnswerCount(const QList<Training::QuestionData> &data);
-    QList<int> getCorrectAnswerCountPerRound(const QList<Training::QuestionData> &data);
+    QList<int> getCorrectAnswerCountPerAttempt(const QList<Training::QuestionData> &data);
     int getRemainsWrongOrUnansweredCount(const QList<Training::QuestionData> &data);
+    QList<int> getCorrectAnswerCountPerRound(const QList<Training::QuestionData> &data);
+    QList<int> getAnswerCountPerRound(const QList<Training::QuestionData> &data);
     QList<Training::VocabEntryStat> getTopBest(const QList<Training::QuestionData> &data, int top);
     QList<Training::VocabEntryStat> getTopWorst(const QList<Training::QuestionData> &data, int top);
 

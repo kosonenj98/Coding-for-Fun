@@ -5,6 +5,7 @@
 #include "DataTypes/log.h"
 #include "DataTypes/settings.h"
 #include "DataTypes/training.h"
+#include "DataTypes/statistics.h"
 #include "Application/settingshandler.h"
 #include "mainview.h"
 #include "settingsview.h"
@@ -20,6 +21,8 @@ public:
     explicit MainWindow(Logger &logger, SettingsHandler &handler, QWidget *parent = nullptr);
 
 public slots:
+    void handleInitializeStatisticsDatabaseFinished(const Statistics::InitializeDatabaseResult &result);
+
     void handleLogQueryRequest(const Log::QueryRequest &request);
     void handleLogQueryFinished(const Log::QueryResult &result);
 

@@ -22,6 +22,7 @@ public:
 
 public slots:
     void initialize();
+    void handleInitializeStatisticsDatabaseFinished(const Statistics::InitializeDatabaseResult &result);
 
     void handleLogQueryRequest(const Log::QueryRequest &request);
     void handleLogQueryFinished(const Log::QueryResult &result);
@@ -46,6 +47,7 @@ public slots:
     void shutdown();
 
 signals:
+    void initializeStatisticsDatabaseFinished(const Statistics::InitializeDatabaseResult &result);
     void logQueryFinished(const Log::QueryResult &result);
     void loadVocabFinished(const Vocab::LoadResult &result);
     void clearVocabFinished(const Vocab::ClearResult &result);

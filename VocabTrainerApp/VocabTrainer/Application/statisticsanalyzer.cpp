@@ -117,28 +117,35 @@ int StatisticsAnalyzer::getWrongAnswerCount(const QList<Training::QuestionData> 
     return result;
 }
 
-QList<int> StatisticsAnalyzer::getCorrectAnswerCountPerRound(const QList<Training::QuestionData> &data)
+QList<int> StatisticsAnalyzer::getCorrectAnswerCountPerAttempt(const QList<Training::QuestionData> &data)
 {
-    m_logger.debug(logTag(), QStringLiteral("Getting correct answer count per round..."));
+    m_logger.debug(logTag(), QStringLiteral("Getting correct answer count per attempt..."));
     QList<int> result;
-    int roundCount = getRoundCount(data);
-    for (int roundNumber = 1; roundNumber < roundCount + 1; roundNumber++)
+    int maxAttemptCount = getRoundCount(data);
+    for (int attemptNumber = 1; attemptNumber < maxAttemptCount + 1; attemptNumber++)
     {
         int correctAnswerCount = 0;
         for (const auto &questionData : data)
         {
+            int firstCorrectAttempt = -1;
             for (const auto &roundContext : questionData.roundContexts)
             {
-                if (roundContext.roundNumber == roundNumber && roundContext.state == Training::QuestionState::Correct)
+                if (roundContext.state == Training::QuestionState::Correct)
                 {
-                    correctAnswerCount++;
-                    break;
+                    if (firstCorrectAttempt == -1 || roundContext.roundNumber < firstCorrectAttempt)
+                    {
+                        firstCorrectAttempt = roundContext.roundNumber;
+                    }
                 }
+            }
+            if (firstCorrectAttempt == attemptNumber)
+            {
+                correctAnswerCount++;
             }
         }
         result.append(correctAnswerCount);
     }
-    m_logger.debug(logTag(), QStringLiteral("Getting correct answer count per round done!"));
+    m_logger.debug(logTag(), QStringLiteral("Getting correct answer count per attempt done!"));
     return result;
 }
 
@@ -155,6 +162,54 @@ int StatisticsAnalyzer::getRemainsWrongOrUnansweredCount(const QList<Training::Q
         }
     }
     m_logger.debug(logTag(), QStringLiteral("Getting wrong answer count done!"));
+    return result;
+}
+
+QList<int> StatisticsAnalyzer::getCorrectAnswerCountPerRound(const QList<Training::QuestionData> &data)
+{
+    m_logger.debug(logTag(), QStringLiteral("Getting correct answer count per round..."));
+    QList<int> result;
+    int maxRoundCount = getRoundCount(data);
+    for (int roundNumber = 1; roundNumber < maxRoundCount + 1; roundNumber++)
+    {
+        int correctAnswerCount = 0;
+        for (const auto &questionData : data)
+        {
+            for (const auto &roundContext : questionData.roundContexts)
+            {
+                if (roundContext.roundNumber == roundNumber && roundContext.state == Training::QuestionState::Correct)
+                {
+                    correctAnswerCount++;
+                }
+            }
+        }
+        result.append(correctAnswerCount);
+    }
+    m_logger.debug(logTag(), QStringLiteral("Getting correct answer count per round done!"));
+    return result;
+}
+
+QList<int> StatisticsAnalyzer::getAnswerCountPerRound(const QList<Training::QuestionData> &data)
+{
+    m_logger.debug(logTag(), QStringLiteral("Getting answer count per round..."));
+    QList<int> result;
+    int maxRoundCount = getRoundCount(data);
+    for (int roundNumber = 1; roundNumber < maxRoundCount + 1; roundNumber++)
+    {
+        int answerCount = 0;
+        for (const auto &questionData : data)
+        {
+            for (const auto &roundContext : questionData.roundContexts)
+            {
+                if (roundContext.roundNumber == roundNumber)
+                {
+                    answerCount++;
+                }
+            }
+        }
+        result.append(answerCount);
+    }
+    m_logger.debug(logTag(), QStringLiteral("Getting answer count per round done!"));
     return result;
 }
 

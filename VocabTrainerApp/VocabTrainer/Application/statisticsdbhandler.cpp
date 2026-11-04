@@ -65,6 +65,7 @@ Statistics::SaveTrainingResult StatisticsDBHandler::saveTraining(const Statistic
     }
 
     qint64 trainingId = insertTrainingSession(request.sessionData);
+    result.trainingNumber = trainingId;
     if (trainingId < 0)
     {
         result.code = Error::Code::CannotSaveToDB;
@@ -748,6 +749,7 @@ QList<Training::VocabEntryStat> StatisticsDBHandler::getTopAllTime(int limit, bo
                 SUM(tw.correct_count + tw.wrong_count) AS answer_count
             FROM words w
             JOIN training_words tw ON tw.word_id = w.id
+            WHERE w.vocab_title NOT LIKE '%debug%'
             GROUP BY w.id
             HAVING answer_count > 0
             ORDER BY

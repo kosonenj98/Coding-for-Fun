@@ -53,6 +53,9 @@ int main(int argc, char *argv[])
     logger.verbose(logTag(), QStringLiteral("Initializing MainWindow..."));
     MainWindow mainWindow(logger, settingsHandler);
 
+    // Initialize statistics database events
+    QObject::connect(vocabTrainer, &VocabTrainer::initializeStatisticsDatabaseFinished, &mainWindow, &MainWindow::handleInitializeStatisticsDatabaseFinished, Qt::QueuedConnection);
+
     // Connect log query events
     QObject::connect(&mainWindow, &MainWindow::requestLogQuery, vocabTrainer, &VocabTrainer::handleLogQueryRequest, Qt::QueuedConnection);
     QObject::connect(vocabTrainer, &VocabTrainer::logQueryFinished, &mainWindow, &MainWindow::handleLogQueryFinished, Qt::QueuedConnection);
